@@ -1,0 +1,10 @@
+-- Migration: create doctor_documents table
+CREATE TABLE IF NOT EXISTS doctor_documents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  filename VARCHAR(255) NOT NULL,
+  path VARCHAR(512) NOT NULL,
+  url VARCHAR(512) NOT NULL,
+  creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

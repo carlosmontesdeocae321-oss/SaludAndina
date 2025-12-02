@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clinica App — Plataforma Moderna</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--primary:#2563eb;--primary-2:#1e40af;--accent:#f97316;--dark:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--bg:#f8fafc;--card:#ffffff;--radius:14px;--glass:rgba(255,255,255,0.72);--surface:#e2e8f0;}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:var(--dark);}
+    header{background:var(--card);box-shadow:0 3px 12px rgba(16,24,40,0.06);position:sticky;top:0;z-index:40;backdrop-filter:blur(16px)}
+    nav{width:92%;max-width:1200px;margin:auto;padding:16px 0;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-weight:700;color:var(--primary);text-decoration:none;font-size:1.4rem;letter-spacing:.02em}
+    .navlinks{display:flex;align-items:center;gap:18px}
+    .navlinks a{position:relative;text-decoration:none;color:var(--dark);font-weight:600;opacity:.92;padding:6px 0}
+    .navlinks a::after{content:"";position:absolute;inset:auto 0 -4px;height:2px;background:var(--primary);transform:scaleX(0);transform-origin:center;transition:transform .25s ease}
+    .navlinks a:hover{color:var(--primary)}
+    .navlinks a:hover::after{transform:scaleX(1)}
+
+    .hero{padding:110px 0 80px;background:radial-gradient(circle at top right,rgba(37,99,235,0.16),transparent 48%),linear-gradient(140deg,var(--primary) 0%,var(--primary-2) 60%,#132d70 100%);color:white}
+    .hero .wrapper{width:92%;max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:center;gap:40px}
+    .hero-col{display:flex;flex-direction:column;gap:16px}
+    .hero h1{font-size:3rem;margin-bottom:16px;line-height:1.05}
+    .hero p{font-size:1.07rem;opacity:.92}
+    .hero-tags{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+    .hero-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(15,23,42,0.22);border:1px solid rgba(255,255,255,0.12);font-weight:600;font-size:.85rem;letter-spacing:.03em}
+    .hero-feature-list{margin:20px 0 0;display:grid;gap:12px}
+    .hero-feature{display:flex;align-items:flex-start;gap:12px;font-size:.98rem;opacity:.95}
+    .hero-feature span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);color:white;font-weight:700}
+    .actions{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
+    .actions .btn{box-shadow:0 10px 30px rgba(15,23,42,0.15)}
+    .hero-illustration{position:relative;padding:24px;border-radius:18px;background:rgba(15,23,42,0.18);box-shadow:0 30px 70px rgba(15,23,42,0.35);backdrop-filter:blur(20px)}
+    .hero-illustration::after{content:"";position:absolute;inset:20px;border-radius:16px;border:1px solid rgba(255,255,255,0.18);pointer-events:none}
+    .hero-illustration h3{font-size:1.1rem;margin-bottom:12px;letter-spacing:.05em;text-transform:uppercase;opacity:.85}
+    .hero-illustration ul{list-style:none;display:grid;gap:12px;font-size:.94rem;opacity:.9}
+
+    .btn{padding:12px 24px;border-radius:12px;font-weight:700;text-decoration:none;display:inline-block}
+    .btn-ghost{background:transparent;border:2px solid rgba(255,255,255,0.18);color:white}
+    .btn-primary{background:white;color:var(--primary-2)}
+    .download-row{margin-top:12px;display:flex;gap:10px;justify-content:center}
+    .download-btn{padding:10px 18px;border-radius:10px;background:rgba(255,255,255,0.12);color:white;text-decoration:none;font-weight:700;border:1px solid rgba(255,255,255,0.12)}
+    .download-note{display:block;text-align:center;margin-top:8px;color:rgba(255,255,255,0.9);opacity:0.9;font-size:0.9rem}
+    .download-note code{background:rgba(15,23,42,0.32);padding:2px 6px;border-radius:6px;font-size:.85rem;color:#f8fafc}
+
+    .stats{padding:42px 0 18px;background:linear-gradient(0deg,rgba(15,23,42,0.018),transparent);}
+    .stats-wrap{width:92%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+    .stat-card{padding:24px;border-radius:20px;background:var(--card);box-shadow:0 16px 40px rgba(15,23,42,0.06);text-align:left;position:relative;overflow:hidden}
+    .stat-card::after{content:"";position:absolute;bottom:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:rgba(37,99,235,0.08)}
+    .stat-card h3{font-size:2rem;color:var(--primary-2);margin-bottom:6px}
+    .stat-card span{font-size:.95rem;color:var(--muted)}
+
+    .section{padding:70px 0}
+    h2{text-align:center;font-size:2rem;margin-bottom:22px}
+    .section-subtitle{text-align:center;color:var(--muted);max-width:680px;margin:0 auto 36px;font-size:1rem}
+
+    .features{width:92%;max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
+    .feature{background:var(--card);padding:26px;border-radius:18px;box-shadow:0 20px 40px rgba(15,23,42,0.06);border:1px solid rgba(15,23,42,0.06);text-align:left;display:flex;flex-direction:column;gap:12px}
+    .feature-icon{width:48px;height:48px;border-radius:14px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--primary)}
+    .feature h3{color:var(--primary-2);margin-bottom:4px;font-size:1.2rem}
+    .feature p{color:var(--muted);font-size:.97rem;line-height:1.55}
+
+    .modules{width:92%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+    .module-card{border-radius:20px;background:var(--card);padding:28px;box-shadow:0 24px 44px rgba(15,23,42,0.06);border:1px solid rgba(37,99,235,0.08)}
+    .module-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+    .module-header span{width:42px;height:42px;border-radius:12px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary-2)}
+    .module-card ul{list-style:none;margin-top:10px;display:grid;gap:10px;color:var(--muted);font-size:.95rem}
+    .module-card ul li{display:flex;align-items:flex-start;gap:8px}
+    .module-card ul li::before{content:"•";color:var(--accent);line-height:1.4;font-weight:700}
+
+    .timeline{width:92%;max-width:900px;margin:0 auto;display:grid;gap:26px;position:relative;padding-left:22px}
+    .timeline::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--primary) 0%,var(--primary-2) 100%)}
+    .timeline-step{position:relative;padding-left:26px}
+    .timeline-step::before{content:"";position:absolute;left:-13px;top:4px;width:18px;height:18px;border-radius:50%;background:var(--card);border:4px solid var(--primary)}
+    .timeline-step h3{margin-bottom:6px;color:var(--primary-2)}
+    .timeline-step p{color:var(--muted);line-height:1.55}
+
+    .integrations{width:92%;max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;text-align:center}
+    .integration-card{padding:20px;border-radius:18px;background:var(--glass);border:1px solid rgba(15,23,42,0.08);box-shadow:0 18px 36px rgba(15,23,42,0.05);backdrop-filter:blur(18px);color:var(--dark);font-weight:600}
+    .integration-card span{display:block;color:var(--muted);font-size:.9rem;margin-top:6px}
+
+    .cta{padding:70px 0;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-2) 60%,#122861 100%);color:white;text-align:center}
+    .cta-inner{width:92%;max-width:760px;margin:0 auto;padding:48px;border-radius:24px;background:rgba(15,23,42,0.18);box-shadow:0 30px 60px rgba(15,23,42,0.35);backdrop-filter:blur(16px)}
+    .cta-inner h2{margin-bottom:16px}
+    .cta-inner p{margin-bottom:24px;opacity:.92}
+    .cta-actions{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+    .cta-actions .btn{border-radius:999px;padding:14px 28px}
+
+    /* gallery */
+    .gallery{width:92%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    @media(max-width:900px){.gallery{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:520px){.gallery{grid-template-columns:1fr}}
+    .thumb{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 10px 28px rgba(2,6,23,0.06);cursor:pointer;position:relative}
+    .thumb img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:4/7;transition:transform .28s ease}
+    .thumb:hover img{transform:scale(1.03)}
+    .thumb .label{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,0.45);color:white;padding:6px 10px;border-radius:10px;font-size:.85rem}
+
+    /* lightbox */
+    .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,7,18,0.6);z-index:90;padding:28px}
+    .lb.open{display:flex}
+    .lb .stage{max-width:1200px;width:100%;max-height:90vh;display:flex;align-items:center;gap:18px}
+    .lb .imgwrap{flex:1;display:flex;align-items:center;justify-content:center}
+    .lb img{max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 20px 40px rgba(2,6,23,0.5)}
+    .lb .controls{width:90px;display:flex;flex-direction:column;gap:12px;align-items:center}
+    .lb button{background:var(--card);border-radius:12px;border:none;padding:10px 12px;box-shadow:0 6px 18px rgba(2,6,23,0.06);cursor:pointer}
+    .lb .meta{margin-top:10px;color:var(--muted);font-weight:600}
+
+    .lb .close{position:fixed;right:22px;top:22px;background:var(--card);padding:10px 12px;border-radius:12px;z-index:100}
+    .lb .nav{display:flex;gap:8px}
+
+    footer{padding:30px 0;text-align:center;color:var(--muted);margin-top:0}
+    footer .foot-links{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;margin-bottom:10px;font-size:.92rem}
+    footer a{color:inherit;text-decoration:none}
+
+    @media(max-width:920px){
+      .hero .wrapper{grid-template-columns:1fr}
+      .hero-illustration{order:-1}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a class="logo" href="#">ClinicaApp</a>
+    <div class="navlinks">
+      <a href="#features">Funciones</a>
+      <a href="#modules">Módulos</a>
+      <a href="#workflow">Flujo</a>
+      <a href="#integrations">Integraciones</a>
+      <a href="#contact">Contacto</a>
+    </div>
+  </nav>
+</header>
+
+<section class="stats" aria-label="Indicadores de ClinicaApp">
+  <div class="stats-wrap">
+    <div class="stat-card">
+      <h3>+58K</h3>
+      <span>Consultas registradas con historial clínico completo.</span>
+    </div>
+    <div class="stat-card">
+      <h3>97%</h3>
+      <span>Pacientes confirmados al primer recordatorio automático.</span>
+    </div>
+    <div class="stat-card">
+      <h3>+230</h3>
+      <span>Clínicas y consultorios operando sobre la plataforma.</span>
+    </div>
+    <div class="stat-card">
+      <h3>48 h</h3>
+      <span>Tiempo promedio de despliegue con acompañamiento experto.</span>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section">
+  <h2>Todo lo que tu clínica necesita</h2>
+  <p class="section-subtitle">ClinicaApp combina módulos clínicos, administrativos y financieros en un solo flujo. Cada actualización de la app móvil se refleja también en el portal web para tu personal.</p>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🩺</div>
+      <h3>Historias clínicas vivas</h3>
+      <p>Consulta evoluciones, signos vitales, recetas y adjuntos en segundos. Genera PDFs listos para enviar al paciente o exportar a otro sistema.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🗓️</div>
+      <h3>Agenda inteligente</h3>
+      <p>Bloques por especialidad, recordatorios automáticos, lista de espera y asignación masiva por doctor, sede o teleconsulta.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">💳</div>
+      <h3>Cobros y planes</h3>
+      <p>Procesa pagos en línea, QR o POS. Ofrece membresías, paquetes, facturación electrónica y conciliación bancaria diaria.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📊</div>
+      <h3>Analytics en tiempo real</h3>
+      <p>Panel con métricas de productividad, productividad médica, ocupación de salas, ventas y NPS por sede.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">👥</div>
+      <h3>Gestión de equipos</h3>
+      <p>Roles granular, flujos de aprobación, evaluaciones de desempeño y portal del médico con su propia agenda y reportes.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔐</div>
+      <h3>Seguridad y cumplimiento</h3>
+      <p>Cifrado end-to-end, respaldos automáticos, bitácora de auditoría y cumplimiento con normativas de datos de salud.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📦</div>
+      <h3>Inventario clínico</h3>
+      <p>Control de stock, lotes y costos por procedimiento. Alertas de insumos críticos y consumo por paciente.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🤝</div>
+      <h3>Experiencia del paciente</h3>
+      <p>Portal self-service, formularios digitales, firmas, recordatorios sms/WhatsApp y seguimiento post consulta.</p>
+    </div>
+  </div>
+</section>
+
+<section id="modules" class="section">
+  <h2>Módulos destacados de la app</h2>
+  <p class="section-subtitle">Replica la experiencia móvil en web: cada módulo de ClinicaApp está sincronizado en tiempo real entre recepcionistas, médicos y pacientes.</p>
+  <div class="modules">
+    <div class="module-card">
+      <div class="module-header"><span>HC</span><div>
+        <strong>Historial clínico avanzado</strong><br />
+        Evolución, signos vitales, archivos y recetas con un clic.
+      </div></div>
+      <ul>
+        <li>Resumen cronológico con timeline y vista por especialidad.</li>
+        <li>Captura offline en consultorio con sincronización automática.</li>
+        <li>Generación de receta inteligente con plantillas del doctor.</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="module-header"><span>OP</span><div>
+        <strong>Operaciones y agenda</strong><br />
+        Agenda visual, recordatorios y administración de salas.
+      </div></div>
+      <ul>
+        <li>Arrastrar y soltar citas, bloqueos y cupos rápidos.</li>
+        <li>Recordatorios automáticos por WhatsApp, SMS y email.</li>
+        <li>Flujo de admisión: triage, consentimientos y facturación.</li>
+      </ul>
+    </div>
+    <div class="module-card">
+      <div class="module-header"><span>PX</span><div>
+        <strong>Experiencia del paciente</strong><br />
+        Portal, teleconsulta y seguimiento pos consulta.
+      </div></div>
+      <ul>
+        <li>Check-in digital, formularios de antecedentes y pagos en línea.</li>
+        <li>Enlaces de teleconsulta con sala de espera y grabación.</li>
+        <li>Encuestas NPS y automatizaciones de fidelización.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="workflow" class="section" style="padding-top:40px">
+  <h2>Flujo completo desde la cita hasta el seguimiento</h2>
+  <p class="section-subtitle">Así se vive ClinicaApp en tu día a día: unifica al equipo médico, recepción, cobranzas y pacientes en un solo hilo.</p>
+  <div class="timeline">
+    <div class="timeline-step">
+      <h3>1. Agendamiento omnicanal</h3>
+      <p>Reserva desde la app, portal del paciente o call center. La disponibilidad se sincroniza en tiempo real por sede, sala y médico.</p>
+    </div>
+    <div class="timeline-step">
+      <h3>2. Check-in y preconsulta</h3>
+      <p>Automatiza formularios, consentimientos y cobro de copagos. Recepción recibe alertas si faltan documentos o pagos.</p>
+    </div>
+    <div class="timeline-step">
+      <h3>3. Consulta médica con historial vivo</h3>
+      <p>El médico registra motivo, signos vitales, tratamiento y recetas. Adjunta imágenes, estudios y audio directamente desde la app.</p>
+    </div>
+    <div class="timeline-step">
+      <h3>4. Facturación y cobranza</h3>
+      <p>Genera cobros automáticos, aplica planes o paquetes y envía recibos digitales. Integración con SUNAT, DIAN u otras entidades locales.</p>
+    </div>
+    <div class="timeline-step">
+      <h3>5. Seguimiento y fidelización</h3>
+      <p>Encuestas post consulta, recordatorios de tratamiento, campañas por segmento y tableros de retención en tiempo real.</p>
+    </div>
+  </div>
+</section>
+
+<section id="integrations" class="section" style="padding-top:40px">
+  <h2>Integraciones listas para usar</h2>
+  <p class="section-subtitle">Conecta ClinicaApp con tus herramientas favoritas. Si necesitas otra integración, nuestro equipo la desarrolla contigo.</p>
+  <div class="integrations">
+    <div class="integration-card">WhatsApp Business<span>Recordatorios y campañas conversacionales.</span></div>
+    <div class="integration-card">Stripe / Kushki / Mercado Pago<span>Pagos en línea, planes y conciliación automática.</span></div>
+    <div class="integration-card">Google Calendar<span>Sincroniza agendas personales con permisos controlados.</span></div>
+    <div class="integration-card">Power BI / Looker Studio<span>Envía métricas y tableros a tu suite analítica.</span></div>
+    <div class="integration-card">Slack / Teams<span>Alertas en vivo para equipos administrativos y médicos.</span></div>
+    <div class="integration-card">FHIR / HL7<span>Interoperabilidad con historias clínicas y aseguradoras.</span></div>
+  </div>
+</section>
+
+<section id="screens" class="section">
+  <h2>Pantallas (clic para ampliar)</h2>
+  <div class="gallery" aria-label="Galería de pantallas de la app">
+    <div class="thumb" data-index="0" tabindex="0"><img src="images/s1.png" alt="Pantalla 1" /><div class="label">s1.png</div></div>
+    <div class="thumb" data-index="1" tabindex="0"><img src="images/s2.png" alt="Pantalla 2" /><div class="label">s2.png</div></div>
+    <div class="thumb" data-index="2" tabindex="0"><img src="images/s3.png" alt="Pantalla 3" /><div class="label">s3.png</div></div>
+    <div class="thumb" data-index="3" tabindex="0"><img src="images/s4.png" alt="Pantalla 4" /><div class="label">s4.png</div></div>
+    <div class="thumb" data-index="4" tabindex="0"><img src="images/s5.png" alt="Pantalla 5" /><div class="label">s5.png</div></div>
+    <div class="thumb" data-index="5" tabindex="0"><img src="images/s6.png" alt="Pantalla 6" /><div class="label">s6.png</div></div>
+    <div class="thumb" data-index="6" tabindex="0"><img src="images/s7.png" alt="Pantalla 7" /><div class="label">s7.png</div></div>
+    <div class="thumb" data-index="7" tabindex="0"><img src="images/s8.png" alt="Pantalla 8" /><div class="label">s8.png</div></div>
+  </div>
+</section>
+
+<!-- Lightbox -->
+<div class="lb" id="lightbox" role="dialog" aria-hidden="true" aria-label="Imagen ampliada">
+  <button class="close" id="lbClose" aria-label="Cerrar">Cerrar</button>
+  <div class="stage">
+    <div class="imgwrap">
+      <img id="lbImage" src="" alt="Imagen ampliada" />
+      <div class="meta" id="lbMeta" style="display:none;margin-top:12px;color:var(--card)"></div>
+    </div>
+    <div class="controls">
+      <div class="nav">
+        <button id="prevBtn" aria-label="Anterior">◀</button>
+        <button id="nextBtn" aria-label="Siguiente">▶</button>
+      </div>
+      <div style="height:6px"></div>
+      <button id="downloadBtn" aria-label="Descargar">Descargar</button>
+    </div>
+  </div>
+</div>
+
+<section class="cta" id="precios">
+  <div class="cta-inner">
+    <h2>¿Listo para modernizar tu clínica?</h2>
+    <p>Lanza ClinicaApp en menos de 48 horas con acompañamiento experto. Personalizamos formularios, integraciones y reportes para tu operación.</p>
+    <div class="cta-actions">
+      <a class="btn btn-primary" href="#contact">Agendar llamada</a>
+      <a class="btn btn-ghost" href="mailto:ventas@tuempresa.com">Escribir a ventas</a>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="section" style="padding-top:40px">
+  <div style="width:92%;max-width:900px;margin:0 auto;text-align:center;background:var(--card);padding:36px;border-radius:18px;box-shadow:0 18px 40px rgba(2,6,23,0.08)">
+    <h2>Contacto directo</h2>
+    <p style="color:var(--muted);max-width:520px;margin:0 auto 24px">Agenda una demo, solicita soporte o cotiza adaptaciones personalizadas. Responderemos en menos de 24 horas hábiles.</p>
+    <div style="display:grid;gap:16px;justify-items:center">
+      <a href="tel:+593962542536" style="display:flex;align-items:center;gap:10px;font-weight:700;color:var(--primary)">📞 Teléfono / WhatsApp / Telegram: <span style="color:var(--dark)">0962542536</span></a>
+      <a href="mailto:carlosmontesdeoca30@hotmail.com" style="display:flex;align-items:center;gap:10px;font-weight:700;color:var(--primary)">✉️ Email: <span style="color:var(--dark)">carlosmontesdeoca30@hotmail.com</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-links">
+    <a href="#features">Funciones</a>
+    <a href="#modules">Módulos</a>
+    <a href="#workflow">Flujo</a>
+    <a href="#integrations">Integraciones</a>
+    <a href="#screens">Galería</a>
+    <a href="#contact">Contacto</a>
+  </div>
+  ClinicaApp · © 2025 — Plataforma clínica moderna para LATAM · Creado por Carlos Montesdeoca Domaxivar
+</footer>
+
+<script>
+(function(){
+  const images = [
+    'images/s1.png','images/s2.png','images/s3.png','images/s4.png','images/s5.png','images/s6.png','images/s7.png','images/s8.png'
+  ];
+
+  const thumbs = Array.from(document.querySelectorAll('.thumb'));
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lbImage');
+  const lbClose = document.getElementById('lbClose');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  let idx = 0;
+
+  function openAt(i){
+    idx = (i + images.length) % images.length;
+    lbImg.src = images[idx];
+    lbImg.alt = 'Pantalla '+(idx+1);
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden','false');
+    // focus trap simple
+    lbClose.focus();
+    history.replaceState(null, '', '#screen-'+(idx+1));
+  }
+
+  function closeLB(){
+    lb.classList.remove('open');
+    lb.setAttribute('aria-hidden','true');
+    try{ history.replaceState(null,'', ' '); }catch(e){}
+  }
+
+  thumbs.forEach(t=>{
+    const i = Number(t.dataset.index);
+    t.addEventListener('click', ()=> openAt(i));
+    t.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') openAt(i); });
+  });
+
+  lbClose.addEventListener('click', closeLB);
+  prevBtn.addEventListener('click', ()=> openAt(idx-1));
+  nextBtn.addEventListener('click', ()=> openAt(idx+1));
+
+  downloadBtn.addEventListener('click', ()=>{
+    const a = document.createElement('a'); a.href = images[idx]; a.download = images[idx].split('/').pop(); document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // keyboard
+  window.addEventListener('keydown', (e)=>{
+    if(lb.classList.contains('open')){
+      if(e.key==='Escape') closeLB();
+      if(e.key==='ArrowRight') openAt(idx+1);
+      if(e.key==='ArrowLeft') openAt(idx-1);
+    }
+  });
+
+  // close clicking outside image
+  lb.addEventListener('click', (e)=>{ if(e.target===lb) closeLB(); });
+
+  // deep-link if hash present
+  const hash = location.hash.match(/#screen-(\d+)/);
+  if(hash){ const i = Number(hash[1]) - 1; if(i>=0 && i<images.length) setTimeout(()=>openAt(i),200); }
+
+})();
+</script>
+
+</body>
+</html>

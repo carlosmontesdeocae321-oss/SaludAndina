@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "306084030452",
+    "project_id": "saludandina-f0fad",
+    "storage_bucket": "saludandina-f0fad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:306084030452:android:de0ad4dbba925887b23ba1",
+        "android_client_info": {
+          "package_name": "com.saludandina.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "306084030452-r8d2i4is3smhjt2bk9e1q7681i04mgm2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.saludandina.com",
+            "certificate_hash": "738021f41a8b7a4641353fc3f696a95c745a1b5f"
+          }
+        },
+        {
+          "client_id": "306084030452-l569tnou1osuu28rgiqv7bc04o59tv9h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgjF_0dDUWzNf8ByTfO5IGpnkPCXpF3go"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "306084030452-l569tnou1osuu28rgiqv7bc04o59tv9h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

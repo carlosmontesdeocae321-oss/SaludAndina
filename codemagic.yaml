@@ -1,0 +1,36 @@
+# Codemagic workflow to build iOS IPA for TestFlight (example)
+# Instructions:
+# - Configure code signing in Codemagic UI (App Store Connect API Key or upload p12/provisioning)
+# - Add any secure environment variables (BASE_URL, etc.) in Codemagic app settings
+# - This workflow builds an IPA and stores it as artifact. To auto-publish to TestFlight,
+#   configure publishing in the Codemagic UI and provide App Store Connect credentials/API key.
+
+workflows:
+  ios-release:
+    name: Build iOS (IPA)
+    environment:
+      flutter: stable
+      vars:
+        # Default backend for quick testing - override in Codemagic UI if needed
+        BASE_URL: "https://web-production-e8ddf.up.railway.app"
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+          cd ios
+          pod install --repo-update || true
+          cd ..
+
+      - name: Build IPA
+        # If you configure code signing in Codemagic, remove --no-codesign to let Codemagic sign the archive.
+        script: |
+          flutter build ipa --release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+    # Publishing is usually configured in the Codemagic UI (App Store Connect API key / credentials)
+    # Uncomment/adjust publishing steps if you configure credentials in the UI
+    publishing:
+      - provider: testers
+        type: testflight

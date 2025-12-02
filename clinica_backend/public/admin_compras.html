@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Compras Promociones</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;padding:18px;background:#f6f7fb}
+    table{width:100%;border-collapse:collapse;background:white}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+    th{background:#fafafa}
+    .btn{padding:8px 12px;border-radius:6px;border:none;background:#2563eb;color:white;cursor:pointer}
+    .small{font-size:0.9rem;color:#555}
+    .hdr{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    label{font-weight:600}
+    input[type=text]{padding:8px;border-radius:6px;border:1px solid #ccc}
+  </style>
+</head>
+<body>
+  <div class="hdr">
+    <div>
+      <label>Usuario (x-usuario)</label><br>
+      <input id="user" type="text" placeholder="usuario" />
+    </div>
+    <div>
+      <label>Clave (x-clave)</label><br>
+      <input id="pass" type="text" placeholder="clave" />
+    </div>
+    <div style="align-self:flex-end">
+      <button id="loadBtn" class="btn">Cargar compras pendientes</button>
+    </div>
+  </div>
+
+  <div id="mensaje" class="small">Ingrese credenciales y haga click en "Cargar compras pendientes".</div>
+  <div style="height:12px"></div>
+  <table id="tbl" style="display:none">
+    <thead><tr><th>ID</th><th>Título</th><th>Monto</th><th>Clinica</th><th>Usuario</th><th>Creado</th><th>Acción</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <script>
+    const loadBtn = document.getElementById('loadBtn');
+    const userInput = document.getElementById('user');
+    const passInput = document.getElementById('pass');
+    const mensaje = document.getElementById('mensaje');
+    const tbl = document.getElementById('tbl');
+    const tbody = document.getElementById('tbody');
+
+    function headers(){
+      return {
+        'Content-Type':'application/json',
+        'x-usuario': userInput.value || '',
+        'x-clave': passInput.value || ''
+      };
+    }
+
+    loadBtn.addEventListener('click', async ()=>{
+      mensaje.textContent = 'Cargando...';
+      try{
+        const res = await fetch('/api/compras_promociones/admin/list',{ headers: headers() });
+        const data = await res.json();
+        if(!res.ok){ mensaje.textContent = data.message || 'Error'; return; }
+        const compras = data.compras || [];
+        tbody.innerHTML = '';
+        if(compras.length===0){ mensaje.textContent = 'No hay compras pendientes.'; tbl.style.display='none'; return; }
+        for(const c of compras){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${c.id}</td><td>${c.titulo}</td><td>${c.monto}</td><td>${c.clinica_id||''}</td><td>${c.usuario_id||''}</td><td>${c.creado_en}</td><td><button data-id="${c.id}" class="btn">Confirmar</button></td>`;
+          tbody.appendChild(tr);
+        }
+        tbl.style.display='table';
+        mensaje.textContent = 'Compras cargadas. Usa Confirmar para marcar como pagadas.';
+        // bind buttons
+        document.querySelectorAll('button[data-id]').forEach(b=>{
+          b.addEventListener('click', async (ev)=>{
+            const id = ev.currentTarget.dataset.id;
+            if(!confirm('Confirmar compra ID '+id+'?')) return;
+            ev.currentTarget.disabled = true;
+            const r = await fetch('/api/compras_promociones/admin/confirm',{ method:'POST', headers: headers(), body: JSON.stringify({ compraId: id }) });
+            const j = await r.json();
+            if(r.ok){ ev.currentTarget.textContent = 'Confirmado'; ev.currentTarget.style.background='#10b981'; } else { alert(j.message || 'Error'); ev.currentTarget.disabled=false; }
+          });
+        });
+      } catch(e){ mensaje.textContent = 'Error cargando: '+e.toString(); }
+    });
+  </script>
+</body>
+</html>
