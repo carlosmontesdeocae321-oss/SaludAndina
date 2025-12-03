@@ -142,6 +142,12 @@ class ApiService {
     return headers;
   }
 
+  static bool _hasAuthHeaders(Map<String, String> headers) {
+    return headers.containsKey('x-usuario') ||
+        headers.containsKey('x-clave') ||
+        headers.containsKey('x-firebase-uid');
+  }
+
   // Returns true if stored credentials exist (basic check for x-usuario/x-clave)
   static Future<bool> isAuthenticated() async {
     final prefs = await SharedPreferences.getInstance();
@@ -348,6 +354,11 @@ class ApiService {
     final url = Uri.parse('$baseUrl/api/historial/paciente/$pacienteId');
     final headers = await _getHeaders();
 
+    if (!_hasAuthHeaders(headers)) {
+      _log('📌 obtenerConsultasPaciente - sin headers de autenticación, usando fallback local');
+      return [];
+    }
+
     _log('📌 obtenerConsultasPaciente - GET $url');
     _log('📌 Headers: $headers');
 
@@ -471,6 +482,12 @@ class ApiService {
   static Future<List<Cita>> obtenerCitas() async {
     final url = Uri.parse('$baseUrl/api/citas');
     final headers = await _getHeaders();
+
+    if (!_hasAuthHeaders(headers)) {
+      _log('📌 obtenerCitas - sin headers de autenticación, retornando lista vacía');
+      return [];
+    }
+
     _log('📌 obtenerCitas - GET $url');
     _log('📌 obtenerCitas - Headers: $headers');
     final res = await http.get(url, headers: headers);

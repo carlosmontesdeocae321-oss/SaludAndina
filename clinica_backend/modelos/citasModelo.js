@@ -19,6 +19,15 @@ async function obtenerCitasPorDoctor(doctor_id) {
     return rows;
 }
 
+// Obtener citas por paciente (para vistas públicas o detalle de paciente)
+async function obtenerCitasPorPaciente(paciente_id) {
+    const [rows] = await pool.query(
+        'SELECT c.*, p.nombres, p.apellidos, p.doctor_id FROM citas c JOIN pacientes p ON c.paciente_id = p.id WHERE c.paciente_id = ? ORDER BY c.fecha, c.hora',
+        [paciente_id]
+    );
+    return rows;
+}
+
 // Obtener una cita por id y clínica
 async function obtenerCitaPorId(id, clinica_id) {
     if (clinica_id) {
@@ -130,6 +139,7 @@ async function eliminarCita(id, clinica_id, doctor_id) {
 module.exports = {
     obtenerCitasPorClinica,
     obtenerCitasPorDoctor,
+    obtenerCitasPorPaciente,
     obtenerCitaPorId,
     crearCita,
     actualizarCita,

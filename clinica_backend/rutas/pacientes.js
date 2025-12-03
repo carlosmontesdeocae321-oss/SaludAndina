@@ -5,6 +5,8 @@ const { auth } = require('../middlewares/auth');
 const filtroClinica = require('../middlewares/clinica');
 const pacientesModelo = require('../modelos/pacientesModelo');
 const pool = require('../config/db');
+const historialModelo = require('../modelos/historialModelo');
+const citasModelo = require('../modelos/citasModelo');
 
 // --- Rutas públicas (no requieren auth) ---
 // Añadimos un limitador simple en memoria para evitar abusos
@@ -52,7 +54,26 @@ router.get('/cedula/:cedula/global', checkLookupRate, async (req, res) => {
     try {
         const paciente = await pacientesModelo.obtenerPacientePorCedulaGlobal(req.params.cedula);
         if (!paciente) return res.status(404).json({ mensaje: 'Paciente no encontrado' });
-        res.json(paciente);
+
+        // Adjuntar historial y citas para que el paciente pueda ver su información sin autenticarse
+        let historial = [];
+        let citas = [];
+        try {
+            historial = await historialModelo.obtenerHistorialPorPaciente(paciente.id);
+        } catch (e) {
+            console.warn('warn: no se pudo obtener historial para paciente', paciente.id, e.message || e);
+        }
+        try {
+            citas = await citasModelo.obtenerCitasPorPaciente(paciente.id);
+        } catch (e) {
+            console.warn('warn: no se pudo obtener citas para paciente', paciente.id, e.message || e);
+        }
+
+        res.json({
+            ...paciente,
+            historial,
+            citas
+        });
     } catch (error) {
         console.error("ERROR BUSCAR PACIENTE GLOBAL", error);
         res.status(500).json({ error: "Error al obtener paciente global" });
