@@ -35,7 +35,7 @@ async function runMigrations() {
 
     try {
       for (const stmt of statements) {
-        const alterTableMatch = stmt.match(/ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?/i);
+        const alterTableMatch = stmt.match(/^\s*ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?/i);
         const addColumnMatch = stmt.match(/ADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?/i);
         if (alterTableMatch && addColumnMatch) {
           const tableName = alterTableMatch[1];

@@ -9,7 +9,7 @@ SET @addFirebaseUid := (
                 AND COLUMN_NAME = 'firebase_uid'
         ),
         'SELECT 1',
-        'ALTER TABLE usuarios ADD COLUMN firebase_uid VARCHAR(128) NULL AFTER dueno'
+        'ALTER TABLE usuarios ADD COLUMN firebase_uid VARCHAR(128)'
     )
 );
 PREPARE stmt1 FROM @addFirebaseUid;
@@ -25,7 +25,7 @@ SET @addGoogleEmail := (
                 AND COLUMN_NAME = 'google_email'
         ),
         'SELECT 1',
-        'ALTER TABLE usuarios ADD COLUMN google_email VARCHAR(255) NULL AFTER firebase_uid'
+        'ALTER TABLE usuarios ADD COLUMN google_email VARCHAR(255)'
     )
 );
 PREPARE stmt2 FROM @addGoogleEmail;

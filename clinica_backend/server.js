@@ -49,6 +49,10 @@ app.get('/', (req, res) => {
     res.send('Backend de clínica funcionando ✅');
 });
 
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
