@@ -105,7 +105,7 @@ class ApiService {
   // Default points to the deployed backend for quick testing.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://web-production-e8ddf.up.railway.app',
+    defaultValue: 'https://saludandina.onrender.com',
   );
 
   // Simple in-memory cache for profile lookups to avoid repeated network churn

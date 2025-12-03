@@ -19,7 +19,7 @@ class AuthService {
   // completamos la migración a Firestore.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://web-production-e8ddf.up.railway.app',
+    defaultValue: 'https://saludandina.onrender.com',
   );
 
   static bool get _hasFirebaseInstance {
