@@ -10,9 +10,17 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:var(--dark);line-height:1.6}
     header{background:rgba(248,250,252,0.92);box-shadow:0 3px 12px rgba(15,23,42,0.08);position:sticky;top:0;z-index:60;backdrop-filter:blur(18px)}
-    nav{width:92%;max-width:1200px;margin:auto;padding:16px 0;display:flex;align-items:center;justify-content:space-between}
+    nav{width:92%;max-width:1200px;margin:auto;padding:16px 0;display:flex;align-items:center;justify-content:space-between;gap:18px}
     .logo{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--primary);text-decoration:none;font-size:1.35rem;letter-spacing:.01em}
     .logo img{height:40px;width:auto;border-radius:10px;display:block}
+    .menu-toggle{display:none;background:transparent;border:1px solid rgba(15,23,42,0.14);border-radius:10px;padding:8px 12px;font-weight:600;color:var(--primary-2);cursor:pointer;gap:8px;align-items:center}
+    .menu-toggle span{width:18px;height:2px;background:currentColor;display:block;position:relative}
+    .menu-toggle span::before,.menu-toggle span::after{content:"";position:absolute;left:0;width:18px;height:2px;background:currentColor;transition:transform .2s ease,top .2s ease}
+    .menu-toggle span::before{top:-6px}
+    .menu-toggle span::after{top:6px}
+    .menu-toggle[aria-expanded="true"] span{background:transparent}
+    .menu-toggle[aria-expanded="true"] span::before{top:0;transform:rotate(45deg)}
+    .menu-toggle[aria-expanded="true"] span::after{top:0;transform:rotate(-45deg)}
     .navlinks{display:flex;align-items:center;gap:18px}
     .navlinks a{text-decoration:none;color:var(--dark);font-weight:600;position:relative;padding:6px 0;opacity:.92}
     .navlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:var(--primary);transform:scaleX(0);transform-origin:center;transition:transform .25s ease}
@@ -129,6 +137,44 @@
       .hero-illustration{order:-1}
       .preview-card img{height:200px}
     }
+
+    @media(max-width:780px){
+      header{box-shadow:0 2px 10px rgba(15,23,42,0.08)}
+      nav{padding:14px 0}
+      .menu-toggle{display:flex}
+      .navlinks{position:fixed;top:74px;left:0;right:0;background:rgba(248,250,252,0.98);flex-direction:column;gap:16px;padding:20px;border-bottom:1px solid rgba(148,163,184,0.25);box-shadow:0 18px 36px rgba(15,23,42,0.12);opacity:0;pointer-events:none;transform:translateY(-10px);transition:opacity .2s ease,transform .2s ease;z-index:80}
+      .navlinks a{width:100%;text-align:center;padding:10px 0;font-size:1.02rem}
+      .navlinks.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+      body.menu-open{overflow:hidden}
+      .hero{padding:96px 0 68px}
+      .hero h1{font-size:2.35rem}
+      .hero p{font-size:1rem}
+      .hero-illustration{padding:24px}
+      .hero-feature-list{gap:10px}
+      .actions{width:100%;flex-direction:column}
+      .actions .btn{width:100%;text-align:center}
+      .section{padding:64px 0}
+      h2{font-size:2rem}
+      .preview-grid{grid-template-columns:1fr}
+      .preview-card img{height:210px}
+      .features{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+      .modules{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+      .gallery{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+      .cta-inner{padding:42px}
+    }
+
+    @media(max-width:520px){
+      nav{gap:10px}
+      .logo span{font-size:1.1rem}
+      .hero{padding:90px 0 60px}
+      .hero h1{font-size:2.1rem}
+      .hero-tag{font-size:.78rem}
+      .preview-pills span{font-size:.78rem}
+      .feature{padding:22px}
+      .module-card{padding:24px}
+      .cta-inner{padding:34px}
+      footer .foot-links{gap:10px}
+    }
   </style>
 </head>
 <body>
@@ -139,7 +185,11 @@
       <img src="images/saludandina_logo.png" alt="Logotipo SaludAndina" />
       <span>SaludAndina</span>
     </a>
-    <div class="navlinks">
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+      Menú
+      <span aria-hidden="true"></span>
+    </button>
+    <div class="navlinks" id="nav-links">
       <a href="#descargas">Descargas</a>
       <a href="#features">Funciones</a>
       <a href="#modules">Módulos</a>
@@ -432,6 +482,30 @@
 
 <script>
 (function(){
+  const menuBtn = document.querySelector('.menu-toggle');
+  const navLinks = document.getElementById('nav-links');
+  if(menuBtn && navLinks){
+    menuBtn.addEventListener('click', ()=>{
+      const open = navLinks.classList.toggle('open');
+      menuBtn.setAttribute('aria-expanded', String(open));
+      document.body.classList.toggle('menu-open', open);
+    });
+    navLinks.addEventListener('click', (evt)=>{
+      if(evt.target instanceof HTMLAnchorElement){
+        navLinks.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded','false');
+        document.body.classList.remove('menu-open');
+      }
+    });
+    window.addEventListener('resize', ()=>{
+      if(window.innerWidth > 780 && navLinks.classList.contains('open')){
+        navLinks.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded','false');
+        document.body.classList.remove('menu-open');
+      }
+    });
+  }
+
   const images = [
     'images/login.jpg','images/pantalla_inicio.jpg','images/menu_principal.jpg','images/citas_programadas.jpg','images/detalle_consulta.jpg','images/historial_consultas.jpg','images/nueva_consulta.jpg','images/agregar_paciente.jpg','images/promociones.jpg','images/vista_paciente.jpg'
   ];
@@ -489,6 +563,12 @@
 
   // keyboard
   window.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape' && navLinks && navLinks.classList && navLinks.classList.contains('open')){
+      navLinks.classList.remove('open');
+      if(menuBtn){ menuBtn.setAttribute('aria-expanded','false'); }
+      document.body.classList.remove('menu-open');
+      return;
+    }
     if(lb.classList.contains('open')){
       if(e.key==='Escape') closeLB();
       if(e.key==='ArrowRight') openAt(idx+1);
