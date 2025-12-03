@@ -40,19 +40,67 @@ async function obtenerHistorialPorId(id, clinica_id) {
 
 // Crear registro de historial
 async function crearHistorial(historial) {
-    const { paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes } = historial;
+    const {
+        paciente_id,
+        motivo_consulta,
+        peso,
+        estatura,
+        imc,
+        presion,
+        frecuencia_cardiaca,
+        frecuencia_respiratoria,
+        temperatura,
+        otros,
+        diagnostico,
+        tratamiento,
+        receta,
+        fecha,
+        imagenes
+    } = historial;
 
     const [result] = await pool.query(
         `INSERT INTO historial 
          (paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, JSON.stringify(imagenes || [])]
+        [
+            paciente_id,
+            motivo_consulta ?? null,
+            peso ?? null,
+            estatura ?? null,
+            imc ?? null,
+            presion ?? null,
+            frecuencia_cardiaca ?? null,
+            frecuencia_respiratoria ?? null,
+            temperatura ?? null,
+            otros ?? null,
+            diagnostico ?? null,
+            tratamiento ?? null,
+            receta ?? null,
+            fecha ?? null,
+                JSON.stringify((imagenes || []).filter((v) => v != null))
+        ]
     );
 
     const id = result.insertId;
     try {
         const { saveDoc } = require('../servicios/firebaseService');
-        await saveDoc('medical_history', id, { pacienteId: paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha: fecha ? new Date(fecha).toISOString() : null, imagenes: imagenes || [] });
+            await saveDoc('medical_history', id, sanitizeDoc({
+            pacienteId: paciente_id ?? null,
+            motivo_consulta: motivo_consulta ?? null,
+            peso: peso ?? null,
+            estatura: estatura ?? null,
+            imc: imc ?? null,
+            presion: presion ?? null,
+            frecuencia_cardiaca: frecuencia_cardiaca ?? null,
+            frecuencia_respiratoria: frecuencia_respiratoria ?? null,
+            temperatura: temperatura ?? null,
+            otros: otros ?? null,
+            diagnostico: diagnostico ?? null,
+            tratamiento: tratamiento ?? null,
+            receta: receta ?? null,
+            fecha: fecha ? new Date(fecha).toISOString() : null,
+                imagenes: (imagenes || []).filter((v) => v != null)
+        });
     } catch (e) {
         console.warn('Warning: failed to save historial to Firestore', e.message || e);
     }
@@ -61,7 +109,23 @@ async function crearHistorial(historial) {
 
 // Actualizar registro de historial
 async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
-    const { paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes } = historial;
+    const {
+        paciente_id,
+        motivo_consulta,
+        peso,
+        estatura,
+        imc,
+        presion,
+        frecuencia_cardiaca,
+        frecuencia_respiratoria,
+        temperatura,
+        otros,
+        diagnostico,
+        tratamiento,
+        receta,
+        fecha,
+        imagenes
+    } = historial;
 
     if (clinica_id) {
         const [result] = await pool.query(
@@ -69,11 +133,45 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
              JOIN pacientes p ON h.paciente_id = p.id
              SET h.paciente_id=?, h.motivo_consulta=?, h.peso=?, h.estatura=?, h.imc=?, h.presion=?, h.frecuencia_cardiaca=?, h.frecuencia_respiratoria=?, h.temperatura=?, h.otros=?, h.diagnostico=?, h.tratamiento=?, h.receta=?, h.fecha=?, h.imagenes=?
              WHERE h.id=? AND p.clinica_id=?`,
-            [paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, JSON.stringify(imagenes || []), id, clinica_id]
+            [
+                paciente_id,
+                motivo_consulta ?? null,
+                peso ?? null,
+                estatura ?? null,
+                imc ?? null,
+                presion ?? null,
+                frecuencia_cardiaca ?? null,
+                frecuencia_respiratoria ?? null,
+                temperatura ?? null,
+                otros ?? null,
+                diagnostico ?? null,
+                tratamiento ?? null,
+                receta ?? null,
+                fecha ?? null,
+                    JSON.stringify((imagenes || []).filter((v) => v != null)),
+                id,
+                clinica_id
+            ]
         );
         try {
             const { saveDoc } = require('../servicios/firebaseService');
-            await saveDoc('medical_history', id, { pacienteId: paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha: fecha ? new Date(fecha).toISOString() : null, imagenes: imagenes || [] });
+                await saveDoc('medical_history', id, sanitizeDoc({
+                pacienteId: paciente_id ?? null,
+                motivo_consulta: motivo_consulta ?? null,
+                peso: peso ?? null,
+                estatura: estatura ?? null,
+                imc: imc ?? null,
+                presion: presion ?? null,
+                frecuencia_cardiaca: frecuencia_cardiaca ?? null,
+                frecuencia_respiratoria: frecuencia_respiratoria ?? null,
+                temperatura: temperatura ?? null,
+                otros: otros ?? null,
+                diagnostico: diagnostico ?? null,
+                tratamiento: tratamiento ?? null,
+                receta: receta ?? null,
+                fecha: fecha ? new Date(fecha).toISOString() : null,
+                    imagenes: (imagenes || []).filter((v) => v != null)
+            });
         } catch (e) {
             console.warn('Warning: failed to update historial in Firestore', e.message || e);
         }
@@ -84,11 +182,45 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
              JOIN pacientes p ON h.paciente_id = p.id
              SET h.paciente_id=?, h.motivo_consulta=?, h.peso=?, h.estatura=?, h.imc=?, h.presion=?, h.frecuencia_cardiaca=?, h.frecuencia_respiratoria=?, h.temperatura=?, h.otros=?, h.diagnostico=?, h.tratamiento=?, h.receta=?, h.fecha=?, h.imagenes=?
              WHERE h.id=? AND p.doctor_id=?`,
-            [paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, JSON.stringify(imagenes || []), id, doctor_id]
+            [
+                paciente_id,
+                motivo_consulta ?? null,
+                peso ?? null,
+                estatura ?? null,
+                imc ?? null,
+                presion ?? null,
+                frecuencia_cardiaca ?? null,
+                frecuencia_respiratoria ?? null,
+                temperatura ?? null,
+                otros ?? null,
+                diagnostico ?? null,
+                tratamiento ?? null,
+                receta ?? null,
+                fecha ?? null,
+                    JSON.stringify((imagenes || []).filter((v) => v != null)),
+                id,
+                doctor_id
+            ]
         );
         try {
             const { saveDoc } = require('../servicios/firebaseService');
-            await saveDoc('medical_history', id, { pacienteId: paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha: fecha ? new Date(fecha).toISOString() : null, imagenes: imagenes || [] });
+                await saveDoc('medical_history', id, sanitizeDoc({
+                pacienteId: paciente_id ?? null,
+                motivo_consulta: motivo_consulta ?? null,
+                peso: peso ?? null,
+                estatura: estatura ?? null,
+                imc: imc ?? null,
+                presion: presion ?? null,
+                frecuencia_cardiaca: frecuencia_cardiaca ?? null,
+                frecuencia_respiratoria: frecuencia_respiratoria ?? null,
+                temperatura: temperatura ?? null,
+                otros: otros ?? null,
+                diagnostico: diagnostico ?? null,
+                tratamiento: tratamiento ?? null,
+                receta: receta ?? null,
+                fecha: fecha ? new Date(fecha).toISOString() : null,
+                    imagenes: (imagenes || []).filter((v) => v != null)
+            });
         } catch (e) {
             console.warn('Warning: failed to update historial in Firestore', e.message || e);
         }
@@ -144,6 +276,19 @@ async function obtenerHistorialPorDoctor(doctor_id) {
         [doctor_id]
     );
     return rows;
+}
+function sanitizeDoc(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === undefined) continue;
+        if (Array.isArray(value)) {
+            result[key] = value.map((item) => (item === undefined ? null : item));
+        } else {
+            result[key] = value;
+        }
+    }
+    return result;
 }
 
 module.exports = {
