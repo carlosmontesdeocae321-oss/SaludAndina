@@ -60,11 +60,23 @@ async function auth(req, res, next) {
 
 // 🔹 Middleware para filtrar por clínica
 function filtroClinica(req, res, next) {
-    if (!req.user || !req.user.clinica_id) {
+    if (!req.user) {
+        return res.status(401).json({ message: 'No autenticado' });
+    }
+
+    const { rol, clinica_id } = req.user;
+
+    // Para pacientes o doctores individuales (sin clínica) permitimos continuar,
+    // ya que algunos endpoints controlan la visibilidad por su cuenta.
+    if (!clinica_id) {
+        if (rol === 'paciente' || rol === 'doctor') {
+            req.clinica_id = null;
+            return next();
+        }
         return res.status(403).json({ message: 'Acceso no permitido' });
     }
 
-    req.clinica_id = req.user.clinica_id;
+    req.clinica_id = clinica_id;
     next();
 }
 
