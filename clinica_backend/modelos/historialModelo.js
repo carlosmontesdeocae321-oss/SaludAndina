@@ -77,14 +77,14 @@ async function crearHistorial(historial) {
             tratamiento ?? null,
             receta ?? null,
             fecha ?? null,
-                JSON.stringify((imagenes || []).filter((v) => v != null))
+            JSON.stringify((imagenes || []).filter((v) => v != null))
         ]
     );
 
     const id = result.insertId;
     try {
         const { saveDoc } = require('../servicios/firebaseService');
-            await saveDoc('medical_history', id, sanitizeDoc({
+        await saveDoc('medical_history', id, sanitizeDoc({
             pacienteId: paciente_id ?? null,
             motivo_consulta: motivo_consulta ?? null,
             peso: peso ?? null,
@@ -99,8 +99,8 @@ async function crearHistorial(historial) {
             tratamiento: tratamiento ?? null,
             receta: receta ?? null,
             fecha: fecha ? new Date(fecha).toISOString() : null,
-                imagenes: (imagenes || []).filter((v) => v != null)
-        });
+            imagenes: (imagenes || []).filter((v) => v != null)
+        }));
     } catch (e) {
         console.warn('Warning: failed to save historial to Firestore', e.message || e);
     }
@@ -148,14 +148,14 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
                 tratamiento ?? null,
                 receta ?? null,
                 fecha ?? null,
-                    JSON.stringify((imagenes || []).filter((v) => v != null)),
+                JSON.stringify((imagenes || []).filter((v) => v != null)),
                 id,
                 clinica_id
             ]
         );
         try {
             const { saveDoc } = require('../servicios/firebaseService');
-                await saveDoc('medical_history', id, sanitizeDoc({
+            await saveDoc('medical_history', id, sanitizeDoc({
                 pacienteId: paciente_id ?? null,
                 motivo_consulta: motivo_consulta ?? null,
                 peso: peso ?? null,
@@ -170,8 +170,8 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
                 tratamiento: tratamiento ?? null,
                 receta: receta ?? null,
                 fecha: fecha ? new Date(fecha).toISOString() : null,
-                    imagenes: (imagenes || []).filter((v) => v != null)
-            });
+                imagenes: (imagenes || []).filter((v) => v != null)
+            }));
         } catch (e) {
             console.warn('Warning: failed to update historial in Firestore', e.message || e);
         }
@@ -197,14 +197,14 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
                 tratamiento ?? null,
                 receta ?? null,
                 fecha ?? null,
-                    JSON.stringify((imagenes || []).filter((v) => v != null)),
+                JSON.stringify((imagenes || []).filter((v) => v != null)),
                 id,
                 doctor_id
             ]
         );
         try {
             const { saveDoc } = require('../servicios/firebaseService');
-                await saveDoc('medical_history', id, sanitizeDoc({
+            await saveDoc('medical_history', id, sanitizeDoc({
                 pacienteId: paciente_id ?? null,
                 motivo_consulta: motivo_consulta ?? null,
                 peso: peso ?? null,
@@ -219,8 +219,8 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
                 tratamiento: tratamiento ?? null,
                 receta: receta ?? null,
                 fecha: fecha ? new Date(fecha).toISOString() : null,
-                    imagenes: (imagenes || []).filter((v) => v != null)
-            });
+                imagenes: (imagenes || []).filter((v) => v != null)
+            }));
         } catch (e) {
             console.warn('Warning: failed to update historial in Firestore', e.message || e);
         }
@@ -277,6 +277,7 @@ async function obtenerHistorialPorDoctor(doctor_id) {
     );
     return rows;
 }
+
 function sanitizeDoc(obj) {
     if (!obj || typeof obj !== 'object') return obj;
     const result = {};
