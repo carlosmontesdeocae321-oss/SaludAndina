@@ -17,8 +17,10 @@ class AuthService {
 
   // Mantener la constante para reutilizar los endpoints existentes mientras
   // completamos la migración a Firestore.
-  static const String baseUrl =
-      String.fromEnvironment('BASE_URL', defaultValue: 'http://127.0.0.1:3000');
+  static const String baseUrl = String.fromEnvironment(
+    'BASE_URL',
+    defaultValue: 'https://web-production-e8ddf.up.railway.app',
+  );
 
   static bool get _hasFirebaseInstance {
     try {

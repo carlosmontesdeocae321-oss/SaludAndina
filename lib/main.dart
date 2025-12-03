@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/inicio_screen.dart';
@@ -12,12 +13,19 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    debugPrint('Error inicializando Firebase en main(): $e');
+  final shouldInitFirebase =
+      !kIsWeb && defaultTargetPlatform != TargetPlatform.windows;
+
+  if (shouldInitFirebase) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      debugPrint('Error inicializando Firebase en main(): $e');
+    }
+  } else {
+    debugPrint('Firebase inicialización omitida en esta plataforma');
   }
 
   runApp(const ClinicaApp());

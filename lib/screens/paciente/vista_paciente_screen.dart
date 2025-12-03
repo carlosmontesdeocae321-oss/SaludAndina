@@ -45,21 +45,25 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
     List<Cita> cit = widget.paciente.citas;
 
     try {
-      final fetched = await ApiService.obtenerConsultasPaciente(widget.paciente.id);
+      final fetched =
+          await ApiService.obtenerConsultasPaciente(widget.paciente.id);
       if (fetched.isNotEmpty) {
         cons = fetched;
       }
     } catch (e) {
-      debugPrint('⚠️ Error cargando consultas de paciente ${widget.paciente.id}: $e');
+      debugPrint(
+          '⚠️ Error cargando consultas de paciente ${widget.paciente.id}: $e');
     }
 
     try {
-      final fetchedCitas = await ApiService.obtenerCitasPaciente(widget.paciente.id);
+      final fetchedCitas =
+          await ApiService.obtenerCitasPaciente(widget.paciente.id);
       if (fetchedCitas.isNotEmpty) {
         cit = fetchedCitas;
       }
     } catch (e) {
-      debugPrint('⚠️ Error cargando citas de paciente ${widget.paciente.id}: $e');
+      debugPrint(
+          '⚠️ Error cargando citas de paciente ${widget.paciente.id}: $e');
     }
     if (!mounted) return;
     setState(() {
@@ -122,8 +126,9 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                   const SizedBox(height: 16),
                   // Historial de consultas
                   const Text("Historial de consultas",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    consultas.isEmpty
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  consultas.isEmpty
                       ? const Text("No hay consultas registradas")
                       : ListView.builder(
                           shrinkWrap: true,

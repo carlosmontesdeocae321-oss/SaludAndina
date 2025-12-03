@@ -103,8 +103,10 @@ class ApiService {
 
   // Use a compile-time define so we can override with --dart-define=BASE_URL="https://..."
   // Default points to the deployed backend for quick testing.
-  static const String baseUrl =
-      String.fromEnvironment('BASE_URL', defaultValue: 'http://127.0.0.1:3000');
+  static const String baseUrl = String.fromEnvironment(
+    'BASE_URL',
+    defaultValue: 'https://web-production-e8ddf.up.railway.app',
+  );
 
   // Simple in-memory cache for profile lookups to avoid repeated network churn
   static final Map<int, Map<String, dynamic>> _profileCache = {};
@@ -355,7 +357,8 @@ class ApiService {
     final headers = await _getHeaders();
 
     if (!_hasAuthHeaders(headers)) {
-      _log('📌 obtenerConsultasPaciente - sin headers de autenticación, usando fallback local');
+      _log(
+          '📌 obtenerConsultasPaciente - sin headers de autenticación, usando fallback local');
       return [];
     }
 
@@ -484,7 +487,8 @@ class ApiService {
     final headers = await _getHeaders();
 
     if (!_hasAuthHeaders(headers)) {
-      _log('📌 obtenerCitas - sin headers de autenticación, retornando lista vacía');
+      _log(
+          '📌 obtenerCitas - sin headers de autenticación, retornando lista vacía');
       return [];
     }
 
