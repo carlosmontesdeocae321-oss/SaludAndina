@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFEFFAF9), Color(0xFFD0EEF4)],
+                colors: [Color(0xFF040B16), Color(0xFF0C1B2F)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
               width: 220,
               height: 220,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
+                color: Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
             ),
@@ -103,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
               width: 260,
               height: 260,
               decoration: BoxDecoration(
-                color: Colors.tealAccent.withOpacity(0.18),
+                color: const Color(0xFF1BD1C2).withOpacity(0.16),
                 shape: BoxShape.circle,
               ),
             ),
@@ -114,9 +114,12 @@ class _LoginScreenState extends State<LoginScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Card(
+                  color: const Color(0xFF101D32).withOpacity(0.85),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  elevation: 10,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  elevation: 14,
+                  shadowColor: Colors.black.withOpacity(0.35),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 26, vertical: 28),
@@ -130,11 +133,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withOpacity(0.12),
+                                color: Colors.black.withOpacity(0.22),
                                 borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.12),
+                                ),
                               ),
                               child: Image.asset('assets/images/logo.png',
                                   width: 72, height: 72, fit: BoxFit.contain),
@@ -148,17 +151,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w700,
+                                    color: Colors.white,
                                   ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Ingresa con tu usuario y clave o continua con Google.',
+                          'Ingresa con tu usuario y clave o continúa con Google.',
                           textAlign: TextAlign.center,
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Colors.white.withOpacity(0.72),
                                   ),
                         ),
                         const SizedBox(height: 24),
@@ -169,9 +171,31 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               TextFormField(
                                 controller: _usuarioCtrl,
-                                decoration: const InputDecoration(
+                                style: const TextStyle(color: Colors.white),
+                                cursorColor: Colors.white70,
+                                decoration: InputDecoration(
                                   labelText: 'Usuario',
-                                  prefixIcon: Icon(Icons.person_outline),
+                                  prefixIcon: const Icon(Icons.person_outline),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.08),
+                                  labelStyle:
+                                      const TextStyle(color: Colors.white70),
+                                  floatingLabelStyle:
+                                      const TextStyle(color: Colors.white),
+                                  prefixIconColor: Colors.white70,
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withOpacity(0.18),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF1BD1C2),
+                                      width: 1.6,
+                                    ),
+                                  ),
                                 ),
                                 enabled: !cargando,
                                 textInputAction: TextInputAction.next,
@@ -185,6 +209,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 14),
                               TextFormField(
                                 controller: _claveCtrl,
+                                style: const TextStyle(color: Colors.white),
+                                cursorColor: Colors.white70,
                                 decoration: InputDecoration(
                                   labelText: 'Clave',
                                   prefixIcon: const Icon(Icons.lock_outline),
@@ -200,6 +226,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                               () => _mostrarClave =
                                                   !_mostrarClave,
                                             ),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.08),
+                                  labelStyle:
+                                      const TextStyle(color: Colors.white70),
+                                  floatingLabelStyle:
+                                      const TextStyle(color: Colors.white),
+                                  prefixIconColor: Colors.white70,
+                                  suffixIconColor: Colors.white70,
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withOpacity(0.18),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF1BD1C2),
+                                      width: 1.6,
+                                    ),
                                   ),
                                 ),
                                 enabled: !cargando,
@@ -221,6 +268,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                     cargando ? null : _loginWithCredentials,
                                 icon: const Icon(Icons.lock_open),
                                 label: const Text('Iniciar sesión'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1BD1C2),
+                                  foregroundColor: const Color(0xFF062026),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  textStyle: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -228,7 +285,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 24),
                         Row(
                           children: [
-                            const Expanded(child: Divider()),
+                            const Expanded(
+                              child: Divider(color: Color(0x22FFFFFF)),
+                            ),
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 8),
@@ -238,20 +297,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                     .textTheme
                                     .bodyMedium
                                     ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Colors.white.withOpacity(0.6),
                                     ),
                               ),
                             ),
-                            const Expanded(child: Divider()),
+                            const Expanded(
+                              child: Divider(color: Color(0x22FFFFFF)),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 18),
                         SizedBox(
                           width: double.infinity,
                           child: SignInButton(
-                            Buttons.Google,
+                            Buttons.GoogleDark,
                             text: 'Continuar con Google',
                             onPressed: cargando ? null : _loginWithGoogle,
                           ),
@@ -262,8 +321,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: SizedBox(
                               height: 22,
                               width: 22,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2.6),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.6,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF1BD1C2),
+                                ),
+                              ),
                             ),
                           ),
                         const SizedBox(height: 18),
@@ -274,11 +337,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (_) => const InicioScreen())),
-                            icon: const Icon(Icons.arrow_back, size: 18),
+                            icon: const Icon(Icons.arrow_back,
+                                size: 18, color: Colors.white70),
                             label: const Text('Volver'),
                             style: TextButton.styleFrom(
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white70,
                             ),
                           ),
                         ),

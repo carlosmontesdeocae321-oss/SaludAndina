@@ -11,7 +11,7 @@ class InicioScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F1C2C),
+        backgroundColor: const Color(0xFF070F1E),
         elevation: 0,
         title: const Text('Inicio'),
         actions: [
@@ -33,7 +33,7 @@ class InicioScreen extends StatelessWidget {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0F1C2C), Color(0xFF1A2A44)],
+                colors: [Color(0xFF050B17), Color(0xFF0F1C2C)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -46,7 +46,7 @@ class InicioScreen extends StatelessWidget {
               width: 220,
               height: 220,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
             ),
@@ -58,7 +58,7 @@ class InicioScreen extends StatelessWidget {
               width: 260,
               height: 260,
               decoration: BoxDecoration(
-                color: Colors.tealAccent.withOpacity(0.18),
+                color: const Color(0xFF1BD1C2).withOpacity(0.14),
                 shape: BoxShape.circle,
               ),
             ),
@@ -72,16 +72,16 @@ class InicioScreen extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: const Color(0xFF0B1626).withOpacity(0.78),
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withOpacity(0.08),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 30,
-                        offset: const Offset(0, 16),
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 32,
+                        offset: const Offset(0, 20),
                       ),
                     ],
                   ),
@@ -92,8 +92,11 @@ class InicioScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.black.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.08),
+                          ),
                         ),
                         child: Image.asset(
                           'assets/images/logo.png',
@@ -109,6 +112,7 @@ class InicioScreen extends StatelessWidget {
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.4,
                                 ),
                         textAlign: TextAlign.center,
                       ),
@@ -116,7 +120,8 @@ class InicioScreen extends StatelessWidget {
                       Text(
                         'Selecciona el flujo adecuado para continuar con tu gestión.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
+                              color: Colors.white.withOpacity(0.7),
+                              height: 1.4,
                             ),
                         textAlign: TextAlign.center,
                       ),
@@ -137,8 +142,8 @@ class InicioScreen extends StatelessWidget {
                               icon: const Icon(Icons.favorite_outline),
                               label: const Text('Paciente'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF0F1C2C),
+                                backgroundColor: const Color(0xFF122741),
+                                foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 24, vertical: 18),
                                 textStyle: const TextStyle(
@@ -148,6 +153,7 @@ class InicioScreen extends StatelessWidget {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
+                                elevation: 0,
                               ),
                             ),
                           ),
@@ -165,7 +171,7 @@ class InicioScreen extends StatelessWidget {
                               label: const Text('Clínica'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1BD1C2),
-                                foregroundColor: const Color(0xFF0F1C2C),
+                                foregroundColor: const Color(0xFF04212A),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 24, vertical: 18),
                                 textStyle: const TextStyle(

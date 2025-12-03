@@ -199,16 +199,16 @@ class _AgregarEditarConsultaScreenState
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.45),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -300,293 +300,498 @@ class _AgregarEditarConsultaScreenState
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-              widget.consulta == null ? "Nueva Consulta" : "Editar Consulta"),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Motivo'),
-              Tab(text: 'Examen físico'),
-              Tab(text: 'Diagnóstico'),
-            ],
+    const accentColor = Color(0xFF1BD1C2);
+    const overlayColor = Color(0xFF101D32);
+    final baseTheme = Theme.of(context);
+    const fieldTextStyle = TextStyle(color: Colors.black87, fontSize: 15);
+
+    final themed = baseTheme.copyWith(
+      scaffoldBackgroundColor: Colors.transparent,
+      colorScheme: baseTheme.colorScheme.copyWith(
+        primary: accentColor,
+        secondary: accentColor,
+        surface: overlayColor,
+        surfaceContainerHigh: overlayColor.withOpacity(0.88),
+        surfaceContainerHighest: const Color(0xFF18263A),
+        onPrimary: const Color(0xFF062026),
+        onSurface: Colors.white,
+        onSurfaceVariant: Colors.white70,
+        brightness: Brightness.dark,
+      ),
+      textTheme: baseTheme.textTheme.apply(
+        bodyColor: Colors.white,
+        displayColor: Colors.white,
+      ),
+      iconTheme: const IconThemeData(color: Colors.white70),
+      appBarTheme: baseTheme.appBarTheme.copyWith(
+        backgroundColor: const Color(0xFF0B1626).withOpacity(0.95),
+        elevation: 0,
+        titleTextStyle: baseTheme.textTheme.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+      ),
+      tabBarTheme: baseTheme.tabBarTheme.copyWith(
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(color: accentColor, width: 3),
+        ),
+        labelColor: accentColor,
+        unselectedLabelColor: Colors.white70,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accentColor,
+          foregroundColor: const Color(0xFF062026),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: accentColor),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: accentColor,
+          side: const BorderSide(color: accentColor, width: 1.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
         ),
-        body: cargando
-            ? const Center(child: CircularProgressIndicator())
-            : Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          // Tab 1 - Motivo
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildSection(
-                                  context: context,
-                                  title: 'Detalles de la consulta',
-                                  children: [
-                                    TextFormField(
-                                      controller: fechaCtrl,
-                                      readOnly: true,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Fecha',
-                                        suffixIcon: Icon(Icons.event),
-                                      ),
-                                      onTap: () {
-                                        FocusScope.of(context).unfocus();
-                                        _pickDate();
-                                      },
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextFormField(
-                                      controller: motivoCtrl,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Motivo de consulta'),
-                                      validator: (v) => v == null || v.isEmpty
-                                          ? 'Ingrese motivo'
-                                          : null,
-                                      textInputAction: TextInputAction.next,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+      ),
+      inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+        filled: true,
+        fillColor: Colors.white,
+        labelStyle: const TextStyle(color: Colors.black54),
+        floatingLabelStyle: const TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w600,
+        ),
+        hintStyle: const TextStyle(color: Colors.black45),
+        suffixIconColor: Colors.black45,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF1BD1C2), width: 1.1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: accentColor, width: 1.8),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF1BD1C2), width: 1.1),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      ),
+      dialogTheme: baseTheme.dialogTheme.copyWith(
+        backgroundColor: overlayColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: baseTheme.textTheme.titleMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: baseTheme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white70,
+        ),
+      ),
+      snackBarTheme: baseTheme.snackBarTheme.copyWith(
+        backgroundColor: overlayColor.withOpacity(0.96),
+        contentTextStyle:
+            baseTheme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+      ),
+      dividerColor: Colors.white24,
+      progressIndicatorTheme:
+          const ProgressIndicatorThemeData(color: accentColor),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: accentColor,
+        selectionColor: Color(0x661BD1C2),
+        selectionHandleColor: accentColor,
+      ),
+    );
 
-                          // Tab 2 - Examen físico
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildSection(
-                                  context: context,
-                                  title: 'Signos vitales',
-                                  children: [
-                                    LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        const spacing = 12.0;
-                                        final isWide =
-                                            constraints.maxWidth > 520;
-                                        final fieldWidth = isWide
-                                            ? (constraints.maxWidth - spacing) /
-                                                2
-                                            : constraints.maxWidth;
-
-                                        return Wrap(
-                                          spacing: spacing,
-                                          runSpacing: spacing,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF02060F), Color(0xFF0B1F36)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -140,
+            right: -90,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accentColor.withOpacity(0.16), Colors.transparent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -160,
+            left: -120,
+            child: Container(
+              width: 360,
+              height: 360,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Theme(
+            data: themed,
+            child: DefaultTabController(
+              length: 3,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                appBar: AppBar(
+                  title: Text(widget.consulta == null
+                      ? 'Nueva Consulta'
+                      : 'Editar Consulta'),
+                  bottom: const TabBar(
+                    tabs: [
+                      Tab(text: 'Motivo'),
+                      Tab(text: 'Examen físico'),
+                      Tab(text: 'Diagnóstico'),
+                    ],
+                  ),
+                ),
+                body: cargando
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: TabBarView(
+                                children: [
+                                  SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        18, 18, 18, 26),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        _buildSection(
+                                          context: context,
+                                          title: 'Detalles de la consulta',
                                           children: [
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller: pesoCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                        labelText: 'Peso (kg)'),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                        decimal: true),
+                                            TextFormField(
+                                              controller: motivoCtrl,
+                                              style: fieldTextStyle,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Motivo de consulta',
                                               ),
+                                              validator: (v) =>
+                                                  v == null || v.isEmpty
+                                                      ? 'Ingrese motivo'
+                                                      : null,
+                                              textInputAction:
+                                                  TextInputAction.next,
                                             ),
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller: estaturaCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                        labelText:
-                                                            'Estatura (m)'),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                        decimal: true),
+                                            const SizedBox(height: 14),
+                                            TextFormField(
+                                              controller: fechaCtrl,
+                                              readOnly: true,
+                                              style: fieldTextStyle,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Fecha',
+                                                suffixIcon: Icon(Icons.event),
                                               ),
-                                            ),
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller: imcCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                        labelText: 'IMC'),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                        decimal: true),
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller: presionCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                        labelText:
-                                                            'Presión arterial'),
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller:
-                                                    frecuenciaCardiacaCtrl,
-                                                decoration: const InputDecoration(
-                                                    labelText:
-                                                        'Frecuencia cardiaca'),
-                                                keyboardType:
-                                                    TextInputType.number,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller:
-                                                    frecuenciaRespiratoriaCtrl,
-                                                decoration: const InputDecoration(
-                                                    labelText:
-                                                        'Frecuencia respiratoria'),
-                                                keyboardType:
-                                                    TextInputType.number,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: fieldWidth,
-                                              child: TextFormField(
-                                                controller: temperaturaCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                        labelText:
-                                                            'Temperatura (°C)'),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                        decimal: true),
-                                              ),
+                                              onTap: () {
+                                                FocusScope.of(context)
+                                                    .unfocus();
+                                                _pickDate();
+                                              },
                                             ),
                                           ],
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Tab 3 - Diagnóstico / Tratamiento / Imágenes
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildSection(
-                                  context: context,
-                                  title: 'Diagnóstico y tratamiento',
-                                  children: [
-                                    TextFormField(
-                                      controller: diagnosticoCtrl,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Diagnóstico'),
-                                      maxLines: 4,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextFormField(
-                                      controller: tratamientoCtrl,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Tratamiento'),
-                                      maxLines: 4,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                _buildSection(
-                                  context: context,
-                                  title: 'Archivos e imágenes',
-                                  children: [
-                                    Row(
-                                      children: [
-                                        ElevatedButton.icon(
-                                          onPressed: _pickImages,
-                                          icon: const Icon(
-                                              Icons.photo_library_rounded),
-                                          label: const Text('Agregar imágenes'),
                                         ),
-                                        const SizedBox(width: 12),
-                                        if (imagenesExistentes.isNotEmpty ||
-                                            nuevasImagenes.isNotEmpty)
-                                          Expanded(
-                                            child: Text(
-                                              '${imagenesExistentes.length + nuevasImagenes.length} imágenes seleccionadas',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
                                       ],
                                     ),
-                                    const SizedBox(height: 12),
-                                    if (imagenesExistentes.isEmpty &&
-                                        nuevasImagenes.isEmpty)
-                                      Text(
-                                        'Aún no has agregado imágenes a esta consulta.',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(color: Colors.grey),
-                                      ),
-                                    _buildImagenesPreview(),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                _buildSection(
-                                  context: context,
-                                  title: 'Receta médica',
-                                  children: [
-                                    TextFormField(
-                                      controller: recetaCtrl,
-                                      decoration: const InputDecoration(
-                                          labelText:
-                                              'Indicaciones para el paciente'),
-                                      maxLines: 4,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: guardarConsulta,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 14.0),
-                                      child: Text(
-                                        widget.consulta == null
-                                            ? 'Guardar consulta'
-                                            : 'Guardar cambios',
-                                      ),
+                                  ),
+                                  SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        18, 18, 18, 26),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        _buildSection(
+                                          context: context,
+                                          title: 'Signos vitales',
+                                          children: [
+                                            LayoutBuilder(
+                                              builder:
+                                                  (layoutContext, constraints) {
+                                                const spacing = 12.0;
+                                                final isWide =
+                                                    constraints.maxWidth > 520;
+                                                final fieldWidth = isWide
+                                                    ? (constraints.maxWidth -
+                                                            spacing) /
+                                                        2
+                                                    : constraints.maxWidth;
+
+                                                return Wrap(
+                                                  spacing: spacing,
+                                                  runSpacing: spacing,
+                                                  children: [
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller: pesoCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText:
+                                                              'Peso (kg)',
+                                                        ),
+                                                        keyboardType:
+                                                            const TextInputType
+                                                                .numberWithOptions(
+                                                                decimal: true),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller:
+                                                            estaturaCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText:
+                                                              'Estatura (m)',
+                                                        ),
+                                                        keyboardType:
+                                                            const TextInputType
+                                                                .numberWithOptions(
+                                                                decimal: true),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller: imcCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText: 'IMC',
+                                                        ),
+                                                        keyboardType:
+                                                            const TextInputType
+                                                                .numberWithOptions(
+                                                                decimal: true),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller: presionCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText:
+                                                              'Presión arterial',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller:
+                                                            frecuenciaCardiacaCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText:
+                                                              'Frecuencia cardiaca',
+                                                        ),
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller:
+                                                            frecuenciaRespiratoriaCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText:
+                                                              'Frecuencia respiratoria',
+                                                        ),
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: fieldWidth,
+                                                      child: TextFormField(
+                                                        controller:
+                                                            temperaturaCtrl,
+                                                        style: fieldTextStyle,
+                                                        decoration:
+                                                            const InputDecoration(
+                                                          labelText:
+                                                              'Temperatura (°C)',
+                                                        ),
+                                                        keyboardType:
+                                                            const TextInputType
+                                                                .numberWithOptions(
+                                                                decimal: true),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              ],
+                                  SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        18, 18, 18, 26),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        _buildSection(
+                                          context: context,
+                                          title: 'Diagnóstico y tratamiento',
+                                          children: [
+                                            TextFormField(
+                                              controller: diagnosticoCtrl,
+                                              style: fieldTextStyle,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Diagnóstico',
+                                              ),
+                                              maxLines: 4,
+                                            ),
+                                            const SizedBox(height: 14),
+                                            TextFormField(
+                                              controller: tratamientoCtrl,
+                                              style: fieldTextStyle,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Tratamiento',
+                                              ),
+                                              maxLines: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 18),
+                                        _buildSection(
+                                          context: context,
+                                          title: 'Archivos e imágenes',
+                                          children: [
+                                            Row(
+                                              children: [
+                                                ElevatedButton.icon(
+                                                  onPressed: _pickImages,
+                                                  icon: const Icon(Icons
+                                                      .photo_library_rounded),
+                                                  label: const Text(
+                                                      'Agregar imágenes'),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                if (imagenesExistentes
+                                                        .isNotEmpty ||
+                                                    nuevasImagenes.isNotEmpty)
+                                                  Expanded(
+                                                    child: Text(
+                                                      '${imagenesExistentes.length + nuevasImagenes.length} imágenes seleccionadas',
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodyMedium,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            if (imagenesExistentes.isEmpty &&
+                                                nuevasImagenes.isEmpty)
+                                              Text(
+                                                'Aún no has agregado imágenes a esta consulta.',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                        color: Colors.white54),
+                                              ),
+                                            _buildImagenesPreview(),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 18),
+                                        _buildSection(
+                                          context: context,
+                                          title: 'Receta médica',
+                                          children: [
+                                            TextFormField(
+                                              controller: recetaCtrl,
+                                              style: fieldTextStyle,
+                                              decoration: const InputDecoration(
+                                                labelText:
+                                                    'Indicaciones para el paciente',
+                                              ),
+                                              maxLines: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 24),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            onPressed: guardarConsulta,
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                vertical: 16,
+                                              ),
+                                              child: Text(
+                                                widget.consulta == null
+                                                    ? 'Guardar consulta'
+                                                    : 'Guardar cambios',
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
               ),
+            ),
+          ),
+        ],
       ),
     );
   }

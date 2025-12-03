@@ -24,6 +24,9 @@ class _PerfilDoctorScreenState extends State<PerfilDoctorScreen>
   Map<String, dynamic>? _localOverrides;
   String? _localImagePath;
 
+  static const Color _accentColor = Color(0xFF1BD1C2);
+  static const Color _overlayColor = Color(0xFF101D32);
+
   List<Map<String, dynamic>> _documents = [];
   bool loading = true;
 
@@ -110,6 +113,684 @@ class _PerfilDoctorScreenState extends State<PerfilDoctorScreen>
     if (changed || perfil == null) {
       perfil = current;
     }
+  }
+
+  String? _cleanText(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') return null;
+    return text;
+  }
+
+  Widget _buildSection({
+    required ThemeData theme,
+    required String title,
+    required List<Widget> children,
+    Widget? trailing,
+    EdgeInsetsGeometry? padding,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.94),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.55),
+            blurRadius: 30,
+            offset: const Offset(0, 24),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing,
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(ThemeData theme, String label, String? value) {
+    final safeValue = _cleanText(value) ?? '-';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.68),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              safeValue,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                height: 1.32,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricChip(
+    ThemeData theme, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: _accentColor),
+          const SizedBox(width: 8),
+          Text(
+            '$label: $value',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileOverview(ThemeData theme) {
+    final nombre = _cleanText(perfil?['nombre']) ?? 'Perfil del doctor';
+    final especialidad =
+        _cleanText(perfil?['especialidad']) ?? _cleanText(perfil?['specialty']);
+    final avatarProv = _resolveAvatarProvider(
+      perfil?['avatar'] ?? perfil?['avatar_url'] ?? perfil?['imagen'],
+      _localImagePath,
+    );
+
+    final chips = <Widget>[];
+    final totalPacientes = _cleanText(perfil?['totalPacientes']);
+    final capacidad =
+        _cleanText(perfil?['clinic_capacity'] ?? perfil?['limite']);
+
+    if (totalPacientes != null) {
+      chips.add(_buildMetricChip(
+        theme,
+        icon: Icons.people_alt_outlined,
+        label: 'Pacientes',
+        value: totalPacientes,
+      ));
+    }
+    if (capacidad != null) {
+      chips.add(_buildMetricChip(
+        theme,
+        icon: Icons.event_seat_outlined,
+        label: 'Capacidad',
+        value: capacidad,
+      ));
+    }
+
+    String initials() {
+      final raw = _cleanText(perfil?['nombre']);
+      if (raw == null) return 'DR';
+      final parts =
+          raw.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+      if (parts.isEmpty) return 'DR';
+      final buffer = StringBuffer();
+      final first = parts.first.trim();
+      if (first.isNotEmpty) buffer.write(first[0].toUpperCase());
+      if (parts.length > 1) {
+        final second = parts[1].trim();
+        if (second.isNotEmpty) buffer.write(second[0].toUpperCase());
+      }
+      final result = buffer.toString();
+      return result.isEmpty ? 'DR' : result;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF122643), Color(0xFF091526)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.55),
+            blurRadius: 32,
+            offset: const Offset(0, 26),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 44,
+                backgroundColor: Colors.white.withOpacity(0.14),
+                backgroundImage: avatarProv,
+                child: avatarProv == null
+                    ? Text(
+                        initials(),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nombre,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    if (especialidad != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        especialidad,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: _accentColor,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (chips.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: chips,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentTile(
+      BuildContext context, ThemeData theme, Map<String, dynamic> doc) {
+    final title = _cleanText(
+          doc['title'] ?? doc['titulo'] ?? doc['name'] ?? doc['filename'],
+        ) ??
+        'Sin título';
+
+    String? url = doc['url']?.toString() ??
+        doc['path']?.toString() ??
+        doc['file']?.toString();
+    if (url != null && url.startsWith('/')) {
+      url = '${ApiService.baseUrl}$url';
+    }
+    final resolvedUrl = (url != null && url.isNotEmpty) ? url : null;
+
+    Future<void> showPreview() async {
+      if (resolvedUrl == null || !mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              color: Colors.black,
+              padding: const EdgeInsets.all(12),
+              child: InteractiveViewer(
+                clipBehavior: Clip.hardEdge,
+                child: Image.network(resolvedUrl, fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        leading: CircleAvatar(
+          radius: 22,
+          backgroundColor: Colors.white.withOpacity(0.08),
+          backgroundImage:
+              resolvedUrl != null ? NetworkImage(resolvedUrl) : null,
+          child: resolvedUrl != null
+              ? null
+              : const Icon(
+                  Icons.insert_drive_file,
+                  color: Colors.white70,
+                  size: 22,
+                ),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: resolvedUrl != null
+            ? Text(
+                'Toca para previsualizar',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white60,
+                ),
+              )
+            : null,
+        onTap: resolvedUrl != null ? showPreview : null,
+      ),
+    );
+  }
+
+  Widget _buildDocumentsSection(BuildContext context, ThemeData theme) {
+    return _buildSection(
+      theme: theme,
+      title: 'Imágenes y documentos',
+      children: [
+        if (_documents.isEmpty)
+          Text(
+            'No hay imágenes o documentos disponibles.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white60,
+            ),
+          )
+        else
+          ..._documents.map((d) => _buildDocumentTile(context, theme, d)),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () => _handleAddDocuments(context),
+            icon: const Icon(Icons.upload_file),
+            label: const Text('Agregar imágenes / talleres'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionsSection(BuildContext context, ThemeData theme) {
+    final doctorId = perfil?['id'];
+    int? parsedId;
+    if (doctorId is int) {
+      parsedId = doctorId;
+    } else {
+      final candidate = _cleanText(doctorId);
+      if (candidate != null) {
+        parsedId = int.tryParse(candidate);
+      }
+    }
+
+    return _buildSection(
+      theme: theme,
+      title: 'Acciones',
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AgregarEditarPacienteScreen(
+                        doctorId: parsedId,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Ver / Agregar paciente'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CitasScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.event),
+                label: const Text('Ver citas'),
+              ),
+            ),
+          ],
+        ),
+        if (_localOverrides != null && _localOverrides!.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.orange.withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cambios locales pendientes',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.orange[200],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Existen actualizaciones guardadas localmente que aún no se han enviado al servidor.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.orange[100],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () async {
+                    if (parsedId == null) return;
+                    await LocalProfileOverrides.clearForUser(parsedId);
+                    await _load();
+                  },
+                  child: const Text('Borrar cambios locales'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildErrorContent(BuildContext context, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.35)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.55),
+                blurRadius: 34,
+                offset: const Offset(0, 28),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Colors.redAccent, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'No se pudo cargar el perfil',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              if (lastError?['status'] != null)
+                Text(
+                  'Estado: ${lastError?['status']}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              if (lastError?['error'] != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Detalle: ${lastError?['error']}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 22),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reintentar'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Respuesta del servidor'),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              lastError?['body']?.toString() ?? 'Sin detalles',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cerrar'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('Ver respuesta'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleAddDocuments(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final res = await FilePicker.platform.pickFiles(allowMultiple: true);
+      if (!mounted) return;
+      if (res == null || res.files.isEmpty) {
+        return;
+      }
+
+      final paths = res.files.map((f) => f.path).whereType<String>().toList();
+      if (paths.isEmpty) return;
+
+      final userIdRaw = perfil?['user_id'] ??
+          perfil?['usuario_id'] ??
+          perfil?['userId'] ??
+          perfil?['usuarioId'] ??
+          perfil?['id'];
+      int? uid;
+      if (userIdRaw is int) {
+        uid = userIdRaw;
+      } else if (userIdRaw != null) {
+        uid = int.tryParse(userIdRaw.toString());
+      }
+
+      if (uid == null) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('ID de usuario no disponible')),
+        );
+        return;
+      }
+
+      final response = await ApiService.subirDocumentosDoctor(uid, paths);
+      if (!mounted) return;
+
+      if ((response['ok'] ?? false) == true) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Documentos subidos')),
+        );
+        final docs = await ApiService.obtenerDocumentosDoctor(uid);
+        if (!mounted) return;
+        setState(() {
+          _documents = docs;
+        });
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error subiendo: ${response['error'] ?? response['body'] ?? response}',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Widget _buildBody(BuildContext context, ThemeData theme) {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (lastError != null) {
+      return _buildErrorContent(context, theme);
+    }
+
+    if (perfil == null) {
+      return Center(
+        child: Text(
+          'No se encontraron datos del perfil.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: Colors.white70,
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildProfileOverview(theme),
+          const SizedBox(height: 22),
+          _buildSection(
+            theme: theme,
+            title: 'Información',
+            children: [
+              _buildInfoRow(theme, 'Apellido', perfil?['apellido']?.toString()),
+              _buildInfoRow(
+                  theme, 'Dirección', perfil?['direccion']?.toString()),
+              _buildInfoRow(theme, 'Teléfono', perfil?['telefono']?.toString()),
+              _buildInfoRow(
+                theme,
+                'Especialidad',
+                perfil?['especialidad']?.toString() ??
+                    perfil?['specialty']?.toString(),
+              ),
+              _buildInfoRow(
+                theme,
+                'Email',
+                perfil?['email']?.toString() ?? perfil?['correo']?.toString(),
+              ),
+              const SizedBox(height: 18),
+              Divider(color: theme.dividerColor),
+              const SizedBox(height: 18),
+              Text(
+                'Biografía',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _cleanText(perfil?['bio']) ??
+                    'No se ha proporcionado una biografía.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withOpacity(0.85),
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          _buildDocumentsSection(context, theme),
+          const SizedBox(height: 22),
+          _buildActionsSection(context, theme),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -224,429 +905,110 @@ class _PerfilDoctorScreenState extends State<PerfilDoctorScreen>
 
   @override
   Widget build(BuildContext context) {
-    final title = perfil?['nombre'] ?? 'Perfil del doctor';
+    final baseTheme = Theme.of(context);
+    final safeTitle = _cleanText(perfil?['nombre']) ?? 'Perfil del doctor';
 
-    Widget infoRow(String label, String value) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-                width: 120,
-                child: Text(label, style: TextStyle(color: Colors.grey[700]))),
-            Expanded(
-                child: Text(value.isNotEmpty ? value : '-',
-                    style: const TextStyle(fontSize: 15)))
-          ],
-        ),
-      );
-    }
+    final darkColorScheme = baseTheme.colorScheme.copyWith(
+      brightness: Brightness.dark,
+      primary: _accentColor,
+      secondary: _accentColor,
+      surface: _overlayColor,
+      surfaceContainerHighest: _overlayColor.withOpacity(0.85),
+      surfaceTint: Colors.transparent,
+    );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
+    final darkTheme = baseTheme.copyWith(
+      brightness: Brightness.dark,
+      colorScheme: darkColorScheme,
+      scaffoldBackgroundColor: Colors.transparent,
+      dividerColor: Colors.white.withOpacity(0.12),
+      appBarTheme: baseTheme.appBarTheme.copyWith(
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.event),
-            tooltip: 'Ver citas',
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const CitasScreen()));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Editar perfil',
-            onPressed: perfil == null
-                ? null
-                : () async => await _openEditDialog(context),
-          ),
-        ],
+        foregroundColor: Colors.white,
+        centerTitle: false,
       ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : lastError != null
-              ? Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      Text('Estado: ${lastError?['status'] ?? 'N/A'}'),
-                      const SizedBox(height: 6),
-                      ElevatedButton(
-                        onPressed: () {
-                          showDialog<void>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Respuesta del servidor'),
-                              content: SingleChildScrollView(
-                                  child: Text(
-                                      lastError?['body']?.toString() ?? '')),
-                              actions: [
-                                TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Cerrar')),
-                              ],
-                            ),
-                          );
-                        },
-                        child: const Text('Ver respuesta del servidor'),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                          onPressed: _load, child: const Text('Reintentar'))
-                    ],
-                  ),
-                )
-              : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Builder(builder: (_) {
-                                  final prov = _resolveAvatarProvider(
-                                      perfil?['avatar'] ??
-                                          perfil?['avatar_url'] ??
-                                          perfil?['imagen'],
-                                      _localImagePath);
-                                  if (prov != null) {
-                                    return CircleAvatar(
-                                        radius: 40, backgroundImage: prov);
-                                  }
-                                  return CircleAvatar(
-                                    radius: 40,
-                                    backgroundColor: Colors.blueGrey.shade50,
-                                    child: Text(
-                                        (perfil?['nombre'] ?? '')
-                                            .toString()
-                                            .split(' ')
-                                            .map(
-                                                (s) => s.isNotEmpty ? s[0] : '')
-                                            .take(2)
-                                            .join(),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                  );
-                                }),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(perfil?['nombre'] ?? '-',
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 6),
-                                      Row(children: [
-                                        Chip(
-                                            label: Text(
-                                                'Pacientes: ${perfil?['totalPacientes'] ?? '-'}')),
-                                        const SizedBox(width: 8),
-                                        Chip(
-                                            label: Text(
-                                                'Capacidad: ${perfil?['clinic_capacity'] ?? '-'}')),
-                                      ])
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Información',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 8),
-                                infoRow('Apellido',
-                                    perfil?['apellido']?.toString() ?? ''),
-                                infoRow('Dirección',
-                                    perfil?['direccion']?.toString() ?? ''),
-                                infoRow('Teléfono',
-                                    perfil?['telefono']?.toString() ?? ''),
-                                infoRow(
-                                    'Especialidad',
-                                    perfil?['especialidad']?.toString() ??
-                                        perfil?['specialty']?.toString() ??
-                                        ''),
-                                infoRow(
-                                    'Email',
-                                    perfil?['email']?.toString() ??
-                                        perfil?['correo']?.toString() ??
-                                        ''),
-                                const SizedBox(height: 6),
-                                const Divider(),
-                                const SizedBox(height: 6),
-                                const Text('Biografía',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 6),
-                                Text(perfil?['bio']?.toString() ?? '-',
-                                    style:
-                                        const TextStyle(color: Colors.black87)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Documentos / Imágenes
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Imágenes y documentos',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 8),
-                                if (_documents.isEmpty)
-                                  const Text('No hay imágenes o documentos')
-                                else
-                                  Column(
-                                    children: _documents.map((d) {
-                                      final title = d['title'] ??
-                                          d['titulo'] ??
-                                          d['name'] ??
-                                          d['filename'] ??
-                                          'Sin título';
-                                      String? url;
-                                      if (d['url'] != null) {
-                                        url = d['url'].toString();
-                                      } else if (d['path'] != null) {
-                                        url = d['path'].toString();
-                                      } else if (d['file'] != null) {
-                                        url = d['file'].toString();
-                                      }
-                                      if (url != null && url.startsWith('/')) {
-                                        url = '${ApiService.baseUrl}$url';
-                                      }
-                                      return ListTile(
-                                        leading: url != null
-                                            ? CircleAvatar(
-                                                backgroundImage:
-                                                    NetworkImage(url))
-                                            : const CircleAvatar(
-                                                child: Icon(
-                                                    Icons.insert_drive_file)),
-                                        title: Text(title.toString()),
-                                        onTap: url != null
-                                            ? () {/* could open */}
-                                            : null,
-                                      );
-                                    }).toList(),
-                                  ),
-                                const SizedBox(height: 6),
-                                TextButton.icon(
-                                  onPressed: () async {
-                                    // Pick files and ask for a title
-                                    if (!context.mounted) return;
-                                    final messenger =
-                                        ScaffoldMessenger.of(context);
-                                    try {
-                                      final res = await FilePicker.platform
-                                          .pickFiles(allowMultiple: true);
-                                      if (!context.mounted) return;
-                                      if (res == null || res.files.isEmpty) {
-                                        return;
-                                      }
-                                      final paths = res.files
-                                          .map((f) => f.path)
-                                          .whereType<String>()
-                                          .toList();
-                                      final titleCtrl = TextEditingController();
-                                      final ok = await showDialog<bool>(
-                                          context: context,
-                                          builder: (ctx) => AlertDialog(
-                                                title: const Text('Título'),
-                                                content: TextField(
-                                                    controller: titleCtrl,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                            labelText:
-                                                                'Título para estas imágenes (opcional)')),
-                                                actions: [
-                                                  TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              ctx, false),
-                                                      child: const Text(
-                                                          'Cancelar')),
-                                                  ElevatedButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              ctx, true),
-                                                      child:
-                                                          const Text('Subir'))
-                                                ],
-                                              ));
-                                      if (!context.mounted) return;
-                                      if (ok != true) return;
-                                      // Upload
-                                      final userIdRaw = perfil?['user_id'] ??
-                                          perfil?['usuario_id'] ??
-                                          perfil?['userId'] ??
-                                          perfil?['usuarioId'] ??
-                                          perfil?['id'];
-                                      int? uid;
-                                      if (userIdRaw != null) {
-                                        uid = userIdRaw is int
-                                            ? userIdRaw
-                                            : int.tryParse(
-                                                userIdRaw.toString());
-                                      }
-                                      if (uid == null) {
-                                        messenger.showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'ID de usuario no disponible')));
-                                        return;
-                                      }
-                                      final up = await ApiService
-                                          .subirDocumentosDoctor(uid, paths);
-                                      if (!context.mounted) return;
-                                      if ((up['ok'] ?? false) == true) {
-                                        messenger.showSnackBar(const SnackBar(
-                                            content:
-                                                Text('Documentos subidos')));
-                                        final docs = await ApiService
-                                            .obtenerDocumentosDoctor(uid);
-                                        if (!mounted) return;
-                                        setState(() {
-                                          _documents = docs;
-                                        });
-                                      } else {
-                                        messenger.showSnackBar(SnackBar(
-                                            content: Text(
-                                                'Error subiendo: ${up['error'] ?? up['body'] ?? up}')));
-                                      }
-                                    } catch (e) {
-                                      if (!context.mounted) return;
-                                      messenger.showSnackBar(
-                                          SnackBar(content: Text('Error: $e')));
-                                    }
-                                  },
-                                  icon: const Icon(Icons.upload_file),
-                                  label:
-                                      const Text('Agregar imágenes / talleres'),
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                const Text('Acciones',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: () async {
-                                          final doctorId = perfil?['id'];
-                                          Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      AgregarEditarPacienteScreen(
-                                                          doctorId:
-                                                              doctorId is int
-                                                                  ? doctorId
-                                                                  : null)));
-                                        },
-                                        icon: const Icon(Icons.person_add),
-                                        label: const Text(
-                                            'Ver / Agregar paciente'),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () {
-                                          Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const CitasScreen()));
-                                        },
-                                        icon: const Icon(Icons.event),
-                                        label: const Text('Ver citas'),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                if (_localOverrides != null &&
-                                    _localOverrides!.isNotEmpty)
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 8),
-                                      Text('Nota: cambios locales pendientes',
-                                          style: TextStyle(
-                                              color: Colors.orange[800])),
-                                      TextButton(
-                                        onPressed: () async {
-                                          final id = perfil?['id'];
-                                          if (id == null) return;
-                                          await LocalProfileOverrides
-                                              .clearForUser(id is int
-                                                  ? id
-                                                  : int.tryParse(
-                                                          id.toString()) ??
-                                                      0);
-                                          await _load();
-                                        },
-                                        child: const Text(
-                                            'Borrar cambios locales'),
-                                      )
-                                    ],
-                                  )
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
+      textTheme: baseTheme.textTheme.apply(
+        bodyColor: Colors.white,
+        displayColor: Colors.white,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accentColor,
+          foregroundColor: const Color(0xFF031928),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: BorderSide(color: Colors.white.withOpacity(0.4)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: _accentColor),
+      ),
+      snackBarTheme: baseTheme.snackBarTheme.copyWith(
+        backgroundColor: Colors.black.withOpacity(0.85),
+        behavior: SnackBarBehavior.floating,
+        contentTextStyle: baseTheme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+        ),
+      ),
+    );
+
+    return Theme(
+      data: darkTheme,
+      child: Builder(
+        builder: (themeContext) {
+          final themed = Theme.of(themeContext);
+          return Scaffold(
+            extendBody: true,
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              title: Text(safeTitle),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.event),
+                  tooltip: 'Ver citas',
+                  onPressed: () {
+                    Navigator.push(
+                      themeContext,
+                      MaterialPageRoute(builder: (_) => const CitasScreen()),
+                    );
+                  },
                 ),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Editar perfil',
+                  onPressed: perfil == null
+                      ? null
+                      : () => _openEditDialog(themeContext),
+                ),
+              ],
+            ),
+            body: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF07142A), Color(0xFF030A18)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SafeArea(
+                child: _buildBody(themeContext, themed),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

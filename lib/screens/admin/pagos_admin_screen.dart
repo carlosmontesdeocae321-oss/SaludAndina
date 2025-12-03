@@ -111,13 +111,16 @@ class _PagosAdminScreenState extends State<PagosAdminScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchItems();
+    // Defer until after first frame so ScaffoldMessenger is mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _fetchItems();
+    });
   }
 
   Future<void> _fetchItems() async {
     setState(() => _loading = true);
     final uri = Uri.parse('${widget.baseUrl}/api/pagos?estado=pending');
-    final scaffold = ScaffoldMessenger.of(context);
 
     final prefs = await SharedPreferences.getInstance();
     final usuario = prefs.getString('usuario') ?? '';
@@ -136,7 +139,7 @@ class _PagosAdminScreenState extends State<PagosAdminScreen> {
       });
     } else {
       debugPrint('📌 PagosAdmin - GET $uri -> ${resp.statusCode} ${resp.body}');
-      scaffold.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error cargando pagos: ${resp.statusCode}')));
       setState(() {
         _items = [];

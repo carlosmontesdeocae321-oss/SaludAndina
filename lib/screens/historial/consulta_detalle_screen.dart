@@ -9,100 +9,286 @@ class ConsultaDetalleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de consulta')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              consulta.motivo.isNotEmpty ? consulta.motivo : '(Sin motivo)',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-                'Fecha: ${consulta.fecha.toLocal().toString().split(' ')[0]}  Hora: ${consulta.fecha.toLocal().toString().split(' ')[1].split('.').first}'),
-            const SizedBox(height: 12),
-            const Text('Examen físico',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Wrap(spacing: 8, runSpacing: 6, children: [
-              if (consulta.peso > 0) Text('Peso: ${consulta.peso} kg'),
-              if (consulta.estatura > 0)
-                Text('Estatura: ${consulta.estatura} m'),
-              if (consulta.imc > 0) Text('IMC: ${consulta.imc}'),
-              if (consulta.presion.isNotEmpty)
-                Text('Presión: ${consulta.presion}'),
-              if (consulta.frecuenciaCardiaca > 0)
-                Text('FC: ${consulta.frecuenciaCardiaca}'),
-              if (consulta.frecuenciaRespiratoria > 0)
-                Text('FR: ${consulta.frecuenciaRespiratoria}'),
-              if (consulta.temperatura > 0)
-                Text('Temp: ${consulta.temperatura}°C'),
-            ]),
-            const SizedBox(height: 12),
-            if (consulta.diagnostico.isNotEmpty) ...[
-              const Text('Diagnóstico',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Text(consulta.diagnostico),
-              const SizedBox(height: 12),
-            ],
-            if (consulta.tratamiento.isNotEmpty) ...[
-              const Text('Tratamiento',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Text(consulta.tratamiento),
-              const SizedBox(height: 12),
-            ],
-            if (consulta.receta.isNotEmpty) ...[
-              const Text('Receta',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Text(consulta.receta),
-              const SizedBox(height: 12),
-            ],
-            if (consulta.imagenes.isNotEmpty) ...[
-              const Text('Imágenes',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 120,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (ctx, i) {
-                    final rawUrl = consulta.imagenes[i];
-                    String displayUrl = rawUrl;
-                    if (rawUrl.startsWith('/')) {
-                      displayUrl = ApiService.baseUrl + rawUrl;
-                    }
-                    if (displayUrl.startsWith('http')) {
-                      return GestureDetector(
-                        onTap: () => _openImage(context, displayUrl),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(displayUrl,
-                              width: 160, height: 120, fit: BoxFit.cover),
-                        ),
-                      );
-                    }
-                    return GestureDetector(
-                      onTap: () => _openImage(context, rawUrl),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(rawUrl),
-                            width: 160, height: 120, fit: BoxFit.cover),
-                      ),
-                    );
-                  },
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemCount: consulta.imagenes.length,
-                ),
-              )
-            ]
-          ],
+    const accentColor = Color(0xFF1BD1C2);
+    const overlayColor = Color(0xFF101D32);
+    final baseTheme = Theme.of(context);
+
+    final themed = baseTheme.copyWith(
+      scaffoldBackgroundColor: Colors.transparent,
+      colorScheme: baseTheme.colorScheme.copyWith(
+        primary: accentColor,
+        secondary: accentColor,
+        surface: overlayColor,
+        surfaceContainerHigh: overlayColor.withOpacity(0.88),
+        onPrimary: const Color(0xFF062026),
+        onSurface: Colors.white,
+        onSurfaceVariant: Colors.white70,
+      ),
+      textTheme: baseTheme.textTheme.apply(
+        bodyColor: Colors.white,
+        displayColor: Colors.white,
+      ),
+      iconTheme: const IconThemeData(color: Colors.white70),
+      appBarTheme: baseTheme.appBarTheme.copyWith(
+        backgroundColor: const Color(0xFF0B1626).withOpacity(0.95),
+        elevation: 0,
+        titleTextStyle: baseTheme.textTheme.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
         ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+      ),
+      dividerColor: Colors.white24,
+      dialogTheme: baseTheme.dialogTheme.copyWith(
+        backgroundColor: overlayColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: baseTheme.textTheme.titleMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: baseTheme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white70,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accentColor,
+          foregroundColor: const Color(0xFF062026),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF02060F), Color(0xFF0B1F36)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -110,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accentColor.withOpacity(0.18), Colors.transparent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Theme(
+            data: themed,
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(title: const Text('Detalle de consulta')),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: overlayColor.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(color: Colors.white.withOpacity(0.04)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 28,
+                        offset: const Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 24, 22, 26),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          consulta.motivo.isNotEmpty
+                              ? consulta.motivo
+                              : 'Consulta sin motivo registrado',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Fecha: ${consulta.fecha.toLocal().toString().split(' ')[0]} · Hora: ${consulta.fecha.toLocal().toString().split(' ')[1].split('.').first}',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildSectionTitle('Examen físico'),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            if (consulta.peso > 0)
+                              _buildMetricChip('Peso: ${consulta.peso} kg'),
+                            if (consulta.estatura > 0)
+                              _buildMetricChip(
+                                  'Estatura: ${consulta.estatura} m'),
+                            if (consulta.imc > 0)
+                              _buildMetricChip('IMC: ${consulta.imc}'),
+                            if (consulta.presion.isNotEmpty)
+                              _buildMetricChip(
+                                  'Presión arterial: ${consulta.presion}'),
+                            if (consulta.frecuenciaCardiaca > 0)
+                              _buildMetricChip(
+                                  'Frecuencia cardiaca: ${consulta.frecuenciaCardiaca}'),
+                            if (consulta.frecuenciaRespiratoria > 0)
+                              _buildMetricChip(
+                                  'Frecuencia respiratoria: ${consulta.frecuenciaRespiratoria}'),
+                            if (consulta.temperatura > 0)
+                              _buildMetricChip(
+                                  'Temperatura: ${consulta.temperatura}°C'),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        _buildDetailBlock(
+                          title: 'Diagnóstico',
+                          value: consulta.diagnostico,
+                        ),
+                        _buildDetailBlock(
+                          title: 'Tratamiento',
+                          value: consulta.tratamiento,
+                        ),
+                        _buildDetailBlock(
+                          title: 'Receta',
+                          value: consulta.receta,
+                        ),
+                        if (consulta.imagenes.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _buildSectionTitle('Imágenes adjuntas'),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 140,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemBuilder: (ctx, i) {
+                                final rawUrl = consulta.imagenes[i];
+                                String displayUrl = rawUrl;
+                                if (rawUrl.startsWith('/')) {
+                                  displayUrl = ApiService.baseUrl + rawUrl;
+                                }
+                                if (displayUrl.startsWith('http')) {
+                                  return GestureDetector(
+                                    onTap: () =>
+                                        _openImage(context, displayUrl),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Image.network(
+                                        displayUrl,
+                                        width: 170,
+                                        height: 140,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return GestureDetector(
+                                  onTap: () => _openImage(context, rawUrl),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Image.file(
+                                      File(rawUrl),
+                                      width: 170,
+                                      height: 140,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                );
+                              },
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
+                              itemCount: consulta.imagenes.length,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
+      ),
+    );
+  }
+
+  Widget _buildMetricChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 13,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailBlock({required String title, required String value}) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Text(
+          '$title: Sin información registrada',
+          style: const TextStyle(color: Colors.white54, letterSpacing: 0.3),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(title),
+          const SizedBox(height: 8),
+          Text(
+            trimmed,
+            style: const TextStyle(
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -111,7 +297,8 @@ class ConsultaDetalleScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.all(8),
+        backgroundColor: Colors.black.withOpacity(0.9),
+        insetPadding: const EdgeInsets.all(12),
         child: GestureDetector(
           onTap: () => Navigator.of(context).pop(),
           child: InteractiveViewer(

@@ -752,7 +752,7 @@ class _TransferirDialogState extends State<_TransferirDialog> {
               Card(
                 margin: EdgeInsets.zero,
                 elevation: 0,
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: ListTile(
                   dense: true,
                   leading: const Icon(Icons.link),
@@ -761,11 +761,12 @@ class _TransferirDialogState extends State<_TransferirDialog> {
                   trailing: IconButton(
                     icon: const Icon(Icons.copy),
                     onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       await Clipboard.setData(
                         ClipboardData(text: widget.paymentUrl!),
                       );
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Enlace copiado al portapapeles'),
                         ),
@@ -812,18 +813,19 @@ class _TransferirDialogState extends State<_TransferirDialog> {
           onPressed: _subiendo || _comprobante == null
               ? null
               : () async {
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
                   setState(() => _subiendo = true);
                   final res = await ApiService.subirComprobanteCompra(
                     widget.compraId,
                     _comprobante!.path,
                   );
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   setState(() => _subiendo = false);
                   if (res['ok'] == true) {
                     globalRefreshNotifier.value =
                         globalRefreshNotifier.value + 1;
-                    final messenger = ScaffoldMessenger.of(context);
-                    Navigator.pop(context, true);
+                    navigator.pop(true);
                     messenger.showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -833,7 +835,7 @@ class _TransferirDialogState extends State<_TransferirDialog> {
                     );
                   } else {
                     final msg = res['error'] ?? 'No se pudo subir';
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(content: Text(msg.toString())),
                     );
                   }

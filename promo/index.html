@@ -3,118 +3,131 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Clinica App — Plataforma Moderna</title>
+  <title>SaludAndina — Plataforma Clínica Omnicanal</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{--primary:#2563eb;--primary-2:#1e40af;--accent:#f97316;--dark:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--bg:#f8fafc;--card:#ffffff;--radius:14px;--glass:rgba(255,255,255,0.72);--surface:#e2e8f0;}
+    :root{--primary:#2563eb;--primary-2:#1e40af;--accent:#f97316;--dark:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--bg:#f8fafc;--card:#ffffff;--surface:#e2e8f0;--shadow:0 24px 60px rgba(15,23,42,0.08);}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:var(--dark);}
-    header{background:var(--card);box-shadow:0 3px 12px rgba(16,24,40,0.06);position:sticky;top:0;z-index:40;backdrop-filter:blur(16px)}
+    body{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;background:var(--bg);color:var(--dark);line-height:1.6}
+    header{background:rgba(248,250,252,0.92);box-shadow:0 3px 12px rgba(15,23,42,0.08);position:sticky;top:0;z-index:60;backdrop-filter:blur(18px)}
     nav{width:92%;max-width:1200px;margin:auto;padding:16px 0;display:flex;align-items:center;justify-content:space-between}
-    .logo{font-weight:700;color:var(--primary);text-decoration:none;font-size:1.4rem;letter-spacing:.02em}
+    .logo{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--primary);text-decoration:none;font-size:1.35rem;letter-spacing:.01em}
+    .logo img{height:40px;width:auto;border-radius:10px;display:block}
     .navlinks{display:flex;align-items:center;gap:18px}
-    .navlinks a{position:relative;text-decoration:none;color:var(--dark);font-weight:600;opacity:.92;padding:6px 0}
-    .navlinks a::after{content:"";position:absolute;inset:auto 0 -4px;height:2px;background:var(--primary);transform:scaleX(0);transform-origin:center;transition:transform .25s ease}
+    .navlinks a{text-decoration:none;color:var(--dark);font-weight:600;position:relative;padding:6px 0;opacity:.92}
+    .navlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:var(--primary);transform:scaleX(0);transform-origin:center;transition:transform .25s ease}
     .navlinks a:hover{color:var(--primary)}
     .navlinks a:hover::after{transform:scaleX(1)}
 
-    .hero{padding:110px 0 80px;background:radial-gradient(circle at top right,rgba(37,99,235,0.16),transparent 48%),linear-gradient(140deg,var(--primary) 0%,var(--primary-2) 60%,#132d70 100%);color:white}
-    .hero .wrapper{width:92%;max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:center;gap:40px}
-    .hero-col{display:flex;flex-direction:column;gap:16px}
-    .hero h1{font-size:3rem;margin-bottom:16px;line-height:1.05}
-    .hero p{font-size:1.07rem;opacity:.92}
-    .hero-tags{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
-    .hero-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(15,23,42,0.22);border:1px solid rgba(255,255,255,0.12);font-weight:600;font-size:.85rem;letter-spacing:.03em}
-    .hero-feature-list{margin:20px 0 0;display:grid;gap:12px}
-    .hero-feature{display:flex;align-items:flex-start;gap:12px;font-size:.98rem;opacity:.95}
-    .hero-feature span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);color:white;font-weight:700}
-    .actions{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
-    .actions .btn{box-shadow:0 10px 30px rgba(15,23,42,0.15)}
-    .hero-illustration{position:relative;padding:24px;border-radius:18px;background:rgba(15,23,42,0.18);box-shadow:0 30px 70px rgba(15,23,42,0.35);backdrop-filter:blur(20px)}
-    .hero-illustration::after{content:"";position:absolute;inset:20px;border-radius:16px;border:1px solid rgba(255,255,255,0.18);pointer-events:none}
-    .hero-illustration h3{font-size:1.1rem;margin-bottom:12px;letter-spacing:.05em;text-transform:uppercase;opacity:.85}
-    .hero-illustration ul{list-style:none;display:grid;gap:12px;font-size:.94rem;opacity:.9}
+    .hero{padding:120px 0 90px;background:radial-gradient(circle at top right,rgba(37,99,235,0.18),transparent 48%),linear-gradient(140deg,var(--primary) 0%,var(--primary-2) 58%,#132d70 100%);color:white}
+    .hero .wrapper{width:92%;max-width:1200px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;align-items:center}
+    .hero-col{display:flex;flex-direction:column;gap:18px}
+    .hero-tags{display:flex;flex-wrap:wrap;gap:10px}
+    .hero-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(15,23,42,0.25);border:1px solid rgba(255,255,255,0.16);font-weight:600;font-size:.85rem;letter-spacing:.03em}
+    .hero h1{font-size:3rem;line-height:1.04}
+    .hero p{font-size:1.08rem;opacity:.92;max-width:540px}
+    .hero-feature-list{display:grid;gap:12px;margin-top:10px}
+    .hero-feature{display:flex;align-items:flex-start;gap:12px;font-size:1rem;opacity:.95}
+    .hero-feature span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.15);font-weight:700}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .btn{padding:12px 24px;border-radius:12px;font-weight:700;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease}
+    .btn-primary{background:white;color:var(--primary-2);box-shadow:0 14px 30px rgba(15,23,42,0.18)}
+    .btn-secondary{background:transparent;color:white;border:2px solid rgba(255,255,255,0.25)}
+    .btn-outline{background:transparent;color:var(--primary-2);border:2px solid rgba(37,99,235,0.24)}
+    .btn:hover{transform:translateY(-2px)}
+    .hero-illustration{position:relative;border-radius:28px;background:linear-gradient(160deg,rgba(15,23,42,0.9) 0%,rgba(37,99,235,0.55) 58%,rgba(37,99,235,0.35) 100%);box-shadow:0 42px 90px rgba(4,10,22,0.58);padding:30px;display:grid;gap:18px;overflow:hidden}
+    .hero-illustration::after{content:"";position:absolute;inset:20px;border-radius:22px;border:1px solid rgba(255,255,255,0.16)}
+    .hero-illustration-content{position:relative;z-index:1;display:grid;gap:16px}
+    .hero-illustration h3{font-size:1rem;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+    .hero-illustration p{font-size:.98rem;opacity:.9}
+    .hero-shot{position:relative;z-index:1;border-radius:20px;overflow:hidden;box-shadow:0 22px 60px rgba(3,7,18,0.45);border:1px solid rgba(255,255,255,0.12)}
+    .hero-shot img{display:block;width:100%;height:100%;object-fit:cover}
 
-    .btn{padding:12px 24px;border-radius:12px;font-weight:700;text-decoration:none;display:inline-block}
-    .btn-ghost{background:transparent;border:2px solid rgba(255,255,255,0.18);color:white}
-    .btn-primary{background:white;color:var(--primary-2)}
-    .download-row{margin-top:12px;display:flex;gap:10px;justify-content:center}
-    .download-btn{padding:10px 18px;border-radius:10px;background:rgba(255,255,255,0.12);color:white;text-decoration:none;font-weight:700;border:1px solid rgba(255,255,255,0.12)}
-    .download-note{display:block;text-align:center;margin-top:8px;color:rgba(255,255,255,0.9);opacity:0.9;font-size:0.9rem}
-    .download-note code{background:rgba(15,23,42,0.32);padding:2px 6px;border-radius:6px;font-size:.85rem;color:#f8fafc}
+    .download-section{padding:80px 0;background:var(--card)}
+    .download-inner{width:92%;max-width:860px;margin:auto;text-align:center;display:grid;gap:20px}
+    .download-subtitle{color:var(--muted);max-width:560px;margin:0 auto;font-size:1rem}
+    .download-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+    .download-actions a{min-width:220px}
+    .download-info{color:var(--muted-2);font-size:.92rem}
+    .download-info code{background:rgba(37,99,235,0.08);padding:2px 6px;border-radius:6px;font-size:.85rem;color:var(--primary-2)}
 
-    .stats{padding:42px 0 18px;background:linear-gradient(0deg,rgba(15,23,42,0.018),transparent);}
-    .stats-wrap{width:92%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
-    .stat-card{padding:24px;border-radius:20px;background:var(--card);box-shadow:0 16px 40px rgba(15,23,42,0.06);text-align:left;position:relative;overflow:hidden}
-    .stat-card::after{content:"";position:absolute;bottom:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:rgba(37,99,235,0.08)}
-    .stat-card h3{font-size:2rem;color:var(--primary-2);margin-bottom:6px}
-    .stat-card span{font-size:.95rem;color:var(--muted)}
+    .stats{padding:90px 0;background:linear-gradient(180deg,#f8fbff 0%,#e8efff 100%)}
+    .stats-wrap{width:92%;max-width:1120px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:26px}
+    .stat-card{padding:28px;border-radius:26px;background:linear-gradient(180deg,#ffffff 0%,#f2f7ff 100%);box-shadow:var(--shadow);position:relative;overflow:hidden;border:1px solid rgba(148,163,184,0.18)}
+    .stat-card::before{content:"";position:absolute;top:-60px;left:-60px;width:170px;height:170px;border-radius:50%;background:rgba(59,130,246,0.16)}
+    .stat-card::after{content:"";position:absolute;bottom:-60px;right:-50px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle at center,#dbeafe 0%,#eef3ff 70%,transparent 76%)}
+    .stat-card h3{font-size:2.3rem;color:var(--primary);margin-bottom:10px;position:relative;z-index:1}
+    .stat-card span{color:var(--muted);font-size:1rem;position:relative;z-index:1;line-height:1.55}
 
-    .section{padding:70px 0}
-    h2{text-align:center;font-size:2rem;margin-bottom:22px}
-    .section-subtitle{text-align:center;color:var(--muted);max-width:680px;margin:0 auto 36px;font-size:1rem}
+    .section{padding:80px 0}
+    h2{text-align:center;font-size:2.2rem;margin-bottom:20px;color:var(--dark)}
+    .section-subtitle{text-align:center;color:var(--muted);max-width:720px;margin:0 auto 40px;font-size:1rem}
 
-    .features{width:92%;max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
-    .feature{background:var(--card);padding:26px;border-radius:18px;box-shadow:0 20px 40px rgba(15,23,42,0.06);border:1px solid rgba(15,23,42,0.06);text-align:left;display:flex;flex-direction:column;gap:12px}
-    .feature-icon{width:48px;height:48px;border-radius:14px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--primary)}
-    .feature h3{color:var(--primary-2);margin-bottom:4px;font-size:1.2rem}
-    .feature p{color:var(--muted);font-size:.97rem;line-height:1.55}
+    .app-preview{background:linear-gradient(180deg,var(--bg) 0%,#eef2ff 100%)}
+    .app-preview .wrapper{width:92%;max-width:1160px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:34px;align-items:center}
+    .preview-copy{display:flex;flex-direction:column;gap:18px}
+    .preview-pills{display:flex;flex-wrap:wrap;gap:10px}
+    .preview-pills span{padding:6px 12px;border-radius:999px;background:white;border:1px solid rgba(37,99,235,0.2);color:var(--primary-2);font-weight:600;font-size:.85rem}
+    .preview-grid{display:grid;gap:18px}
+    .preview-card{background:white;border-radius:22px;box-shadow:var(--shadow);border:1px solid rgba(37,99,235,0.12);overflow:hidden;display:grid}
+    .preview-card img{width:100%;height:220px;object-fit:cover}
+    .preview-card .copy{padding:22px;display:grid;gap:10px}
+    .preview-card strong{color:var(--primary-2)}
+    .preview-card p{color:var(--muted);font-size:.96rem}
 
-    .modules{width:92%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
-    .module-card{border-radius:20px;background:var(--card);padding:28px;box-shadow:0 24px 44px rgba(15,23,42,0.06);border:1px solid rgba(37,99,235,0.08)}
-    .module-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
-    .module-header span{width:42px;height:42px;border-radius:12px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary-2)}
-    .module-card ul{list-style:none;margin-top:10px;display:grid;gap:10px;color:var(--muted);font-size:.95rem}
+    .features{width:92%;max-width:1200px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
+    .feature{background:var(--card);padding:26px;border-radius:18px;box-shadow:0 20px 44px rgba(15,23,42,0.06);border:1px solid rgba(15,23,42,0.06);display:flex;flex-direction:column;gap:14px}
+    .feature-icon{width:50px;height:50px;border-radius:14px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;font-size:1.45rem;color:var(--primary)}
+    .feature h3{color:var(--primary-2);font-size:1.22rem}
+    .feature p{color:var(--muted)}
+
+    .modules{width:92%;max-width:1100px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+    .module-card{border-radius:22px;background:var(--card);padding:30px;box-shadow:0 24px 44px rgba(15,23,42,0.06);border:1px solid rgba(37,99,235,0.08);display:grid;gap:14px}
+    .module-header{display:flex;align-items:center;gap:14px}
+    .module-header span{width:44px;height:44px;border-radius:12px;background:rgba(37,99,235,0.14);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary-2)}
+    .module-card ul{list-style:none;display:grid;gap:10px;color:var(--muted);font-size:.95rem}
     .module-card ul li{display:flex;align-items:flex-start;gap:8px}
-    .module-card ul li::before{content:"•";color:var(--accent);line-height:1.4;font-weight:700}
+    .module-card ul li::before{content:"•";color:var(--accent);line-height:1.35;font-weight:700}
 
-    .timeline{width:92%;max-width:900px;margin:0 auto;display:grid;gap:26px;position:relative;padding-left:22px}
-    .timeline::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--primary) 0%,var(--primary-2) 100%)}
-    .timeline-step{position:relative;padding-left:26px}
-    .timeline-step::before{content:"";position:absolute;left:-13px;top:4px;width:18px;height:18px;border-radius:50%;background:var(--card);border:4px solid var(--primary)}
-    .timeline-step h3{margin-bottom:6px;color:var(--primary-2)}
-    .timeline-step p{color:var(--muted);line-height:1.55}
+    .timeline{width:92%;max-width:920px;margin:auto;display:grid;gap:28px;position:relative;padding-left:26px}
+    .timeline::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--primary) 0%,var(--primary-2) 100%)}
+    .timeline-step{position:relative;padding-left:28px}
+    .timeline-step::before{content:"";position:absolute;left:-15px;top:6px;width:20px;height:20px;border-radius:50%;background:var(--card);border:5px solid var(--primary)}
+    .timeline-step h3{color:var(--primary-2);margin-bottom:6px}
+    .timeline-step p{color:var(--muted)}
 
-    .integrations{width:92%;max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;text-align:center}
-    .integration-card{padding:20px;border-radius:18px;background:var(--glass);border:1px solid rgba(15,23,42,0.08);box-shadow:0 18px 36px rgba(15,23,42,0.05);backdrop-filter:blur(18px);color:var(--dark);font-weight:600}
-    .integration-card span{display:block;color:var(--muted);font-size:.9rem;margin-top:6px}
+    .integrations{width:92%;max-width:1000px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;text-align:center}
+    .integration-card{padding:22px;border-radius:18px;background:rgba(255,255,255,0.85);border:1px solid rgba(15,23,42,0.08);box-shadow:0 18px 36px rgba(15,23,42,0.05);backdrop-filter:blur(18px);font-weight:600}
+    .integration-card span{display:block;color:var(--muted);font-size:.9rem;margin-top:8px}
 
-    .cta{padding:70px 0;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-2) 60%,#122861 100%);color:white;text-align:center}
-    .cta-inner{width:92%;max-width:760px;margin:0 auto;padding:48px;border-radius:24px;background:rgba(15,23,42,0.18);box-shadow:0 30px 60px rgba(15,23,42,0.35);backdrop-filter:blur(16px)}
-    .cta-inner h2{margin-bottom:16px}
-    .cta-inner p{margin-bottom:24px;opacity:.92}
+    .gallery{width:92%;max-width:1140px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+    .thumb{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:0 16px 40px rgba(2,6,23,0.12);cursor:pointer;position:relative;border:1px solid rgba(15,23,42,0.08)}
+    .thumb img{width:100%;height:100%;display:block;object-fit:cover;aspect-ratio:4/6;transition:transform .28s ease}
+    .thumb:hover img{transform:scale(1.03)}
+    .thumb .label{position:absolute;left:10px;bottom:10px;background:rgba(15,23,42,0.65);color:white;padding:6px 12px;border-radius:12px;font-size:.85rem}
+
+    .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,7,18,0.68);z-index:120;padding:28px}
+    .lb.open{display:flex}
+    .lb .stage{max-width:1220px;width:100%;max-height:90vh;display:flex;align-items:center;gap:18px}
+    .lb .imgwrap{flex:1;display:flex;align-items:center;justify-content:center}
+    .lb img{max-width:100%;max-height:90vh;border-radius:14px;box-shadow:0 24px 44px rgba(2,6,23,0.45)}
+    .lb .controls{width:90px;display:flex;flex-direction:column;gap:12px;align-items:center}
+    .lb button{background:var(--card);border-radius:12px;border:none;padding:10px 12px;box-shadow:0 10px 20px rgba(2,6,23,0.16);cursor:pointer;font-weight:600;color:var(--primary-2)}
+    .lb .close{position:fixed;right:24px;top:24px;background:var(--card);padding:10px 12px;border-radius:12px;font-weight:700}
+
+    .cta{padding:90px 0;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-2) 65%,#122861 100%);color:white;text-align:center}
+    .cta-inner{width:92%;max-width:780px;margin:auto;padding:54px;border-radius:28px;background:rgba(15,23,42,0.22);box-shadow:0 32px 64px rgba(15,23,42,0.38);backdrop-filter:blur(18px);display:grid;gap:18px}
     .cta-actions{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
     .cta-actions .btn{border-radius:999px;padding:14px 28px}
 
-    /* gallery */
-    .gallery{width:92%;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-    @media(max-width:900px){.gallery{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:520px){.gallery{grid-template-columns:1fr}}
-    .thumb{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 10px 28px rgba(2,6,23,0.06);cursor:pointer;position:relative}
-    .thumb img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:4/7;transition:transform .28s ease}
-    .thumb:hover img{transform:scale(1.03)}
-    .thumb .label{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,0.45);color:white;padding:6px 10px;border-radius:10px;font-size:.85rem}
-
-    /* lightbox */
-    .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,7,18,0.6);z-index:90;padding:28px}
-    .lb.open{display:flex}
-    .lb .stage{max-width:1200px;width:100%;max-height:90vh;display:flex;align-items:center;gap:18px}
-    .lb .imgwrap{flex:1;display:flex;align-items:center;justify-content:center}
-    .lb img{max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 20px 40px rgba(2,6,23,0.5)}
-    .lb .controls{width:90px;display:flex;flex-direction:column;gap:12px;align-items:center}
-    .lb button{background:var(--card);border-radius:12px;border:none;padding:10px 12px;box-shadow:0 6px 18px rgba(2,6,23,0.06);cursor:pointer}
-    .lb .meta{margin-top:10px;color:var(--muted);font-weight:600}
-
-    .lb .close{position:fixed;right:22px;top:22px;background:var(--card);padding:10px 12px;border-radius:12px;z-index:100}
-    .lb .nav{display:flex;gap:8px}
-
-    footer{padding:30px 0;text-align:center;color:var(--muted);margin-top:0}
-    footer .foot-links{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;margin-bottom:10px;font-size:.92rem}
+    footer{padding:30px 0;text-align:center;color:var(--muted)}
+    footer .foot-links{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;margin-bottom:12px;font-size:.92rem}
     footer a{color:inherit;text-decoration:none}
 
-    @media(max-width:920px){
+    @media(max-width:940px){
       .hero .wrapper{grid-template-columns:1fr}
       .hero-illustration{order:-1}
+      .preview-card img{height:200px}
     }
   </style>
 </head>
@@ -122,41 +135,108 @@
 
 <header>
   <nav>
-    <a class="logo" href="#">ClinicaApp</a>
+    <a class="logo" href="#inicio">
+      <img src="images/saludandina_logo.png" alt="Logotipo SaludAndina" />
+      <span>SaludAndina</span>
+    </a>
     <div class="navlinks">
+      <a href="#descargas">Descargas</a>
       <a href="#features">Funciones</a>
       <a href="#modules">Módulos</a>
       <a href="#workflow">Flujo</a>
       <a href="#integrations">Integraciones</a>
+      <a href="#screens">Galería</a>
       <a href="#contact">Contacto</a>
     </div>
   </nav>
 </header>
 
-<section class="stats" aria-label="Indicadores de ClinicaApp">
-  <div class="stats-wrap">
-    <div class="stat-card">
-      <h3>+58K</h3>
-      <span>Consultas registradas con historial clínico completo.</span>
+<section class="hero" id="inicio">
+  <div class="wrapper">
+    <div class="hero-col">
+      <div class="hero-tags">
+        <span class="hero-tag">Software clínico LATAM</span>
+        <span class="hero-tag">App + Web sincronizados</span>
+      </div>
+      <h1>Gestiona tu red de clínicas con SaludAndina</h1>
+      <p>Centraliza agendas, historias clínicas, cobranzas y comunicaciones desde un solo panel. SaludAndina integra tu operación presencial y digital para que el foco vuelva a ser el paciente.</p>
+      <div class="hero-feature-list">
+        <div class="hero-feature"><span>✓</span><div>Agenda omnicanal con recordatorios automáticos por WhatsApp, SMS y email.</div></div>
+        <div class="hero-feature"><span>✓</span><div>Historias clínicas multimedia, firmadas digitalmente y compartidas en segundos.</div></div>
+        <div class="hero-feature"><span>✓</span><div>Pagos y membresías integradas con reportes financieros de caja diaria.</div></div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="#descargas">Descargar app</a>
+        <a class="btn btn-secondary" href="#screens">Ver pantallas</a>
+      </div>
     </div>
-    <div class="stat-card">
-      <h3>97%</h3>
-      <span>Pacientes confirmados al primer recordatorio automático.</span>
+    <div class="hero-illustration" aria-hidden="true">
+      <div class="hero-illustration-content">
+        <h3>Panel SaludAndina</h3>
+        <p>Controla citas, historias clínicas y campañas desde cualquier dispositivo.</p>
+      </div>
+      <div class="hero-shot">
+        <img src="images/pantalla_inicio.jpg" alt="Panel principal de SaludAndina" />
+      </div>
     </div>
-    <div class="stat-card">
-      <h3>+230</h3>
-      <span>Clínicas y consultorios operando sobre la plataforma.</span>
+  </div>
+</section>
+
+<section class="section app-preview" aria-labelledby="app-preview">
+  <div class="wrapper">
+    <div class="preview-copy">
+      <span id="app-preview" class="hero-tag" style="align-self:flex-start;background:rgba(37,99,235,0.12);border-color:rgba(37,99,235,0.32);color:var(--primary-2)">Así luce SaludAndina</span>
+      <h2 style="text-align:left;margin-bottom:0">Operación clínica sin fricciones</h2>
+      <p>La app móvil y el portal web comparten la misma base de datos segura. Tu equipo registra consultas incluso sin conexión, mientras recepción monitorea citas, pagos y promociones en tiempo real.</p>
+      <div class="preview-pills">
+        <span>Agenda diaria</span>
+        <span>Consultas rápidas</span>
+        <span>Expediente del paciente</span>
+        <span>Campañas de fidelización</span>
+      </div>
+      <div class="hero-feature" style="margin-top:12px"><span style="background:rgba(37,99,235,0.15);color:var(--primary-2)">★</span><div>Incluimos entrenamiento y migración de datos para que tu transición sea segura.</div></div>
     </div>
-    <div class="stat-card">
-      <h3>48 h</h3>
-      <span>Tiempo promedio de despliegue con acompañamiento experto.</span>
+    <div class="preview-grid">
+      <article class="preview-card">
+        <img src="images/menu_principal.jpg" alt="Menú principal con accesos rápidos" />
+        <div class="copy">
+          <strong>Menú principal</strong>
+          <p>Accesos directos a agenda, pacientes, promociones y reportes para tu staff.</p>
+        </div>
+      </article>
+      <article class="preview-card">
+        <img src="images/detalle_consulta.jpg" alt="Detalle de consulta con evolución del paciente" />
+        <div class="copy">
+          <strong>Consulta en detalle</strong>
+          <p>Captura signos vitales, diagnóstico, recetas y adjuntos clínicos in situ.</p>
+        </div>
+      </article>
+      <article class="preview-card">
+        <img src="images/vista_paciente.jpg" alt="Ficha completa del paciente SaludAndina" />
+        <div class="copy">
+          <strong>Ficha del paciente</strong>
+          <p>Historial, citas futuras, notas del equipo y documentos en un solo lugar.</p>
+        </div>
+      </article>
     </div>
+  </div>
+</section>
+
+<section class="download-section" id="descargas">
+  <div class="download-inner">
+    <h2>Descarga SaludAndina</h2>
+    <p class="download-subtitle">Comparte la app móvil y el instalador de escritorio con tu equipo. Mantén siempre la versión más reciente para médicos, recepción y administración.</p>
+    <div class="download-actions">
+      <a class="btn btn-primary" href="downloads/saludandina_app_android.apk" download>Android (APK)</a>
+      <a class="btn btn-outline" href="downloads/saludandina_setup.exe" download>Windows (Instalador)</a>
+    </div>
+    <span class="download-info">Actualiza los archivos dentro de <code>promo/downloads</code> cuando publiques una nueva versión. Sustituye <code>saludandina_app_android.apk</code> y <code>saludandina_setup.exe</code> con tus builds recientes; si prefieres un paquete manual, conserva <code>clinica_app_windows.zip</code> con el ejecutable y sus dependencias.</span>
   </div>
 </section>
 
 <section id="features" class="section">
   <h2>Todo lo que tu clínica necesita</h2>
-  <p class="section-subtitle">ClinicaApp combina módulos clínicos, administrativos y financieros en un solo flujo. Cada actualización de la app móvil se refleja también en el portal web para tu personal.</p>
+  <p class="section-subtitle">SaludAndina combina módulos clínicos, administrativos y financieros en un solo flujo. Cada registro en la app móvil se refleja también en el portal web para tu personal.</p>
   <div class="features">
     <div class="feature">
       <div class="feature-icon">🩺</div>
@@ -203,7 +283,7 @@
 
 <section id="modules" class="section">
   <h2>Módulos destacados de la app</h2>
-  <p class="section-subtitle">Replica la experiencia móvil en web: cada módulo de ClinicaApp está sincronizado en tiempo real entre recepcionistas, médicos y pacientes.</p>
+  <p class="section-subtitle">Replica la experiencia móvil en web: cada módulo de SaludAndina está sincronizado en tiempo real entre recepcionistas, médicos y pacientes.</p>
   <div class="modules">
     <div class="module-card">
       <div class="module-header"><span>HC</span><div>
@@ -243,7 +323,7 @@
 
 <section id="workflow" class="section" style="padding-top:40px">
   <h2>Flujo completo desde la cita hasta el seguimiento</h2>
-  <p class="section-subtitle">Así se vive ClinicaApp en tu día a día: unifica al equipo médico, recepción, cobranzas y pacientes en un solo hilo.</p>
+  <p class="section-subtitle">Así se vive SaludAndina en tu día a día: unifica al equipo médico, recepción, cobranzas y pacientes en un solo hilo.</p>
   <div class="timeline">
     <div class="timeline-step">
       <h3>1. Agendamiento omnicanal</h3>
@@ -270,7 +350,7 @@
 
 <section id="integrations" class="section" style="padding-top:40px">
   <h2>Integraciones listas para usar</h2>
-  <p class="section-subtitle">Conecta ClinicaApp con tus herramientas favoritas. Si necesitas otra integración, nuestro equipo la desarrolla contigo.</p>
+  <p class="section-subtitle">Conecta SaludAndina con tus herramientas favoritas. Si necesitas otra integración, nuestro equipo la desarrolla contigo.</p>
   <div class="integrations">
     <div class="integration-card">WhatsApp Business<span>Recordatorios y campañas conversacionales.</span></div>
     <div class="integration-card">Stripe / Kushki / Mercado Pago<span>Pagos en línea, planes y conciliación automática.</span></div>
@@ -284,14 +364,16 @@
 <section id="screens" class="section">
   <h2>Pantallas (clic para ampliar)</h2>
   <div class="gallery" aria-label="Galería de pantallas de la app">
-    <div class="thumb" data-index="0" tabindex="0"><img src="images/s1.png" alt="Pantalla 1" /><div class="label">s1.png</div></div>
-    <div class="thumb" data-index="1" tabindex="0"><img src="images/s2.png" alt="Pantalla 2" /><div class="label">s2.png</div></div>
-    <div class="thumb" data-index="2" tabindex="0"><img src="images/s3.png" alt="Pantalla 3" /><div class="label">s3.png</div></div>
-    <div class="thumb" data-index="3" tabindex="0"><img src="images/s4.png" alt="Pantalla 4" /><div class="label">s4.png</div></div>
-    <div class="thumb" data-index="4" tabindex="0"><img src="images/s5.png" alt="Pantalla 5" /><div class="label">s5.png</div></div>
-    <div class="thumb" data-index="5" tabindex="0"><img src="images/s6.png" alt="Pantalla 6" /><div class="label">s6.png</div></div>
-    <div class="thumb" data-index="6" tabindex="0"><img src="images/s7.png" alt="Pantalla 7" /><div class="label">s7.png</div></div>
-    <div class="thumb" data-index="7" tabindex="0"><img src="images/s8.png" alt="Pantalla 8" /><div class="label">s8.png</div></div>
+    <div class="thumb" data-index="0" tabindex="0"><img src="images/login.jpg" alt="Pantalla de acceso seguro" /><div class="label">Ingreso seguro</div></div>
+    <div class="thumb" data-index="1" tabindex="0"><img src="images/pantalla_inicio.jpg" alt="Inicio con indicadores clave" /><div class="label">Inicio e indicadores</div></div>
+    <div class="thumb" data-index="2" tabindex="0"><img src="images/menu_principal.jpg" alt="Menú principal con accesos rápidos" /><div class="label">Menú principal</div></div>
+    <div class="thumb" data-index="3" tabindex="0"><img src="images/citas_programadas.jpg" alt="Agenda de citas programadas" /><div class="label">Citas programadas</div></div>
+    <div class="thumb" data-index="4" tabindex="0"><img src="images/detalle_consulta.jpg" alt="Detalle completo de la consulta" /><div class="label">Detalle de consulta</div></div>
+    <div class="thumb" data-index="5" tabindex="0"><img src="images/historial_consultas.jpg" alt="Historial de consultas del paciente" /><div class="label">Historial de consultas</div></div>
+    <div class="thumb" data-index="6" tabindex="0"><img src="images/nueva_consulta.jpg" alt="Formulario de nueva consulta" /><div class="label">Nueva consulta</div></div>
+    <div class="thumb" data-index="7" tabindex="0"><img src="images/agregar_paciente.jpg" alt="Registro de nuevo paciente" /><div class="label">Agregar paciente</div></div>
+    <div class="thumb" data-index="8" tabindex="0"><img src="images/promociones.jpg" alt="Campañas y promociones activas" /><div class="label">Campañas y promos</div></div>
+    <div class="thumb" data-index="9" tabindex="0"><img src="images/vista_paciente.jpg" alt="Ficha completa del paciente" /><div class="label">Ficha del paciente</div></div>
   </div>
 </section>
 
@@ -317,10 +399,10 @@
 <section class="cta" id="precios">
   <div class="cta-inner">
     <h2>¿Listo para modernizar tu clínica?</h2>
-    <p>Lanza ClinicaApp en menos de 48 horas con acompañamiento experto. Personalizamos formularios, integraciones y reportes para tu operación.</p>
+    <p>Lanza SaludAndina en menos de 48 horas con acompañamiento experto. Personalizamos formularios, integraciones y reportes para tu operación.</p>
     <div class="cta-actions">
       <a class="btn btn-primary" href="#contact">Agendar llamada</a>
-      <a class="btn btn-ghost" href="mailto:ventas@tuempresa.com">Escribir a ventas</a>
+      <a class="btn btn-secondary" href="mailto:ventas@tuempresa.com">Escribir a ventas</a>
     </div>
   </div>
 </section>
@@ -345,18 +427,21 @@
     <a href="#screens">Galería</a>
     <a href="#contact">Contacto</a>
   </div>
-  ClinicaApp · © 2025 — Plataforma clínica moderna para LATAM · Creado por Carlos Montesdeoca Domaxivar
+  SaludAndina · © 2025 — Plataforma clínica moderna para LATAM · Creado por Carlos Montesdeoca Domaxivar
 </footer>
 
 <script>
 (function(){
   const images = [
-    'images/s1.png','images/s2.png','images/s3.png','images/s4.png','images/s5.png','images/s6.png','images/s7.png','images/s8.png'
+    'images/login.jpg','images/pantalla_inicio.jpg','images/menu_principal.jpg','images/citas_programadas.jpg','images/detalle_consulta.jpg','images/historial_consultas.jpg','images/nueva_consulta.jpg','images/agregar_paciente.jpg','images/promociones.jpg','images/vista_paciente.jpg'
   ];
 
   const thumbs = Array.from(document.querySelectorAll('.thumb'));
+  const altTexts = thumbs.map(t => t.querySelector('img').alt);
+  const labels = thumbs.map(t => t.querySelector('.label').textContent);
   const lb = document.getElementById('lightbox');
   const lbImg = document.getElementById('lbImage');
+  const lbMeta = document.getElementById('lbMeta');
   const lbClose = document.getElementById('lbClose');
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
@@ -367,7 +452,11 @@
   function openAt(i){
     idx = (i + images.length) % images.length;
     lbImg.src = images[idx];
-    lbImg.alt = 'Pantalla '+(idx+1);
+    lbImg.alt = altTexts[idx] || ('Pantalla '+(idx+1));
+    if(lbMeta){
+      lbMeta.textContent = labels[idx] || '';
+      lbMeta.style.display = labels[idx] ? 'block' : 'none';
+    }
     lb.classList.add('open');
     lb.setAttribute('aria-hidden','false');
     // focus trap simple
@@ -378,6 +467,9 @@
   function closeLB(){
     lb.classList.remove('open');
     lb.setAttribute('aria-hidden','true');
+    if(lbMeta){
+      lbMeta.style.display = 'none';
+    }
     try{ history.replaceState(null,'', ' '); }catch(e){}
   }
 

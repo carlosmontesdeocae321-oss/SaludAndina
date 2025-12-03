@@ -8,6 +8,7 @@ const SALT_ROUNDS = 10;
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 const { saveDoc, uploadBuffer, sendFCMToTopic } = require('../servicios/firebaseService');
+const { resolvePlanFromTitle, assignPlanToClinic, getPlanSpecBySlug } = require('../utils/planHelper');
 const usuariosModelo = require('../modelos/usuariosModelo');
 
 // Admin: listar compras pendientes para la clínica del usuario (o todas si rol=admin)
@@ -329,33 +330,41 @@ router.post('/:id/datos', auth, upload.single('foto'), async (req, res) => {
 
           try { await pool.query('UPDATE compras_promociones SET clinica_id = ? WHERE id = ?', [clinicaId, compraId]); } catch (e) { console.warn('Failed to update compra with clinica_id in POST datos:', e.message || e); }
 
-          // Asignar plan promocional a la clínica (165 pacientes, 2 doctores) si aplica
-          try {
-            // Intentar reutilizar un plan existente con esas capacidades
-            const desiredPatients = 165;
-            const desiredDoctors = 2;
-            let planId = null;
-            const [planRows] = await pool.query('SELECT id FROM planes WHERE pacientes_max = ? AND doctores_max = ? LIMIT 1', [desiredPatients, desiredDoctors]);
-            if (planRows && planRows[0]) {
-              planId = planRows[0].id;
-            } else {
-              // Insertar plan promocional vinculando el monto de la compra como referencia
-              const planNombre = `Plan promoción compra ${compraId}`;
-              const planPrecio = compraFull && compraFull.monto ? compraFull.monto : 0;
-              const [pin] = await pool.query('INSERT INTO planes (nombre, precio, pacientes_max, doctores_max, sucursales_incluidas, descripcion) VALUES (?, ?, ?, ?, ?, ?)', [planNombre, planPrecio, desiredPatients, desiredDoctors, 0, 'Plan promocional asignado por compra de clínica']);
-              planId = pin.insertId;
-            }
-            if (planId) {
-              // Insertar registro en clinica_planes para activar el plan
+          const planSpec = resolvePlanFromTitle(compraFull.titulo || '') || getPlanSpecBySlug('clinica_pequena');
+          if (planSpec) {
+            try {
+              await assignPlanToClinic({ clinicaId, planSpec });
+              const planPayload = {
+                plan_aplicado: {
+                  slug: planSpec.slug,
+                  nombre: planSpec.nombre,
+                  clinica_id: clinicaId,
+                  aplicado_en: new Date().toISOString(),
+                }
+              };
               try {
-                await pool.query('INSERT INTO clinica_planes (clinica_id, plan_id, fecha_inicio, fecha_fin, activo) VALUES (?, ?, ?, ?, ?)', [clinicaId, planId, new Date(), null, 1]);
-                console.log('Asignado plan', planId, 'a clinica', clinicaId);
-              } catch (e) {
-                console.warn('No se pudo insertar clinica_planes promocional:', e.message || e);
+                await pool.query(
+                  'UPDATE compras_promociones SET extra_data = JSON_MERGE_PATCH(COALESCE(extra_data, JSON_OBJECT()), CAST(? AS JSON)) WHERE id = ?',
+                  [JSON.stringify(planPayload), compraId]
+                );
+              } catch (mergeErr) {
+                try {
+                  await pool.query(
+                    "UPDATE compras_promociones SET extra_data = JSON_SET(COALESCE(extra_data, '{}'), '$.plan_aplicado', CAST(? AS JSON)) WHERE id = ?",
+                    [JSON.stringify(planPayload.plan_aplicado), compraId]
+                  );
+                } catch (fallbackErr) {
+                  console.warn('No se pudo registrar plan_aplicado en extra_data durante POST datos:', fallbackErr.message || fallbackErr);
+                }
               }
+              try {
+                await saveDoc('compras_promociones', compraId, { plan_aplicado: planPayload.plan_aplicado });
+              } catch (fireErr) {
+                console.warn('No se pudo sincronizar plan_aplicado en Firestore (POST datos):', fireErr.message || fireErr);
+              }
+            } catch (assignErr) {
+              console.warn('Error asignando plan a la clínica desde POST datos:', assignErr.message || assignErr);
             }
-          } catch (e) {
-            console.warn('Error asignando plan promocional a la clinica:', e.message || e);
           }
 
           // Devolver usuarioId creado o vinculado en la respuesta para que el cliente pueda notificar al usuario

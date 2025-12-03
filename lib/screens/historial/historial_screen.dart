@@ -76,48 +76,186 @@ class _HistorialScreenState extends State<HistorialScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Historial de ${widget.paciente.nombres}"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: irAgregarConsulta,
+    const accentColor = Color(0xFF1BD1C2);
+    const overlayColor = Color(0xFF101D32);
+    final baseTheme = Theme.of(context);
+
+    final themed = baseTheme.copyWith(
+      scaffoldBackgroundColor: Colors.transparent,
+      colorScheme: baseTheme.colorScheme.copyWith(
+        primary: accentColor,
+        secondary: accentColor,
+        surface: overlayColor,
+        surfaceContainerHigh: overlayColor.withOpacity(0.9),
+        surfaceContainerHighest: const Color(0xFF18263A),
+        onPrimary: const Color(0xFF062026),
+        onSurface: Colors.white,
+        onSurfaceVariant: Colors.white70,
+      ),
+      textTheme: baseTheme.textTheme.apply(
+        bodyColor: Colors.white,
+        displayColor: Colors.white,
+      ),
+      iconTheme: const IconThemeData(color: Colors.white70),
+      appBarTheme: baseTheme.appBarTheme.copyWith(
+        backgroundColor: const Color(0xFF0B1626).withOpacity(0.95),
+        elevation: 0,
+        titleTextStyle: baseTheme.textTheme.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accentColor,
+          foregroundColor: const Color(0xFF062026),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: accentColor),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: accentColor,
+          side: const BorderSide(color: accentColor, width: 1.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+      chipTheme: baseTheme.chipTheme.copyWith(
+        backgroundColor: Colors.white.withOpacity(0.08),
+        labelStyle: baseTheme.textTheme.bodySmall?.copyWith(
+          color: Colors.white70,
+        ),
+      ),
+      dialogTheme: baseTheme.dialogTheme.copyWith(
+        backgroundColor: overlayColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: baseTheme.textTheme.titleMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: baseTheme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white70,
+        ),
+      ),
+      dividerColor: Colors.white24,
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF02060F), Color(0xFF0B1F36)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -130,
+            left: -60,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accentColor.withOpacity(0.14), Colors.transparent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -160,
+            right: -120,
+            child: Container(
+              width: 360,
+              height: 360,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Theme(
+            data: themed,
+            child: Builder(
+              builder: (themeContext) {
+                final theme = Theme.of(themeContext);
+                return Scaffold(
+                  backgroundColor: Colors.transparent,
+                  appBar: AppBar(
+                    title: Text('Historial de ${widget.paciente.nombres}'),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        tooltip: 'Registrar consulta',
+                        onPressed: irAgregarConsulta,
+                      ),
+                    ],
+                  ),
+                  body: cargando
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(accentColor),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          color: accentColor,
+                          backgroundColor: const Color(0xFF0A1727),
+                          onRefresh: cargarConsultas,
+                          edgeOffset: 120,
+                          child: CustomScrollView(
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            slivers: [
+                              const SliverToBoxAdapter(
+                                  child: SizedBox(height: 20)),
+                              SliverToBoxAdapter(
+                                child: _buildPatientSummary(theme),
+                              ),
+                              if (consultas.isEmpty)
+                                SliverFillRemaining(
+                                  hasScrollBody: false,
+                                  child: _buildEmptyState(theme),
+                                )
+                              else ...[
+                                const SliverToBoxAdapter(
+                                    child: SizedBox(height: 16)),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (listContext, index) => _buildConsultaTile(
+                                      listContext,
+                                      consultas[index],
+                                      index,
+                                    ),
+                                    childCount: consultas.length,
+                                  ),
+                                ),
+                                const SliverToBoxAdapter(
+                                    child: SizedBox(height: 40)),
+                              ],
+                            ],
+                          ),
+                        ),
+                );
+              },
+            ),
           ),
         ],
       ),
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: cargarConsultas,
-              edgeOffset: 120,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                slivers: [
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                  SliverToBoxAdapter(child: _buildPatientSummary(theme)),
-                  if (consultas.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _buildEmptyState(theme),
-                    )
-                  else ...[
-                    const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildConsultaTile(
-                            context, consultas[index], index),
-                        childCount: consultas.length,
-                      ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                  ],
-                ],
-              ),
-            ),
     );
   }
 

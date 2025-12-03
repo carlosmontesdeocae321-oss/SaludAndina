@@ -56,225 +56,24 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
     _scheduleAutoRefresh();
   }
 
-  @override
-  void onRouteRefreshed() {
-    try {
-      _initDatos();
-    } catch (_) {}
-  }
-
-  @override
-  void dispose() {
-    _autoRefreshTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _mostrarEquipoDialog(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Equipo'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (doctores.isEmpty)
-                  const Text('No hay doctores registrados.'),
-                if (doctores.isNotEmpty)
-                  Flexible(
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: doctores.length,
-                      separatorBuilder: (_, __) => const Divider(),
-                      itemBuilder: (context, i) {
-                        final d = doctores[i];
-                        final displayName = d['nombre'] ??
-                            d['usuario'] ??
-                            d['name'] ??
-                            'Doctor';
-                        final specialty =
-                            d['especialidad'] ?? d['especialidad_medica'] ?? '';
-                        final email = d['email'] ?? d['correo'] ?? '';
-                        final clinicName = d['clinica'] ??
-                            d['clinica_nombre'] ??
-                            d['clinic_name'];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: d['avatar_url'] != null
-                                ? NetworkImage(d['avatar_url']) as ImageProvider
-                                : null,
-                            child: d['avatar_url'] == null
-                                ? const Icon(Icons.person)
-                                : null,
-                          ),
-                          title: Text(displayName.toString()),
-                          subtitle: Text(specialty?.toString() ?? ''),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            // Mostrar tarjeta con detalles del doctor
-                            showDialog<void>(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: Text(displayName.toString()),
-                                content: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Center(
-                                        child: CircleAvatar(
-                                          radius: 48,
-                                          backgroundImage: d['avatar_url'] !=
-                                                  null
-                                              ? NetworkImage(d['avatar_url'])
-                                                  as ImageProvider
-                                              : null,
-                                          child: d['avatar_url'] == null
-                                              ? const Icon(Icons.person,
-                                                  size: 48)
-                                              : null,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      if (specialty != null &&
-                                          specialty.toString().isNotEmpty)
-                                        Text(
-                                            'Especialidad: ${specialty.toString()}'),
-                                      const SizedBox(height: 6),
-                                      if (email != null &&
-                                          email.toString().isNotEmpty)
-                                        Text('Correo: ${email.toString()}'),
-                                      const SizedBox(height: 6),
-                                      if (clinicName != null &&
-                                          clinicName.toString().isNotEmpty)
-                                        Text(
-                                            'Clínica: ${clinicName.toString()}'),
-                                    ],
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Cerrar')),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cerrar')),
-            // Nota: el botón para crear/compra de doctor fue movido fuera del diálogo
-            // y permanece disponible en la pestaña 'Clínica'. No mostramos aquí el control.
-          ],
-        );
-      },
-    );
-  }
-
-  void _scheduleAutoRefresh() {
-    _autoRefreshTimer?.cancel();
-    _autoRefreshTimer =
-        Timer.periodic(_autoRefreshInterval, (_) => _initDatos());
-  }
-
-  void _loadLastRefreshTime() {
-    SharedPreferences.getInstance().then((prefs) {
-      final stored = prefs.getString(_lastRefreshPrefKey);
-      if (!mounted) return;
-      if (stored == null) return;
-      final parsed = DateTime.tryParse(stored);
-      if (parsed != null) {
-        setState(() {
-          _lastRefreshTime = parsed;
-        });
-      }
-    }).catchError((_) {});
-  }
-
-  Future<void> _markRefreshTimestamp() async {
-    final now = DateTime.now();
-    if (mounted) {
-      setState(() {
-        _lastRefreshTime = now;
-      });
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_lastRefreshPrefKey, now.toIso8601String());
-    } catch (_) {}
-  }
-
-  String? get _lastRefreshLabel {
-    if (_lastRefreshTime == null) return null;
-    final diff = DateTime.now().difference(_lastRefreshTime!);
-    if (diff.inMinutes < 1) {
-      return 'Actualizado hace menos de 1 minuto';
-    }
-    if (diff.inMinutes == 1) {
-      return 'Actualizado hace 1 minuto';
-    }
-    if (diff.inMinutes < 60) {
-      return 'Actualizado hace ${diff.inMinutes} minutos';
-    }
-    if (diff.inHours == 1) {
-      return 'Actualizado hace 1 hora';
-    }
-    if (diff.inHours < 24) {
-      return 'Actualizado hace ${diff.inHours} horas';
-    }
-    return 'Actualizado el ${_lastRefreshTime!.day}/${_lastRefreshTime!.month}/${_lastRefreshTime!.year}';
-  }
-
   Future<void> _showBankTransferPurchase({
     required String titulo,
     required double monto,
+    required int cantidad,
     String? descripcion,
-    int cantidad = 1,
     int? clinicaId,
     Map<String, dynamic>? metadata,
   }) async {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
 
-    BuildContext? loaderCtx;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        loaderCtx = ctx;
-        return const Center(child: CircularProgressIndicator());
-      },
+    final creation = await ApiService.comprarPromocion(
+      titulo: titulo,
+      monto: monto,
+      cantidad: cantidad,
+      clinicaId: clinicaId,
+      metadata: metadata,
     );
-
-    Map<String, dynamic> creation;
-    try {
-      creation = await ApiService.comprarPromocion(
-        titulo: titulo,
-        monto: monto,
-        cantidad: cantidad,
-        clinicaId: clinicaId,
-        metadata: metadata,
-      );
-    } catch (e) {
-      creation = {
-        'ok': false,
-        'error': 'No se pudo iniciar la compra: ${e.toString()}',
-      };
-    } finally {
-      if (loaderCtx != null && loaderCtx!.mounted) {
-        Navigator.of(loaderCtx!).pop();
-      }
-    }
 
     if (!mounted) return;
     if (creation['ok'] != true) {
@@ -445,6 +244,117 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
           content: Text(
               'Compra registrada. Puedes subir el comprobante más tarde desde la sección "Mis compras".')));
     }
+  }
+
+  void _scheduleAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer =
+        Timer.periodic(_autoRefreshInterval, (_) => cargarMisDatos());
+  }
+
+  void _cancelAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
+  }
+
+  Future<void> _loadLastRefreshTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedMillis = prefs.getInt(_lastRefreshPrefKey);
+    if (!mounted) return;
+    if (storedMillis != null) {
+      final stored =
+          DateTime.fromMillisecondsSinceEpoch(storedMillis).toLocal();
+      setState(() {
+        _lastRefreshTime = stored;
+      });
+    }
+  }
+
+  Future<void> _markRefreshTimestamp() async {
+    final now = DateTime.now();
+    if (mounted) {
+      setState(() {
+        _lastRefreshTime = now;
+      });
+    } else {
+      _lastRefreshTime = now;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_lastRefreshPrefKey, now.millisecondsSinceEpoch);
+  }
+
+  String _buildLastRefreshLabel(DateTime timestamp) {
+    final local = timestamp.toLocal();
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    return 'Actualizado ${twoDigits(local.hour)}:${twoDigits(local.minute)}';
+  }
+
+  Future<void> _mostrarEquipoDialog(BuildContext context) async {
+    if (!mounted) return;
+    final teamMembers = doctores;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          title: const Text('Equipo de la clínica'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: teamMembers.isEmpty
+                ? const Text('No hay integrantes registrados.')
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: teamMembers.length,
+                    itemBuilder: (_, index) {
+                      final doctor = teamMembers[index];
+                      final nombre = (doctor['nombre'] ??
+                              doctor['nombres'] ??
+                              doctor['displayName'] ??
+                              '')
+                          .toString();
+                      final usuario =
+                          (doctor['usuario'] ?? doctor['username'] ?? '')
+                              .toString();
+                      final correo = (doctor['email'] ?? doctor['correo'] ?? '')
+                          .toString();
+                      final extras = <String>[];
+                      if (usuario.isNotEmpty) {
+                        extras.add('Usuario: $usuario');
+                      }
+                      if (correo.isNotEmpty) {
+                        extras.add(correo);
+                      }
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.person_outline),
+                        title: Text(
+                          nombre.isEmpty ? 'Doctor ${index + 1}' : nombre,
+                        ),
+                        subtitle:
+                            extras.isEmpty ? null : Text(extras.join('\n')),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _cancelAutoRefresh();
+    super.dispose();
+  }
+
+  @override
+  void onRouteRefreshed() {
+    cargarMisDatos();
   }
 
   Future<void> _requestDoctorLinkingPurchase() async {
@@ -916,6 +826,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
   Widget _buildPacienteListForView(String view) {
     final viewToSend =
         (clinicaIdState == null && view != 'individual') ? 'individual' : view;
+    const accentColor = Color(0xFF1BD1C2);
+    const cardColor = Color(0xFF101D32);
     return FutureBuilder<List<Paciente>>(
       future: ApiService.obtenerPacientesPorClinica(view: viewToSend),
       builder: (context, snapshot) {
@@ -927,6 +839,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
           return const Center(child: Text('No hay pacientes registrados'));
         }
         return RefreshIndicator(
+          color: accentColor,
+          backgroundColor: const Color(0xFF0A1727),
           onRefresh: () async {
             await cargarMisDatos();
             if (!mounted) return;
@@ -934,6 +848,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final p = items[index];
@@ -974,8 +889,16 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                   }
                 },
                 child: Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
+                  color: cardColor.withOpacity(0.92),
+                  elevation: 10,
+                  shadowColor: Colors.black.withOpacity(0.45),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: Colors.white.withOpacity(0.05),
+                    ),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 18),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -983,17 +906,26 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                       children: [
                         Text('${p.nombres} ${p.apellidos}',
                             style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            )),
                         const SizedBox(height: 4),
                         Text(
-                            'Cédula: ${p.cedula.isEmpty ? 'No registrada' : p.cedula}'),
+                          'Cédula: ${p.cedula.isEmpty ? 'No registrada' : p.cedula}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                         Text(
-                            'Teléfono: ${p.telefono.isEmpty ? 'No registrado' : p.telefono}'),
+                          'Teléfono: ${p.telefono.isEmpty ? 'No registrado' : p.telefono}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                         Text(
-                            'Dirección: ${p.direccion.isEmpty ? 'No registrada' : p.direccion}'),
+                          'Dirección: ${p.direccion.isEmpty ? 'No registrada' : p.direccion}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                         const SizedBox(height: 6),
                         Text('Nacimiento: ${fechaConEdad(p.fechaNacimiento)}',
-                            style: const TextStyle(color: Colors.grey)),
+                            style: const TextStyle(color: Colors.white60)),
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1091,6 +1023,10 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
       selectedView = showIndividual ? 'individual' : 'clinica';
     }
 
+    final String? lastRefreshLabel = _lastRefreshTime == null
+        ? null
+        : _buildLastRefreshLabel(_lastRefreshTime!);
+
     // Preparar stacks reutilizables
     final individualStack = Stack(
       children: [
@@ -1099,51 +1035,402 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
           left: 0,
           right: 0,
           bottom: 0,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.person_add),
-              label: const Text('Agregar paciente individual'),
-              onPressed: () async {
-                final buttonContext = context;
-                final messenger = ScaffoldMessenger.of(buttonContext);
-                final datos = await ApiService.obtenerMisDatos();
-                if (!buttonContext.mounted || !mounted) return;
-                // Debug: mostrar qué retorna mis-datos y qué id de doctor vamos a pasar
-                final potentialDoctorId =
-                    datos?['doctorId'] ?? datos?['doctor_id'] ?? datos?['id'];
-                debugPrint(
-                    'DEBUG before add individual - obtenerMisDatos: $datos');
-                debugPrint(
-                    'DEBUG before add individual - resolved doctorId: $potentialDoctorId');
-                if ((datos?['totalPacientes'] ?? 0) >=
-                    (datos?['limite'] ?? 0)) {
-                  messenger.showSnackBar(const SnackBar(
-                      content: Text(
-                          'Límite de pacientes alcanzado. Debe comprar cupos extra.')));
-                  return;
-                }
-                final added = await Navigator.push<bool>(
-                  buttonContext,
-                  MaterialPageRoute(
-                    builder: (_) => AgregarEditarPacienteScreen(
-                      paciente: null,
-                      doctorId: potentialDoctorId is int
-                          ? potentialDoctorId
-                          : (int.tryParse(potentialDoctorId?.toString() ?? '')),
-                      clinicaId: null,
-                    ),
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0B1626).withOpacity(0.92),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 26,
+                    offset: const Offset(0, -2),
                   ),
-                );
-                if (!buttonContext.mounted || !mounted) return;
-                if (added == true) await cargarMisDatos();
-              },
+                ],
+              ),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.person_add),
+                label: const Text('Agregar paciente individual'),
+                onPressed: () async {
+                  final buttonContext = context;
+                  final messenger = ScaffoldMessenger.of(buttonContext);
+                  final datos = await ApiService.obtenerMisDatos();
+                  if (!buttonContext.mounted || !mounted) return;
+                  // Debug: mostrar qué retorna mis-datos y qué id de doctor vamos a pasar
+                  final potentialDoctorId =
+                      datos?['doctorId'] ?? datos?['doctor_id'] ?? datos?['id'];
+                  debugPrint(
+                      'DEBUG before add individual - obtenerMisDatos: $datos');
+                  debugPrint(
+                      'DEBUG before add individual - resolved doctorId: $potentialDoctorId');
+                  if ((datos?['totalPacientes'] ?? 0) >=
+                      (datos?['limite'] ?? 0)) {
+                    messenger.showSnackBar(const SnackBar(
+                        content: Text(
+                            'Límite de pacientes alcanzado. Debe comprar cupos extra.')));
+                    return;
+                  }
+                  final added = await Navigator.push<bool>(
+                    buttonContext,
+                    MaterialPageRoute(
+                      builder: (_) => AgregarEditarPacienteScreen(
+                        paciente: null,
+                        doctorId: potentialDoctorId is int
+                            ? potentialDoctorId
+                            : (int.tryParse(
+                                potentialDoctorId?.toString() ?? '')),
+                        clinicaId: null,
+                      ),
+                    ),
+                  );
+                  if (!buttonContext.mounted || !mounted) return;
+                  if (added == true) await cargarMisDatos();
+                },
+              ),
             ),
           ),
         ),
       ],
     );
+
+    final List<Widget> clinicActionButtons = [
+      ElevatedButton.icon(
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('Agregar paciente a la clínica'),
+        onPressed: () async {
+          final buttonContext = context;
+          final messenger = ScaffoldMessenger.of(buttonContext);
+          final datos = await ApiService.obtenerMisDatos();
+          if (!buttonContext.mounted || !mounted) return;
+          if ((datos?['totalPacientes'] ?? 0) >= (datos?['limite'] ?? 0)) {
+            messenger.showSnackBar(const SnackBar(
+                content: Text(
+                    'Límite de pacientes alcanzado. Debe comprar cupos extra.')));
+            return;
+          }
+          final added = await Navigator.push<bool>(
+            buttonContext,
+            MaterialPageRoute(
+              builder: (_) => AgregarEditarPacienteScreen(
+                paciente: null,
+                doctorId: null,
+                clinicaId: datos?['clinicaId'] ?? datos?['clinica_id'],
+              ),
+            ),
+          );
+          if (!buttonContext.mounted || !mounted) return;
+          if (added == true) await cargarMisDatos();
+        },
+      ),
+      ElevatedButton.icon(
+        icon: const Icon(Icons.medical_services),
+        label: const Text('Agregar doctor'),
+        onPressed: esDueno
+            ? () async {
+                final parentContext = context;
+                final messenger = ScaffoldMessenger.of(parentContext);
+                final datos = await ApiService.obtenerMisDatos();
+                if (!parentContext.mounted || !mounted) return;
+                final clinicaId = clinicaIdState ??
+                    datos?['clinicaId'] ??
+                    datos?['clinica_id'];
+                if (clinicaId == null) {
+                  messenger.showSnackBar(const SnackBar(
+                      content: Text('No se encontró la clínica')));
+                  return;
+                }
+                final valid =
+                    await ApiService.validarAgregarDoctor(clinicaId as int);
+                if (!parentContext.mounted || !mounted) return;
+                debugPrint('DEBUG validarAgregarDoctor: $valid');
+                if ((valid['permitido'] ?? false) == true) {
+                  final nameCtrl = TextEditingController();
+                  final passCtrl = TextEditingController();
+                  final ok = await showDialog<bool>(
+                    context: parentContext,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Crear doctor en la clínica'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                              controller: nameCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Usuario')),
+                          TextField(
+                              controller: passCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'Contraseña'),
+                              obscureText: true),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancelar')),
+                        ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Crear')),
+                      ],
+                    ),
+                  );
+                  if (!parentContext.mounted || !mounted) return;
+                  if (ok == true) {
+                    final nombre = nameCtrl.text.trim();
+                    final clave = passCtrl.text.trim();
+                    if (nombre.isEmpty || clave.isEmpty) {
+                      messenger.showSnackBar(const SnackBar(
+                          content: Text('Debe ingresar usuario y contraseña')));
+                      return;
+                    }
+                    messenger.showSnackBar(
+                        const SnackBar(content: Text('Creando doctor...')));
+                    final resp = await ApiService.crearUsuarioClinica(
+                      usuario: nombre,
+                      clave: clave,
+                      rol: 'doctor',
+                      clinicaId: clinicaId,
+                    );
+                    debugPrint('DEBUG crearUsuarioClinica resp: $resp');
+                    if (!parentContext.mounted || !mounted) return;
+                    if ((resp['ok'] ?? false)) {
+                      messenger.showSnackBar(const SnackBar(
+                          content: Text('Doctor creado correctamente')));
+                      await cargarMisDatos();
+                    } else {
+                      final msg = resp['error'] ??
+                          resp['message'] ??
+                          'No se pudo completar la operación';
+                      messenger.showSnackBar(
+                          SnackBar(content: Text(msg.toString())));
+                    }
+                  }
+                } else {
+                  final motivo =
+                      valid['message'] ?? valid['error'] ?? valid['reason'];
+                  if (motivo != null && motivo.toString().isNotEmpty) {
+                    messenger.showSnackBar(
+                        SnackBar(content: Text(motivo.toString())));
+                  }
+                  double precio = 5.0;
+                  try {
+                    final v = await ApiService.validarAgregarDoctor(clinicaId);
+                    if (v['precioDoctorSlot'] != null) {
+                      final p = v['precioDoctorSlot'];
+                      if (p is num) precio = p.toDouble();
+                    }
+                  } catch (_) {}
+
+                  if (!parentContext.mounted || !mounted) return;
+
+                  final result = await showDialog<bool>(
+                    context: parentContext,
+                    builder: (_) => BuyDoctorSlotDialog(
+                        clinicaId: clinicaId,
+                        precio: precio,
+                        initialTab: 'crear'),
+                  );
+                  if (!parentContext.mounted || !mounted) return;
+                  if (result == true) await cargarMisDatos();
+                }
+              }
+            : null,
+      ),
+    ];
+
+    if (clinicaIdState != null) {
+      clinicActionButtons.add(
+        ElevatedButton.icon(
+          icon: const Icon(Icons.apartment),
+          label: const Text('Cupo para paciente clínica'),
+          onPressed: () async {
+            final parentContext = context;
+            final messenger = ScaffoldMessenger.of(parentContext);
+            final datos = await ApiService.obtenerMisDatos();
+            if (!parentContext.mounted || !mounted) return;
+            if (datos == null) {
+              final goLogin = await showDialog<bool>(
+                context: parentContext,
+                builder: (_) => AlertDialog(
+                  title: const Text('Necesita iniciar sesión'),
+                  content: const Text(
+                      'Para comprar cupos para la clínica debe iniciar sesión.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancelar')),
+                    ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Iniciar sesión')),
+                  ],
+                ),
+              );
+              if (!parentContext.mounted || !mounted) return;
+              if (goLogin == true) {
+                if (!parentContext.mounted || !mounted) return;
+                Navigator.push(parentContext,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()));
+              }
+              return;
+            }
+
+            final clinicaId = datos['clinicaId'] ?? datos['clinica_id'];
+            if (clinicaId == null) {
+              messenger.showSnackBar(const SnackBar(
+                  content: Text('No se encontró la clínica asociada')));
+              return;
+            }
+
+            const double unitPrice = 1.0;
+            final quantityCtrl = TextEditingController(text: '1');
+            final int? quantity = await showDialog<int>(
+              context: parentContext,
+              barrierDismissible: false,
+              builder: (dialogCtx) {
+                String? error;
+                return StatefulBuilder(
+                  builder: (ctx, setState) {
+                    return AlertDialog(
+                      title: const Text('Comprar cupos para la clínica'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                              'Ingresa la cantidad de cupos para pacientes de la clínica que deseas solicitar.'),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: quantityCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Cantidad',
+                              hintText: 'Ej. 5',
+                              errorText: error,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                              'Precio unitario: \$${unitPrice.toStringAsFixed(2)}'),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogCtx, null),
+                          child: const Text('Cancelar'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            final raw = quantityCtrl.text.trim();
+                            final parsed = int.tryParse(raw);
+                            if (parsed == null || parsed <= 0) {
+                              setState(() {
+                                error = 'Ingresa una cantidad válida (>=1).';
+                              });
+                              return;
+                            }
+                            Navigator.pop(dialogCtx, parsed);
+                          },
+                          child: const Text('Continuar'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            );
+            if (!parentContext.mounted || !mounted) {
+              quantityCtrl.dispose();
+              return;
+            }
+            quantityCtrl.dispose();
+            if (quantity == null) return;
+
+            final double total = unitPrice * quantity;
+            final targetClinica = clinicaIdState is int
+                ? clinicaIdState
+                : int.tryParse(clinicaIdState?.toString() ?? '');
+            await _showBankTransferPurchase(
+              titulo: 'Cupo paciente adicional para la clínica',
+              monto: total,
+              cantidad: quantity,
+              descripcion:
+                  'Solicita $quantity cupo(s) adicionales para la clínica. Precio unitario: \$${unitPrice.toStringAsFixed(2)}. Los cupos se habilitarán una vez validado el comprobante.',
+              clinicaId: targetClinica,
+              metadata: {
+                'tipo': 'paciente_clinica',
+                'cantidadSolicitada': quantity,
+                'precioUnitario': unitPrice,
+                if (targetClinica != null) 'clinicaId': targetClinica,
+                if (datos['totalPacientes'] is num)
+                  'totalPacientesAntesCompra':
+                      (datos['totalPacientes'] as num).toInt(),
+                if (datos['limite'] is num)
+                  'limitePacientesActual': (datos['limite'] as num).toInt(),
+              },
+            );
+          },
+        ),
+      );
+    }
+
+    if (esDueno) {
+      clinicActionButtons.add(
+        ElevatedButton.icon(
+          icon: const Icon(Icons.link),
+          label: const Text('Vincular doctor'),
+          onPressed: () async {
+            await _requestDoctorLinkingPurchase();
+          },
+        ),
+      );
+    }
+
+    if (!esDueno && esVinculado == true) {
+      clinicActionButtons.add(
+        ElevatedButton.icon(
+          icon: const Icon(Icons.link_off),
+          label: const Text('Desvincularme de la clínica'),
+          onPressed: () async {
+            final parentContext = context;
+            final messenger = ScaffoldMessenger.of(parentContext);
+            final confirm = await showDialog<bool>(
+              context: parentContext,
+              builder: (_) => AlertDialog(
+                title: const Text('Desvincularme'),
+                content: const Text(
+                    '¿Estás seguro que deseas desvincularte de la clínica? Tus pacientes permanecerán en la clínica.'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar')),
+                  ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Desvincular')),
+                ],
+              ),
+            );
+            if (confirm != true || !mounted) return;
+            messenger.showSnackBar(
+                const SnackBar(content: Text('Procesando desvinculación...')));
+            final ok = await ApiService.desvincularDoctor();
+            if (!mounted) return;
+            if (ok) {
+              messenger.showSnackBar(
+                  const SnackBar(content: Text('Desvinculación realizada')));
+              await cargarMisDatos();
+            } else {
+              messenger.showSnackBar(
+                  const SnackBar(content: Text('Error al desvincularse')));
+            }
+          },
+        ),
+      );
+    }
 
     final clinicStack = Stack(
       children: [
@@ -1152,387 +1439,49 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
           left: 0,
           right: 0,
           bottom: 0,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.person_add_alt_1),
-                  label: const Text('Agregar paciente a la clínica'),
-                  onPressed: () async {
-                    final buttonContext = context;
-                    final messenger = ScaffoldMessenger.of(buttonContext);
-                    final datos = await ApiService.obtenerMisDatos();
-                    if (!buttonContext.mounted || !mounted) return;
-                    if ((datos?['totalPacientes'] ?? 0) >=
-                        (datos?['limite'] ?? 0)) {
-                      messenger.showSnackBar(const SnackBar(
-                          content: Text(
-                              'Límite de pacientes alcanzado. Debe comprar cupos extra.')));
-                      return;
-                    }
-                    final added = await Navigator.push<bool>(
-                      buttonContext,
-                      MaterialPageRoute(
-                        builder: (_) => AgregarEditarPacienteScreen(
-                          paciente: null,
-                          doctorId: null,
-                          clinicaId:
-                              datos?['clinicaId'] ?? datos?['clinica_id'],
-                        ),
-                      ),
-                    );
-                    if (!buttonContext.mounted || !mounted) return;
-                    if (added == true) await cargarMisDatos();
-                  },
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0B1626).withOpacity(0.92),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                    icon: const Icon(Icons.medical_services),
-                    label: const Text('Agregar doctor'),
-                    onPressed: esDueno
-                        ? () async {
-                            final parentContext = context;
-                            final messenger =
-                                ScaffoldMessenger.of(parentContext);
-                            // Flujo: validar si la clínica puede agregar de forma gratuita.
-                            final datos = await ApiService.obtenerMisDatos();
-                            if (!parentContext.mounted || !mounted) return;
-                            final clinicaId = clinicaIdState ??
-                                datos?['clinicaId'] ??
-                                datos?['clinica_id'];
-                            if (clinicaId == null) {
-                              messenger.showSnackBar(const SnackBar(
-                                  content: Text('No se encontró la clínica')));
-                              return;
-                            }
-                            final valid = await ApiService.validarAgregarDoctor(
-                                clinicaId as int);
-                            if (!parentContext.mounted || !mounted) return;
-                            debugPrint('DEBUG validarAgregarDoctor: $valid');
-                            if ((valid['permitido'] ?? false) == true) {
-                              // Puede agregar sin compra: crear usuario de clínica directamente
-                              final nameCtrl = TextEditingController();
-                              final passCtrl = TextEditingController();
-                              final ok = await showDialog<bool>(
-                                context: parentContext,
-                                builder: (_) => AlertDialog(
-                                  title:
-                                      const Text('Crear doctor en la clínica'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      TextField(
-                                          controller: nameCtrl,
-                                          decoration: const InputDecoration(
-                                              labelText: 'Usuario')),
-                                      TextField(
-                                          controller: passCtrl,
-                                          decoration: const InputDecoration(
-                                              labelText: 'Contraseña'),
-                                          obscureText: true),
-                                    ],
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: const Text('Cancelar')),
-                                    ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        child: const Text('Crear')),
-                                  ],
-                                ),
-                              );
-                              if (!parentContext.mounted || !mounted) return;
-                              if (ok == true) {
-                                final nombre = nameCtrl.text.trim();
-                                final clave = passCtrl.text.trim();
-                                if (nombre.isEmpty || clave.isEmpty) {
-                                  messenger.showSnackBar(const SnackBar(
-                                      content: Text(
-                                          'Debe ingresar usuario y contraseña')));
-                                  return;
-                                }
-                                messenger.showSnackBar(const SnackBar(
-                                    content: Text('Creando doctor...')));
-                                final resp =
-                                    await ApiService.crearUsuarioClinica(
-                                        usuario: nombre,
-                                        clave: clave,
-                                        rol: 'doctor',
-                                        clinicaId: clinicaId);
-                                debugPrint(
-                                    'DEBUG crearUsuarioClinica resp: $resp');
-                                if (!parentContext.mounted || !mounted) {
-                                  return;
-                                }
-                                if ((resp['ok'] ?? false)) {
-                                  messenger.showSnackBar(const SnackBar(
-                                      content:
-                                          Text('Doctor creado correctamente')));
-                                  await cargarMisDatos();
-                                } else {
-                                  final msg = resp['error'] ??
-                                      resp['message'] ??
-                                      'No se pudo completar la operación';
-                                  messenger.showSnackBar(
-                                      SnackBar(content: Text(msg.toString())));
-                                }
-                              }
-                            } else {
-                              // No puede agregar sin compra -> mostrar motivo y abrir diálogo de compra con pestañas (crear)
-                              final motivo = valid['message'] ??
-                                  valid['error'] ??
-                                  valid['reason'];
-                              if (motivo != null &&
-                                  motivo.toString().isNotEmpty) {
-                                messenger.showSnackBar(
-                                    SnackBar(content: Text(motivo.toString())));
-                              }
-                              // No puede agregar sin compra -> abrir pantalla de compra con pestañas (crear)
-                              double precio = 5.0;
-                              try {
-                                final v = await ApiService.validarAgregarDoctor(
-                                    clinicaId);
-                                if (v['precioDoctorSlot'] != null) {
-                                  final p = v['precioDoctorSlot'];
-                                  if (p is num) precio = p.toDouble();
-                                }
-                              } catch (_) {}
-
-                              if (!parentContext.mounted || !mounted) return;
-
-                              final result = await showDialog<bool>(
-                                context: parentContext,
-                                builder: (_) => BuyDoctorSlotDialog(
-                                    clinicaId: clinicaId,
-                                    precio: precio,
-                                    initialTab: 'crear'),
-                              );
-                              if (!parentContext.mounted || !mounted) return;
-                              if (result == true) await cargarMisDatos();
-                            }
-                          }
-                        : null),
-                const SizedBox(width: 12),
-                // Botón para comprar cupo para paciente de la clínica (visible para dueños y doctores vinculados)
-                if (clinicaIdState != null)
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.apartment),
-                    label: const Text('Cupo para paciente clínica'),
-                    onPressed: () async {
-                      final parentContext = context;
-                      final messenger = ScaffoldMessenger.of(parentContext);
-                      // Asegurar que el usuario está autenticado y obtener clinicaId
-                      final datos = await ApiService.obtenerMisDatos();
-                      if (!parentContext.mounted || !mounted) return;
-                      if (datos == null) {
-                        // Probablemente 401: sugerir login
-                        final goLogin = await showDialog<bool>(
-                          context: parentContext,
-                          builder: (_) => AlertDialog(
-                            title: const Text('Necesita iniciar sesión'),
-                            content: const Text(
-                                'Para comprar cupos para la clínica debe iniciar sesión.'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                  child: const Text('Cancelar')),
-                              ElevatedButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('Iniciar sesión')),
-                            ],
-                          ),
-                        );
-                        if (!parentContext.mounted || !mounted) return;
-                        if (goLogin == true) {
-                          if (!parentContext.mounted || !mounted) return;
-                          Navigator.push(
-                              parentContext,
-                              MaterialPageRoute(
-                                  builder: (_) => const LoginScreen()));
-                        }
-                        return;
-                      }
-
-                      final clinicaId =
-                          datos['clinicaId'] ?? datos['clinica_id'];
-                      if (clinicaId == null) {
-                        messenger.showSnackBar(const SnackBar(
-                            content:
-                                Text('No se encontró la clínica asociada')));
-                        return;
-                      }
-
-                      const double unitPrice = 1.0;
-                      final quantityCtrl = TextEditingController(text: '1');
-                      final int? quantity = await showDialog<int>(
-                        context: parentContext,
-                        barrierDismissible: false,
-                        builder: (dialogCtx) {
-                          String? error;
-                          return StatefulBuilder(
-                            builder: (ctx, setState) {
-                              return AlertDialog(
-                                title:
-                                    const Text('Comprar cupos para la clínica'),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                        'Ingresa la cantidad de cupos para pacientes de la clínica que deseas solicitar.'),
-                                    const SizedBox(height: 12),
-                                    TextField(
-                                      controller: quantityCtrl,
-                                      keyboardType: TextInputType.number,
-                                      decoration: InputDecoration(
-                                        labelText: 'Cantidad',
-                                        hintText: 'Ej. 5',
-                                        errorText: error,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                        'Precio unitario: \$${unitPrice.toStringAsFixed(2)}'),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogCtx, null),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      final raw = quantityCtrl.text.trim();
-                                      final parsed = int.tryParse(raw);
-                                      if (parsed == null || parsed <= 0) {
-                                        setState(() {
-                                          error =
-                                              'Ingresa una cantidad válida (>=1).';
-                                        });
-                                        return;
-                                      }
-                                      Navigator.pop(dialogCtx, parsed);
-                                    },
-                                    child: const Text('Continuar'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                      );
-                      if (!parentContext.mounted || !mounted) {
-                        quantityCtrl.dispose();
-                        return;
-                      }
-                      quantityCtrl.dispose();
-                      if (quantity == null) return;
-
-                      final double total = unitPrice * quantity;
-                      final targetClinica = clinicaIdState is int
-                          ? clinicaIdState
-                          : int.tryParse(clinicaIdState?.toString() ?? '');
-                      await _showBankTransferPurchase(
-                        titulo: 'Cupo paciente adicional para la clínica',
-                        monto: total,
-                        cantidad: quantity,
-                        descripcion:
-                            'Solicita $quantity cupo(s) adicionales para la clínica. Precio unitario: \$${unitPrice.toStringAsFixed(2)}. Los cupos se habilitarán una vez validado el comprobante.',
-                        clinicaId: targetClinica,
-                        metadata: {
-                          'tipo': 'paciente_clinica',
-                          'cantidadSolicitada': quantity,
-                          'precioUnitario': unitPrice,
-                          if (targetClinica != null) 'clinicaId': targetClinica,
-                          if (datos['totalPacientes'] is num)
-                            'totalPacientesAntesCompra':
-                                (datos['totalPacientes'] as num).toInt(),
-                          if (datos['limite'] is num)
-                            'limitePacientesActual':
-                                (datos['limite'] as num).toInt(),
-                        },
-                      );
-                    },
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 26,
+                    offset: const Offset(0, -2),
                   ),
-                const SizedBox(width: 12),
-                // Botón para vincular doctor (visible para dueños de la clínica)
-                if (esDueno)
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.link),
-                    label: const Text('Vincular doctor'),
-                    onPressed: () async {
-                      await _requestDoctorLinkingPurchase();
-                    },
-                  ),
-                // Desvincular solo para doctores vinculados (no aplicable a doctores creados por la clínica)
-                if (!esDueno && esVinculado == true) const SizedBox(width: 12),
-                if (!esDueno && esVinculado == true)
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.link_off),
-                    label: const Text('Desvincularme de la clínica'),
-                    onPressed: () async {
-                      final parentContext = context;
-                      final messenger = ScaffoldMessenger.of(parentContext);
-                      final confirm = await showDialog<bool>(
-                          context: parentContext,
-                          builder: (_) => AlertDialog(
-                                title: const Text('Desvincularme'),
-                                content: const Text(
-                                    '¿Estás seguro que deseas desvincularte de la clínica? Tus pacientes permanecerán en la clínica.'),
-                                actions: [
-                                  TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: const Text('Cancelar')),
-                                  ElevatedButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      child: const Text('Desvincular')),
-                                ],
-                              ));
-                      if (confirm != true || !mounted) return;
-                      messenger.showSnackBar(const SnackBar(
-                          content: Text('Procesando desvinculación...')));
-                      final ok = await ApiService.desvincularDoctor();
-                      if (!mounted) return;
-                      if (ok) {
-                        messenger.showSnackBar(const SnackBar(
-                            content: Text('Desvinculación realizada')));
-                        await cargarMisDatos();
-                      } else {
-                        messenger.showSnackBar(const SnackBar(
-                            content: Text('Error al desvincularse')));
-                      }
-                    },
-                  ),
-              ],
+                ],
+              ),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: clinicActionButtons,
+              ),
             ),
           ),
         ),
       ],
     );
 
-    List<Tab> tabsList = [];
-    List<Widget> views = [];
+    final theme = Theme.of(context);
+    const overlayColor = Color(0xFF101D32);
+    const accentColor = Color(0xFF1BD1C2);
+
+    List<Tab> tabsList;
+    List<Widget> views;
     if (showIndividual && showClinica) {
       tabsList = const [Tab(text: 'Individual'), Tab(text: 'Clínica')];
       views = [individualStack, clinicStack];
     } else if (showIndividual && !showClinica) {
       tabsList = const [Tab(text: 'Individual')];
       views = [individualStack];
-    } else if (!showIndividual && showClinica) {
-      tabsList = const [Tab(text: 'Clínica')];
-      views = [clinicStack];
     } else {
-      // Fallback: mostrar clínica
       tabsList = const [Tab(text: 'Clínica')];
       views = [clinicStack];
     }
@@ -1541,224 +1490,352 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
         ? (selectedView == 'clinica' ? 1 : 0)
         : 0;
 
-    return DefaultTabController(
-      length: tabsList.length,
-      initialIndex: initialIndex,
-      child: Scaffold(
-        drawer: const AppDrawer(),
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Menú Principal'),
-              if (clinicaNombre != null && selectedView == 'clinica')
-                Text('Clínica: $clinicaNombre',
-                    style: const TextStyle(fontSize: 14)),
-              if (usuarioNombre != null && selectedView == 'individual')
-                Text('Doctor: $usuarioNombre',
-                    style: const TextStyle(fontSize: 14)),
-              if (_lastRefreshLabel != null)
-                Text(_lastRefreshLabel!, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-          actions: [
-            // Botón Equipo: muestra lista de doctores y opción para agregar (si es dueño)
-            IconButton(
-              icon: const Icon(Icons.group),
-              tooltip: 'Equipo',
-              onPressed: () async {
-                await _mostrarEquipoDialog(context);
-              },
-            ),
-            // Mostrar botón de perfil del doctor cuando estemos en vista individual
-            if (selectedView == 'individual')
-              IconButton(
-                icon: const Icon(Icons.person),
-                tooltip: 'Perfil',
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final datos = await ApiService.obtenerMisDatos();
-                  if (!context.mounted || !mounted) return;
-                  var doctorId =
-                      datos?['doctorId'] ?? datos?['doctor_id'] ?? datos?['id'];
-                  if (doctorId == null) {
-                    try {
-                      final usuarioActual = datos?['usuario']?.toString();
-                      final lista = datos?['doctores'];
-                      if (usuarioActual != null && lista is List) {
-                        for (final d in lista) {
-                          try {
-                            if (d != null && d['usuario'] == usuarioActual) {
-                              doctorId = d['id'];
-                              break;
-                            }
-                          } catch (_) {}
-                        }
-                      }
-                    } catch (_) {}
-                  }
-                  if (doctorId == null) {
-                    messenger.showSnackBar(const SnackBar(
-                        content: Text('No se pudo resolver el ID del doctor')));
-                    return;
-                  }
-                  final id = doctorId is int
-                      ? doctorId
-                      : int.tryParse(doctorId.toString());
-                  if (id == null) {
-                    messenger.showSnackBar(
-                        const SnackBar(content: Text('ID de doctor inválido')));
-                    return;
-                  }
-                  if (!context.mounted) return;
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => PerfilDoctorScreen(doctorId: id)));
-                },
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF02060F), Color(0xFF0B1F36)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -140,
+            right: -80,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [accentColor.withOpacity(0.15), Colors.transparent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
               ),
-            // Comprar cupo individual (visible en pestaña 'individual' si es doctor)
-            if (selectedView == 'individual' && isDoctor)
-              IconButton(
-                icon: const Icon(Icons.person_add_alt_1),
-                tooltip: 'Comprar cupo individual',
-                onPressed: () async {
-                  const double unitPrice = 1.0;
-                  final quantityCtrl = TextEditingController(text: '1');
-                  final int? quantity = await showDialog<int>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (dialogCtx) {
-                      String? error;
-                      return StatefulBuilder(
-                        builder: (ctx, setState) {
-                          return AlertDialog(
-                            title: const Text('Comprar cupos individuales'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                    'Ingresa la cantidad de cupos individuales que deseas solicitar.'),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: quantityCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Cantidad',
-                                    hintText: 'Ej. 3',
-                                    errorText: error,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                    'Precio unitario: \$${unitPrice.toStringAsFixed(2)}'),
-                              ],
+            ),
+          ),
+          Positioned(
+            bottom: -160,
+            left: -100,
+            child: Container(
+              width: 340,
+              height: 340,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Theme(
+            data: theme.copyWith(
+              scaffoldBackgroundColor: Colors.transparent,
+              colorScheme: theme.colorScheme.copyWith(
+                primary: accentColor,
+                secondary: accentColor,
+                surface: overlayColor,
+                surfaceContainerHigh: overlayColor.withOpacity(0.88),
+                onPrimary: const Color(0xFF062026),
+                onSurface: Colors.white,
+              ),
+              textTheme: theme.textTheme.apply(
+                bodyColor: Colors.white,
+                displayColor: Colors.white,
+              ),
+              iconTheme: const IconThemeData(color: Colors.white70),
+              appBarTheme: theme.appBarTheme.copyWith(
+                backgroundColor: overlayColor.withOpacity(0.92),
+                elevation: 0,
+                titleTextStyle: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                toolbarHeight: 70,
+                iconTheme: const IconThemeData(color: Colors.white70),
+              ),
+              tabBarTheme: theme.tabBarTheme.copyWith(
+                indicator: const UnderlineTabIndicator(
+                  borderSide: BorderSide(color: accentColor, width: 3),
+                ),
+                labelColor: accentColor,
+                unselectedLabelColor: Colors.white70,
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: const Color(0xFF062026),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                ),
+              ),
+              dividerColor: Colors.white24,
+              snackBarTheme: theme.snackBarTheme.copyWith(
+                backgroundColor: overlayColor.withOpacity(0.95),
+                contentTextStyle:
+                    theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+              ),
+            ),
+            child: DefaultTabController(
+              length: tabsList.length,
+              initialIndex: initialIndex,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                drawer: const AppDrawer(),
+                appBar: AppBar(
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Menú Principal'),
+                      if (clinicaNombre != null && selectedView == 'clinica')
+                        Text(
+                          'Clínica: $clinicaNombre',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      if (usuarioNombre != null && selectedView == 'individual')
+                        Text(
+                          'Doctor: $usuarioNombre',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      if (lastRefreshLabel != null)
+                        Text(
+                          lastRefreshLabel,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white54,
+                          ),
+                        ),
+                    ],
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.group),
+                      tooltip: 'Equipo',
+                      onPressed: () async {
+                        await _mostrarEquipoDialog(context);
+                      },
+                    ),
+                    if (selectedView == 'individual')
+                      IconButton(
+                        icon: const Icon(Icons.person),
+                        tooltip: 'Perfil',
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final datos = await ApiService.obtenerMisDatos();
+                          if (!context.mounted || !mounted) return;
+                          var doctorId = datos?['doctorId'] ??
+                              datos?['doctor_id'] ??
+                              datos?['id'];
+                          if (doctorId == null) {
+                            try {
+                              final usuarioActual =
+                                  datos?['usuario']?.toString();
+                              final lista = datos?['doctores'];
+                              if (usuarioActual != null && lista is List) {
+                                for (final d in lista) {
+                                  try {
+                                    if (d != null &&
+                                        d['usuario'] == usuarioActual) {
+                                      doctorId = d['id'];
+                                      break;
+                                    }
+                                  } catch (_) {}
+                                }
+                              }
+                            } catch (_) {}
+                          }
+                          if (doctorId == null) {
+                            messenger.showSnackBar(const SnackBar(
+                                content: Text(
+                                    'No se pudo resolver el ID del doctor')));
+                            return;
+                          }
+                          final id = doctorId is int
+                              ? doctorId
+                              : int.tryParse(doctorId.toString());
+                          if (id == null) {
+                            messenger.showSnackBar(const SnackBar(
+                                content: Text('ID de doctor inválido')));
+                            return;
+                          }
+                          if (!context.mounted) return;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PerfilDoctorScreen(doctorId: id),
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(dialogCtx, null),
-                                child: const Text('Cancelar'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  final raw = quantityCtrl.text.trim();
-                                  final parsed = int.tryParse(raw);
-                                  if (parsed == null || parsed <= 0) {
-                                    setState(() {
-                                      error =
-                                          'Ingresa una cantidad válida (>=1).';
-                                    });
-                                    return;
-                                  }
-                                  Navigator.pop(dialogCtx, parsed);
-                                },
-                                child: const Text('Continuar'),
-                              ),
-                            ],
                           );
                         },
-                      );
-                    },
-                  );
-                  quantityCtrl.dispose();
-                  if (quantity == null) return;
+                      ),
+                    if (selectedView == 'individual' && isDoctor)
+                      IconButton(
+                        icon: const Icon(Icons.person_add_alt_1),
+                        tooltip: 'Comprar cupo individual',
+                        onPressed: () async {
+                          const double unitPrice = 1.0;
+                          final quantityCtrl = TextEditingController(text: '1');
+                          final int? quantity = await showDialog<int>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (dialogCtx) {
+                              String? error;
+                              return StatefulBuilder(
+                                builder: (ctx, setState) {
+                                  return AlertDialog(
+                                    title: const Text(
+                                        'Comprar cupos individuales'),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                            'Ingresa la cantidad de cupos individuales que deseas solicitar.'),
+                                        const SizedBox(height: 12),
+                                        TextField(
+                                          controller: quantityCtrl,
+                                          keyboardType: TextInputType.number,
+                                          decoration: InputDecoration(
+                                            labelText: 'Cantidad',
+                                            hintText: 'Ej. 5',
+                                            errorText: error,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                            'Precio unitario: \$${unitPrice.toStringAsFixed(2)}'),
+                                      ],
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dialogCtx, null),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          final raw = quantityCtrl.text.trim();
+                                          final parsed = int.tryParse(raw);
+                                          if (parsed == null || parsed <= 0) {
+                                            setState(() {
+                                              error =
+                                                  'Ingresa una cantidad válida (>=1).';
+                                            });
+                                            return;
+                                          }
+                                          Navigator.pop(dialogCtx, parsed);
+                                        },
+                                        child: const Text('Continuar'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          );
+                          quantityCtrl.dispose();
+                          if (quantity == null) return;
 
-                  final double total = unitPrice * quantity;
-                  Map<String, dynamic>? datos;
-                  int? doctorIdMeta = doctorIdState;
-                  try {
-                    datos = await ApiService.obtenerMisDatos();
-                    final rawDoctor = datos?['doctorId'] ??
-                        datos?['doctor_id'] ??
-                        datos?['id'];
-                    if (rawDoctor is int) {
-                      doctorIdMeta = rawDoctor;
-                    } else if (rawDoctor != null) {
-                      final parsed = int.tryParse(rawDoctor.toString());
-                      if (parsed != null) doctorIdMeta = parsed;
-                    }
-                  } catch (_) {}
-                  await _showBankTransferPurchase(
-                    titulo: 'Cupo paciente individual',
-                    monto: total,
-                    cantidad: quantity,
-                    descripcion:
-                        'Solicita $quantity cupo(s) individual(es) para tu cuenta. Precio unitario: \$${unitPrice.toStringAsFixed(2)}. Una vez validado el pago el equipo activará los cupos solicitados.',
-                    metadata: {
-                      'tipo': 'paciente_individual',
-                      'cantidadSolicitada': quantity,
-                      'precioUnitario': unitPrice,
-                      if (doctorIdMeta != null) 'doctorId': doctorIdMeta,
-                      if (datos?['limite'] is num)
-                        'limiteActual': (datos!['limite'] as num).toInt(),
-                      if (datos?['totalPacientes'] is num)
-                        'totalPacientesAntesCompra':
-                            (datos!['totalPacientes'] as num).toInt(),
+                          final double total = unitPrice * quantity;
+                          Map<String, dynamic>? datos;
+                          int? doctorIdMeta = doctorIdState;
+                          try {
+                            datos = await ApiService.obtenerMisDatos();
+                            final rawDoctor = datos?['doctorId'] ??
+                                datos?['doctor_id'] ??
+                                datos?['id'];
+                            if (rawDoctor is int) {
+                              doctorIdMeta = rawDoctor;
+                            } else if (rawDoctor != null) {
+                              final parsed = int.tryParse(rawDoctor.toString());
+                              if (parsed != null) doctorIdMeta = parsed;
+                            }
+                          } catch (_) {}
+                          await _showBankTransferPurchase(
+                            titulo: 'Cupo paciente individual',
+                            monto: total,
+                            cantidad: quantity,
+                            descripcion:
+                                'Solicita $quantity cupo(s) individual(es) para tu cuenta. Precio unitario: \$${unitPrice.toStringAsFixed(2)}. Una vez validado el pago el equipo activará los cupos solicitados.',
+                            metadata: {
+                              'tipo': 'paciente_individual',
+                              'cantidadSolicitada': quantity,
+                              'precioUnitario': unitPrice,
+                              if (doctorIdMeta != null)
+                                'doctorId': doctorIdMeta,
+                              if (datos?['limite'] is num)
+                                'limiteActual':
+                                    (datos!['limite'] as num).toInt(),
+                              if (datos?['totalPacientes'] is num)
+                                'totalPacientesAntesCompra':
+                                    (datos!['totalPacientes'] as num).toInt(),
+                            },
+                          );
+                        },
+                      ),
+                    if (esDueno)
+                      IconButton(
+                        icon: const Icon(Icons.dashboard),
+                        tooltip: 'Dashboard',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const DashboardDuenoScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.event),
+                      tooltip: 'Ver citas',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CitasScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  bottom: TabBar(
+                    tabs: tabsList,
+                    onTap: (i) {
+                      setState(() {
+                        if (showIndividual && showClinica) {
+                          selectedView = i == 0 ? 'individual' : 'clinica';
+                        } else if (showIndividual) {
+                          selectedView = 'individual';
+                        } else {
+                          selectedView = 'clinica';
+                        }
+                      });
                     },
-                  );
-                },
+                  ),
+                ),
+                body: TabBarView(children: views),
               ),
-            // (Removed AppBar clinic purchase button — purchases should be performed
-            // from the 'Clínica' tab controls next to 'Agregar doctor')
-            // Botón para acceder al dashboard del dueño (visible solo si es dueño)
-            if (esDueno)
-              IconButton(
-                icon: const Icon(Icons.dashboard),
-                tooltip: 'Dashboard',
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const DashboardDuenoScreen()));
-                },
-              ),
-            IconButton(
-              icon: const Icon(Icons.event),
-              tooltip: 'Ver citas',
-              onPressed: () {
-                // Asegúrate de importar CitasScreen correctamente
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const CitasScreen()));
-              },
             ),
-            // Logout button removed from AppBar per user request.
-          ],
-          bottom: TabBar(
-              tabs: tabsList,
-              onTap: (i) {
-                setState(() {
-                  if (showIndividual && showClinica) {
-                    selectedView = i == 0 ? 'individual' : 'clinica';
-                  } else if (showIndividual) {
-                    selectedView = 'individual';
-                  } else {
-                    selectedView = 'clinica';
-                  }
-                });
-              }),
-        ),
-        body: TabBarView(children: views),
+          ),
+        ],
       ),
     );
   }

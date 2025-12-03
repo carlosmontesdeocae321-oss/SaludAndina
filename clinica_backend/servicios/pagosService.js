@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { resolvePlanFromTitle, assignPlanToClinic } = require('../utils/planHelper');
 
 // Servicio de pagos modular: actualmente soporta provider 'mock'.
 // La idea es centralizar la integración con Stripe/PayU/MercadoPago en este archivo.
@@ -259,6 +260,57 @@ async function confirmarCompra({ compraId, provider_txn_id }) {
       const clinicaIdFromMetadata = toInt(clinicaIdMetadata);
       const usuarioIdCompra = toInt(compra.usuario_id);
       const clinicaIdCompra = toInt(compra.clinica_id);
+
+      const planSpec = resolvePlanFromTitle(compra.titulo || titulo);
+      if (planSpec) {
+        const planTargetClinica = clinicaIdFromMetadata || clinicaIdCompra;
+        if (planTargetClinica) {
+          try {
+            await assignPlanToClinic({ clinicaId: planTargetClinica, planSpec });
+            const planPayload = {
+              plan_aplicado: {
+                slug: planSpec.slug,
+                nombre: planSpec.nombre,
+                clinica_id: planTargetClinica,
+                aplicado_en: new Date().toISOString(),
+              }
+            };
+            try {
+              await pool.query(
+                'UPDATE compras_promociones SET extra_data = JSON_MERGE_PATCH(COALESCE(extra_data, JSON_OBJECT()), CAST(? AS JSON)) WHERE id = ?',
+                [JSON.stringify(planPayload), compraId]
+              );
+            } catch (mergeErr) {
+              try {
+                await pool.query(
+                  "UPDATE compras_promociones SET extra_data = JSON_SET(COALESCE(extra_data, '{}'), '$.plan_aplicado', CAST(? AS JSON)) WHERE id = ?",
+                  [JSON.stringify(planPayload.plan_aplicado), compraId]
+                );
+              } catch (fallbackErr) {
+                console.warn('pagosService.confirmarCompra: no se pudo registrar plan_aplicado en extra_data', fallbackErr.message || fallbackErr);
+              }
+            }
+            try {
+              const { saveDoc } = require('./firebaseService');
+              await saveDoc('compras_promociones', compraId, { plan_aplicado: planPayload.plan_aplicado });
+            } catch (fireErr) {
+              console.warn('pagosService.confirmarCompra: no se pudo sincronizar plan_aplicado en Firestore', fireErr.message || fireErr);
+            }
+            return res.affectedRows > 0;
+          } catch (assignErr) {
+            console.warn('pagosService.confirmarCompra: fallo al asignar plan', assignErr.message || assignErr);
+          }
+        } else {
+          try {
+            await pool.query(
+              'UPDATE compras_promociones SET extra_data = JSON_MERGE_PATCH(COALESCE(extra_data, JSON_OBJECT()), CAST(? AS JSON)) WHERE id = ?',
+              [JSON.stringify({ plan_pendiente: planSpec.slug }), compraId]
+            );
+          } catch (pendingErr) {
+            console.warn('pagosService.confirmarCompra: no se pudo marcar plan pendiente', pendingErr.message || pendingErr);
+          }
+        }
+      }
 
       const registerIndividual = async (doctorId, slotsToApply, motivo) => {
         if (!doctorId || slotsToApply <= 0) return 0;
