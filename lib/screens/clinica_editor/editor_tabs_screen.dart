@@ -196,6 +196,18 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         if (h.isNotEmpty) hidratacionCtrl.text = h;
         if (md.isNotEmpty) medicacionCtrl.text = md;
 
+        // 4b) Historia: intentar extraer campos comunes (Personales, Familiares, Alergias, Tiempo/Evolución)
+        final personales = _extractStrongField(c.notasHtml, 'Personales');
+        final familiares = _extractStrongField(c.notasHtml, 'Familiares');
+        final alergias = _extractStrongField(c.notasHtml, 'Alergias');
+        final tiempo = _extractStrongField(c.notasHtml, 'Tiempo');
+        final evolucionFromHtml = _extractAfterHeading(c.notasHtml, 'Evolución');
+        if (personales.isNotEmpty && appCtrl.text.isEmpty) appCtrl.text = personales;
+        if (familiares.isNotEmpty && apfCtrl.text.isEmpty) apfCtrl.text = familiares;
+        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty) alergiasCtrl.text = alergias;
+        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty) tiempoCtrl.text = tiempo;
+        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty) evolucionCtrl.text = evolucionFromHtml;
+
         // 5) Detailed examen parts (Piel, Cabeza, etc.) using strong-labeled <p><strong>Label:</strong>
         final candidates = {
           'Piel': (String v) => pielCtrl.text = v,
@@ -226,9 +238,26 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         if (map != null && mounted) {
           final nombres = (map['nombres'] ?? '').toString();
           final apellidos = (map['apellidos'] ?? '').toString();
+          // Rellenar nombre y apellidos
+          // También intentar rellenar sexo y edad si vienen en el payload
+          final sexo = (map['sexo'] ?? map['genero'] ?? '').toString();
+          final fechaNac = (map['fecha_nacimiento'] ?? map['fechaNacimiento'] ?? '').toString();
+          String edadText = '';
+          try {
+            if (fechaNac.isNotEmpty) {
+              final dt = DateTime.parse(fechaNac);
+              final now = DateTime.now();
+              int years = now.year - dt.year;
+              if (now.month < dt.month || (now.month == dt.month && now.day < dt.day)) years--;
+              edadText = years > 0 ? years.toString() : '';
+            }
+          } catch (e) {}
+
           setState(() {
             _pacienteNombres = nombres;
             _pacienteApellidos = apellidos;
+            if (sexo.isNotEmpty) sexoCtrl.text = sexo.toUpperCase();
+            if (edadText.isNotEmpty) edadCtrl.text = edadText;
           });
         }
       });
