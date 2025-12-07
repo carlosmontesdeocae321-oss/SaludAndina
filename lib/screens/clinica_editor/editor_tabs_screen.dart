@@ -161,20 +161,62 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       if (c.examenNeuro.isNotEmpty) neuroCtrl.text = c.examenNeuro;
       // If the backend returned notasHtml, try to populate more fields from it
       if (c.notasHtml.isNotEmpty) {
-        // Fill examen textarea with plain text representation
-        examenCtrl.text = _stripHtml(c.notasHtml);
-        // Try to extract Pruebas content inside <pre>...</pre>
+        // Try to extract structured parts from notasHtml instead of dumping all text
+        // 1) Examen físico general (after <h4>Examen físico</h4>)
+        final examenGeneral = _extractAfterHeading(c.notasHtml, 'Examen físico');
+        if (examenGeneral.isNotEmpty) {
+          examenCtrl.text = examenGeneral;
+        } else {
+          // fallback: plain text
+          examenCtrl.text = _stripHtml(c.notasHtml);
+        }
+
+        // 2) Pruebas (inside <pre>..</pre>)
         final pruebas = _extractTagContent(c.notasHtml, 'pre');
         if (pruebas.isNotEmpty) {
           labsCtrl.text = pruebas;
         }
-        // Indicaciones: buscar párrafos con etiquetas <strong>Medidas generales:, Hidratación / Nutrición:, Medicación:
+
+        // 3) Diagnóstico / Tratamiento / Receta (Plan)
+        final dxFromHtml = _extractAfterHeading(c.notasHtml, 'Diagnóstico');
+        final planFromHtml = _extractAfterHeading(c.notasHtml, 'Plan de manejo')
+            .isNotEmpty
+            ? _extractAfterHeading(c.notasHtml, 'Plan de manejo')
+            : _extractAfterHeading(c.notasHtml, 'Plan');
+        final recetaFromHtml = _extractAfterHeading(c.notasHtml, 'Receta');
+        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty) dxCtrl.text = dxFromHtml;
+        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty) planCtrl.text = planFromHtml;
+        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty) medicacionCtrl.text = recetaFromHtml;
+
+        // 4) Indicaciones: buscar párrafos con etiquetas <strong>Medidas generales:, Hidratación / Nutrición:, Medicación:
         final m = _extractStrongField(c.notasHtml, 'Medidas generales');
         final h = _extractStrongField(c.notasHtml, 'Hidratación / Nutrición');
         final md = _extractStrongField(c.notasHtml, 'Medicación');
         if (m.isNotEmpty) medidasCtrl.text = m;
         if (h.isNotEmpty) hidratacionCtrl.text = h;
         if (md.isNotEmpty) medicacionCtrl.text = md;
+
+        // 5) Detailed examen parts (Piel, Cabeza, etc.) using strong-labeled <p><strong>Label:</strong>
+        final candidates = {
+          'Piel': (String v) => pielCtrl.text = v,
+          'Cabeza': (String v) => cabezaCtrl.text = v,
+          'Ojos': (String v) => ojosCtrl.text = v,
+          'Nariz': (String v) => narizCtrl.text = v,
+          'Boca': (String v) => bocaCtrl.text = v,
+          'Oídos': (String v) => oidosCtrl.text = v,
+          'Orofaringe': (String v) => orofaringeCtrl.text = v,
+          'Cuello': (String v) => cuelloCtrl.text = v,
+          'Tórax': (String v) => toraxCtrl.text = v,
+          'Campos pulmonares': (String v) => camposPulmCtrl.text = v,
+          'Ruidos cardíacos': (String v) => ruidosCardCtrl.text = v,
+          'Abdomen': (String v) => abdomenCtrl.text = v,
+          'Extremidades': (String v) => extremidadesCtrl.text = v,
+          'Sistema neurológico': (String v) => neuroCtrl.text = v,
+        };
+        candidates.forEach((label, setter) {
+          final val = _extractStrongField(c.notasHtml, label);
+          if (val.isNotEmpty) setter(val);
+        });
       }
     }
 
@@ -236,6 +278,28 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
           caseSensitive: false);
       final m2 = re2.firstMatch(html);
       if (m2 != null) return _stripHtml(m2.group(1) ?? '');
+    } catch (e) {}
+    return '';
+  }
+
+  String _extractAfterHeading(String html, String heading) {
+    try {
+      final esc = RegExp.escape(heading);
+      // Match <h4>Heading</h4> and capture everything until next <h4> or end
+      final re = RegExp('<h4[^>]*>\s*' + esc + r'\s*<\/h4>([\s\S]*?)(?:<h4[^>]*>|\z)', caseSensitive: false);
+      final m = re.firstMatch(html);
+      if (m != null) {
+        final content = m.group(1) ?? '';
+        // extract text from paragraphs inside the captured block
+        final pRe = RegExp('<p[^>]*>([\s\S]*?)<\/p>', caseSensitive: false);
+        final parts = <String>[];
+        for (final pm in pRe.allMatches(content)) {
+          parts.add(_stripHtml(pm.group(1) ?? ''));
+        }
+        // if no <p> found, fallback to stripping the captured block
+        if (parts.isEmpty) return _stripHtml(content);
+        return parts.join('\n\n');
+      }
     } catch (e) {}
     return '';
   }
