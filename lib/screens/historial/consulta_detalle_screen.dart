@@ -143,9 +143,11 @@ class ConsultaDetalleScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _buildSectionTitle('Examen físico'),
-                        const SizedBox(height: 10),
-                        Wrap(
+                        // Mostrar sección de examen sólo si hay métricas o campos detallados
+                        if (_hasExamData(consulta)) ...[
+                          _buildSectionTitle(context, 'Examen físico'),
+                          const SizedBox(height: 10),
+                          Wrap(
                           spacing: 10,
                           runSpacing: 10,
                           children: [
@@ -169,29 +171,48 @@ class ConsultaDetalleScreen extends StatelessWidget {
                               _buildMetricChip(
                                   'Temperatura: ${consulta.temperatura}°C'),
                           ],
-                        ),
+                          ),
+                        ],
                         const SizedBox(height: 20),
-                        _buildDetailBlock(
+                        _buildDetailBlock(context,
                           title: 'Diagnóstico',
                           value: consulta.diagnostico,
                         ),
-                        _buildDetailBlock(
+                        _buildDetailBlock(context,
                           title: 'Tratamiento',
                           value: consulta.tratamiento,
                         ),
-                        _buildDetailBlock(
+                        _buildDetailBlock(context,
                           title: 'Receta',
                           value: consulta.receta,
                         ),
                         if (consulta.notasHtml.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          _buildSectionTitle('Notas detalladas'),
+                          _buildSectionTitle(context, 'Notas detalladas'),
                           const SizedBox(height: 8),
-                          Html(data: consulta.notasHtml),
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Html(
+                              data: consulta.notasHtml,
+                              style: {
+                                "body": Style(
+                                  color: Colors.white70,
+                                  fontSize: FontSize(14.0),
+                                  lineHeight: LineHeight.number(1.4),
+                                ),
+                              },
+                            ),
+                          ),
                         ],
                         if (consulta.imagenes.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          _buildSectionTitle('Imágenes adjuntas'),
+                          _buildSectionTitle(context, 'Imágenes adjuntas'),
                           const SizedBox(height: 12),
                           SizedBox(
                             height: 140,
@@ -249,14 +270,56 @@ class ConsultaDetalleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.4,
-      ),
+  bool _hasExamData(Consulta c) {
+    if (c.peso > 0 || c.estatura > 0 || c.imc > 0) return true;
+    if (c.presion.isNotEmpty || c.frecuenciaCardiaca > 0 || c.frecuenciaRespiratoria > 0 || c.temperatura > 0) return true;
+    final examFields = [
+      c.examenPiel,
+      c.examenCabeza,
+      c.examenOjos,
+      c.examenNariz,
+      c.examenBoca,
+      c.examenOidos,
+      c.examenOrofaringe,
+      c.examenCuello,
+      c.examenTorax,
+      c.examenCamposPulm,
+      c.examenRuidosCard,
+      c.examenAbdomen,
+      c.examenExtremidades,
+      c.examenNeuro,
+    ];
+    for (final s in examFields) {
+      if (s.trim().isNotEmpty) return true;
+    }
+    if (c.notasHtml.isNotEmpty && c.notasHtml.toLowerCase().contains('examen')) return true;
+    return false;
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: 84,
+          height: 4,
+          decoration: BoxDecoration(
+            color: accent.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        )
+      ],
     );
   }
 
@@ -279,7 +342,7 @@ class ConsultaDetalleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailBlock({required String title, required String value}) {
+  Widget _buildDetailBlock(BuildContext context, {required String title, required String value}) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
       return const SizedBox.shrink();
@@ -290,7 +353,7 @@ class ConsultaDetalleScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(title),
+          _buildSectionTitle(context, title),
           const SizedBox(height: 8),
           Text(
             trimmed,
