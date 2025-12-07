@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/inicio_screen.dart';
 import 'screens/admin/promociones_screen.dart';
+import 'screens/clinica_editor/editor_screen.dart';
+import 'screens/clinica_editor/preview_screen.dart';
 import 'route_observer.dart';
 import 'services/pago_servicios.dart';
 import 'screens/pagos/solicitar_pago_screen.dart';
@@ -59,6 +61,15 @@ class ClinicaApp extends StatelessWidget {
       builder: (context, child) => child ?? const SizedBox.shrink(),
       routes: {
         '/promociones': (context) => PromocionesScreen(),
+        '/clinica_editor': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
+          final pacienteId = args != null && args['pacienteId'] is String
+              ? args['pacienteId'] as String
+              : '';
+          return EditorScreen(pacienteId: pacienteId);
+        },
+        '/clinica_preview': (context) => const PreviewScreen(),
         '/solicitar_pago': (context) => Builder(
               builder: (context) {
                 // Recupera userId desde SharedPreferences al navegar

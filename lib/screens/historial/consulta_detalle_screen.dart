@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/consulta.dart';
 import '../../services/api_services.dart';
+import 'package:flutter_html/flutter_html.dart';
 
 class ConsultaDetalleScreen extends StatelessWidget {
   final Consulta consulta;
@@ -123,6 +124,16 @@ class ConsultaDetalleScreen extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        if (consulta.pacienteFullName.isNotEmpty)
+                          Text(
+                            consulta.pacienteFullName,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         const SizedBox(height: 10),
                         Text(
                           'Fecha: ${consulta.fecha.toLocal().toString().split(' ')[0]} · Hora: ${consulta.fecha.toLocal().toString().split(' ')[1].split('.').first}',
@@ -172,6 +183,12 @@ class ConsultaDetalleScreen extends StatelessWidget {
                           title: 'Receta',
                           value: consulta.receta,
                         ),
+                        if (consulta.notasHtml.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _buildSectionTitle('Notas detalladas'),
+                          const SizedBox(height: 8),
+                          Html(data: consulta.notasHtml),
+                        ],
                         if (consulta.imagenes.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           _buildSectionTitle('Imágenes adjuntas'),
@@ -265,13 +282,7 @@ class ConsultaDetalleScreen extends StatelessWidget {
   Widget _buildDetailBlock({required String title, required String value}) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Text(
-          '$title: Sin información registrada',
-          style: const TextStyle(color: Colors.white54, letterSpacing: 0.3),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     return Padding(

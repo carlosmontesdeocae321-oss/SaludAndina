@@ -43,6 +43,7 @@ async function crearHistorial(historial) {
     const {
         paciente_id,
         motivo_consulta,
+        notas_html,
         peso,
         estatura,
         imc,
@@ -60,11 +61,12 @@ async function crearHistorial(historial) {
 
     const [result] = await pool.query(
         `INSERT INTO historial 
-         (paciente_id, motivo_consulta, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (paciente_id, motivo_consulta, notas_html, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             paciente_id,
             motivo_consulta ?? null,
+            notas_html ?? null,
             peso ?? null,
             estatura ?? null,
             imc ?? null,
@@ -87,6 +89,7 @@ async function crearHistorial(historial) {
         await saveDoc('medical_history', id, sanitizeDoc({
             pacienteId: paciente_id ?? null,
             motivo_consulta: motivo_consulta ?? null,
+            notas_html: notas_html ?? null,
             peso: peso ?? null,
             estatura: estatura ?? null,
             imc: imc ?? null,
@@ -112,6 +115,7 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
     const {
         paciente_id,
         motivo_consulta,
+        notas_html,
         peso,
         estatura,
         imc,
@@ -131,11 +135,12 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
         const [result] = await pool.query(
             `UPDATE historial h
              JOIN pacientes p ON h.paciente_id = p.id
-             SET h.paciente_id=?, h.motivo_consulta=?, h.peso=?, h.estatura=?, h.imc=?, h.presion=?, h.frecuencia_cardiaca=?, h.frecuencia_respiratoria=?, h.temperatura=?, h.otros=?, h.diagnostico=?, h.tratamiento=?, h.receta=?, h.fecha=?, h.imagenes=?
+             SET h.paciente_id=?, h.motivo_consulta=?, h.notas_html=?, h.peso=?, h.estatura=?, h.imc=?, h.presion=?, h.frecuencia_cardiaca=?, h.frecuencia_respiratoria=?, h.temperatura=?, h.otros=?, h.diagnostico=?, h.tratamiento=?, h.receta=?, h.fecha=?, h.imagenes=?
              WHERE h.id=? AND p.clinica_id=?`,
             [
                 paciente_id,
                 motivo_consulta ?? null,
+                notas_html ?? null,
                 peso ?? null,
                 estatura ?? null,
                 imc ?? null,
@@ -158,6 +163,7 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
             await saveDoc('medical_history', id, sanitizeDoc({
                 pacienteId: paciente_id ?? null,
                 motivo_consulta: motivo_consulta ?? null,
+                notas_html: notas_html ?? null,
                 peso: peso ?? null,
                 estatura: estatura ?? null,
                 imc: imc ?? null,
@@ -180,11 +186,12 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
         const [result] = await pool.query(
             `UPDATE historial h
              JOIN pacientes p ON h.paciente_id = p.id
-             SET h.paciente_id=?, h.motivo_consulta=?, h.peso=?, h.estatura=?, h.imc=?, h.presion=?, h.frecuencia_cardiaca=?, h.frecuencia_respiratoria=?, h.temperatura=?, h.otros=?, h.diagnostico=?, h.tratamiento=?, h.receta=?, h.fecha=?, h.imagenes=?
+             SET h.paciente_id=?, h.motivo_consulta=?, h.notas_html=?, h.peso=?, h.estatura=?, h.imc=?, h.presion=?, h.frecuencia_cardiaca=?, h.frecuencia_respiratoria=?, h.temperatura=?, h.otros=?, h.diagnostico=?, h.tratamiento=?, h.receta=?, h.fecha=?, h.imagenes=?
              WHERE h.id=? AND p.doctor_id=?`,
             [
                 paciente_id,
                 motivo_consulta ?? null,
+                notas_html ?? null,
                 peso ?? null,
                 estatura ?? null,
                 imc ?? null,
@@ -207,6 +214,7 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
             await saveDoc('medical_history', id, sanitizeDoc({
                 pacienteId: paciente_id ?? null,
                 motivo_consulta: motivo_consulta ?? null,
+                notas_html: notas_html ?? null,
                 peso: peso ?? null,
                 estatura: estatura ?? null,
                 imc: imc ?? null,

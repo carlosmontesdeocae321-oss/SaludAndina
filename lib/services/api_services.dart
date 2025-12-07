@@ -387,6 +387,20 @@ class ApiService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> obtenerPacientePorId(String id) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/pacientes/$id');
+      final headers = await _getHeaders();
+      final res = await http.get(url, headers: headers);
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      _log('❌ obtenerPacientePorId - error: $e');
+    }
+    return null;
+  }
+
   static Future<bool> crearHistorial(
       Map<String, String> data, List<String> archivos) async {
     final url = Uri.parse('$baseUrl/api/historial');

@@ -119,6 +119,19 @@ async function actualizarHistorial(req, res) {
                 imagenesExistentes = [];
             }
         }
+        // Si el cliente indicó imágenes para eliminar, filtrarlas de las existentes
+        if (body.imagenes_eliminar) {
+            try {
+                const eliminar = typeof body.imagenes_eliminar === 'string' ? JSON.parse(body.imagenes_eliminar) : body.imagenes_eliminar;
+                if (Array.isArray(eliminar) && eliminar.length > 0) {
+                    imagenesExistentes = imagenesExistentes.filter(i => !eliminar.includes(i));
+                    // Nota: si se desea eliminar físicamente de cloudinary/firebase, hacerlo aquí.
+                }
+            } catch (e) {
+                // ignore parse errors
+            }
+        }
+
         body.imagenes = [...imagenesExistentes, ...imagenesNuevas];
 
         console.log('🔔 actualizarHistorial - payload final:', body);

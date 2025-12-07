@@ -14,6 +14,26 @@ class Consulta {
   final String tratamiento;
   final String receta;
   final List<String> imagenes;
+  final String notasHtml;
+  final String pacienteNombres;
+  final String pacienteApellidos;
+  // Examen físico fields (parsed individually when available)
+  final String examenPiel;
+  final String examenCabeza;
+  final String examenOjos;
+  final String examenNariz;
+  final String examenBoca;
+  final String examenOidos;
+  final String examenOrofaringe;
+  final String examenCuello;
+  final String examenTorax;
+  final String examenCamposPulm;
+  final String examenRuidosCard;
+  final String examenAbdomen;
+  final String examenExtremidades;
+  final String examenNeuro;
+  final String
+      otros; // campos adicionales como medidas generales / observaciones
   final DateTime fecha;
 
   Consulta({
@@ -30,6 +50,24 @@ class Consulta {
     required this.tratamiento,
     required this.receta,
     this.imagenes = const [],
+    this.notasHtml = '',
+    this.pacienteNombres = '',
+    this.pacienteApellidos = '',
+    this.examenPiel = '',
+    this.examenCabeza = '',
+    this.examenOjos = '',
+    this.examenNariz = '',
+    this.examenBoca = '',
+    this.examenOidos = '',
+    this.examenOrofaringe = '',
+    this.examenCuello = '',
+    this.examenTorax = '',
+    this.examenCamposPulm = '',
+    this.examenRuidosCard = '',
+    this.examenAbdomen = '',
+    this.examenExtremidades = '',
+    this.examenNeuro = '',
+    this.otros = '',
     required this.fecha,
   });
 
@@ -50,8 +88,42 @@ class Consulta {
         tratamiento: json['tratamiento'] ?? '',
         receta: json['receta'] ?? '',
         imagenes: _parseImagenes(json['imagenes']),
+        notasHtml: json['notas_html'] ?? json['notasHtml'] ?? '',
+        pacienteNombres: json['nombres'] ?? json['paciente_nombres'] ?? '',
+        pacienteApellidos:
+            json['apellidos'] ?? json['paciente_apellidos'] ?? '',
+        examenPiel: json['examen_piel'] ?? json['examenPiel'] ?? '',
+        examenCabeza: json['examen_cabeza'] ?? json['examenCabeza'] ?? '',
+        examenOjos: json['examen_ojos'] ?? json['examenOjos'] ?? '',
+        examenNariz: json['examen_nariz'] ?? json['examenNariz'] ?? '',
+        examenBoca: json['examen_boca'] ?? json['examenBoca'] ?? '',
+        examenOidos: json['examen_oidos'] ?? json['examenOidos'] ?? '',
+        examenOrofaringe:
+            json['examen_orofaringe'] ?? json['examenOrofaringe'] ?? '',
+        examenCuello: json['examen_cuello'] ?? json['examenCuello'] ?? '',
+        examenTorax: json['examen_torax'] ?? json['examenTorax'] ?? '',
+        examenCamposPulm:
+            json['examen_campos_pulm'] ?? json['examenCamposPulm'] ?? '',
+        examenRuidosCard:
+            json['examen_ruidos_card'] ?? json['examenRuidosCard'] ?? '',
+        examenAbdomen: json['examen_abdomen'] ?? json['examenAbdomen'] ?? '',
+        examenExtremidades:
+            json['examen_extremidades'] ?? json['examenExtremidades'] ?? '',
+        examenNeuro: json['examen_neuro'] ?? json['examenNeuro'] ?? '',
+        otros: json['otros'] ?? json['medidas'] ?? '',
         fecha: _parseDate(json['fecha']),
       );
+}
+
+extension ConsultaHelpers on Consulta {
+  String get pacienteFullName {
+    final n = pacienteNombres.trim();
+    final a = pacienteApellidos.trim();
+    if (n.isEmpty && a.isEmpty) return '';
+    if (n.isEmpty) return a;
+    if (a.isEmpty) return n;
+    return '$n $a';
+  }
 }
 
 List<String> _parseImagenes(dynamic raw) {

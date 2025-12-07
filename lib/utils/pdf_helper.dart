@@ -58,7 +58,6 @@ class PdfHelper {
                     width: 56,
                     height: 56,
                     decoration: pw.BoxDecoration(
-                      borderRadius: pw.BorderRadius.circular(12),
                       border: pw.Border.all(color: _accent, width: 1.2),
                       image: pw.DecorationImage(
                         image: pw.MemoryImage(logoBytes),
@@ -97,7 +96,6 @@ class PdfHelper {
           pw.Container(
             decoration: pw.BoxDecoration(
               color: _panelBg,
-              borderRadius: pw.BorderRadius.circular(12),
               border: pw.Border.all(color: _borderSoft, width: 0.8),
             ),
             padding: const pw.EdgeInsets.all(14),
@@ -160,7 +158,6 @@ class PdfHelper {
                 margin: const pw.EdgeInsets.only(bottom: 10),
                 decoration: pw.BoxDecoration(
                   color: _upcomingBg,
-                  borderRadius: pw.BorderRadius.circular(12),
                   border: pw.Border.all(
                     color: _upcomingBorder,
                     width: 0.8,
@@ -246,7 +243,6 @@ class PdfHelper {
                     const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: pw.BoxDecoration(
                   color: _chipBg,
-                  borderRadius: pw.BorderRadius.circular(999),
                   border: pw.Border.all(color: _chipBorder, width: 0.6),
                 ),
                 child: pw.Text('$label: $value',
@@ -282,7 +278,6 @@ class PdfHelper {
             return pw.Container(
               margin: const pw.EdgeInsets.only(bottom: 12),
               decoration: pw.BoxDecoration(
-                borderRadius: pw.BorderRadius.circular(12),
                 border: pw.Border.all(color: _borderSoft, width: 0.8),
               ),
               padding: const pw.EdgeInsets.all(12),
