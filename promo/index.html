@@ -277,8 +277,11 @@
     <h2>Descarga SaludAndina</h2>
     <p class="download-subtitle">Comparte la app móvil y el instalador de escritorio con tu equipo. Mantén siempre la versión más reciente para médicos, recepción y administración.</p>
     <div class="download-actions">
-      <a class="btn btn-primary" href="downloads/saludandina_app_android.apk" download>Android (APK)</a>
-      <a class="btn btn-outline" href="downloads/saludandina_setup.exe" download>Windows (Instalador)</a>
+      <a class="btn btn-primary" id="dl-android" href="downloads/saludandina_app_android.apk" download>Android (APK)</a>
+      <a class="btn btn-outline" id="dl-windows" href="downloads/saludandina_setup.exe" download>Windows (Instalador)</a>
+    </div>
+    <div style="margin-top:10px;color:var(--muted);font-size:.95rem">
+      <div id="dl-info">Archivos disponibles en <code>promo/downloads</code>.</div>
     </div>
     <span class="download-info">Actualiza los archivos dentro de <code>promo/downloads</code> cuando publiques una nueva versión. Sustituye <code>saludandina_app_android.apk</code> y <code>saludandina_setup.exe</code> con tus builds recientes; si prefieres un paquete manual, conserva <code>clinica_app_windows.zip</code> con el ejecutable y sus dependencias.</span>
   </div>
@@ -582,6 +585,32 @@
   // deep-link if hash present
   const hash = location.hash.match(/#screen-(\d+)/);
   if(hash){ const i = Number(hash[1]) - 1; if(i>=0 && i<images.length) setTimeout(()=>openAt(i),200); }
+
+  // try to fetch file metadata for download links (show size & modified time if available)
+  async function fetchFileInfo(path){
+    try{
+      const resp = await fetch(path, { method: 'HEAD' });
+      if(!resp.ok) return null;
+      const size = resp.headers.get('content-length');
+      const mod = resp.headers.get('last-modified');
+      return { size: size ? Number(size) : null, modified: mod || null };
+    }catch(e){ return null; }
+  }
+
+  async function updateDownloadInfo(){
+    const androidPath = 'downloads/saludandina_app_android.apk';
+    const winPath = 'downloads/saludandina_setup.exe';
+    const infoEl = document.getElementById('dl-info');
+    const aAnd = document.getElementById('dl-android');
+    const aWin = document.getElementById('dl-windows');
+    const [andInfo, winInfo] = await Promise.all([fetchFileInfo(androidPath), fetchFileInfo(winPath)]);
+    const parts = [];
+    if(andInfo){ parts.push('Android: ' + (andInfo.size ? Math.round(andInfo.size/1024) + ' KB' : 'tamaño desconocido') + (andInfo.modified ? ' · ' + new Date(andInfo.modified).toLocaleString() : '')); }
+    if(winInfo){ parts.push('Windows: ' + (winInfo.size ? Math.round(winInfo.size/1024) + ' KB' : 'tamaño desconocido') + (winInfo.modified ? ' · ' + new Date(winInfo.modified).toLocaleString() : '')); }
+    if(parts.length) infoEl.textContent = parts.join(' — ');
+  }
+
+  updateDownloadInfo();
 
 })();
 </script>
