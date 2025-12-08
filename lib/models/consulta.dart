@@ -15,6 +15,7 @@ class Consulta {
   final String receta;
   final List<String> imagenes;
   final String notasHtml;
+  final String notasHtmlFull;
   final String pacienteNombres;
   final String pacienteApellidos;
   // Examen físico fields (parsed individually when available)
@@ -51,6 +52,7 @@ class Consulta {
     required this.receta,
     this.imagenes = const [],
     this.notasHtml = '',
+    this.notasHtmlFull = '',
     this.pacienteNombres = '',
     this.pacienteApellidos = '',
     this.examenPiel = '',
@@ -89,6 +91,7 @@ class Consulta {
         receta: json['receta'] ?? '',
         imagenes: _parseImagenes(json['imagenes']),
         notasHtml: json['notas_html'] ?? json['notasHtml'] ?? '',
+        notasHtmlFull: json['notas_html_full'] ?? json['notasHtmlFull'] ?? '',
         pacienteNombres: json['nombres'] ?? json['paciente_nombres'] ?? '',
         pacienteApellidos:
             json['apellidos'] ?? json['paciente_apellidos'] ?? '',

@@ -163,7 +163,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       if (c.notasHtml.isNotEmpty) {
         // Try to extract structured parts from notasHtml instead of dumping all text
         // 1) Examen físico general (after <h4>Examen físico</h4>)
-        final examenGeneral = _extractAfterHeading(c.notasHtml, 'Examen físico');
+        final examenGeneral =
+            _extractAfterHeading(c.notasHtml, 'Examen físico');
         if (examenGeneral.isNotEmpty) {
           examenCtrl.text = examenGeneral;
         } else {
@@ -179,14 +180,17 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
 
         // 3) Diagnóstico / Tratamiento / Receta (Plan)
         final dxFromHtml = _extractAfterHeading(c.notasHtml, 'Diagnóstico');
-        final planFromHtml = _extractAfterHeading(c.notasHtml, 'Plan de manejo')
-            .isNotEmpty
-            ? _extractAfterHeading(c.notasHtml, 'Plan de manejo')
-            : _extractAfterHeading(c.notasHtml, 'Plan');
+        final planFromHtml =
+            _extractAfterHeading(c.notasHtml, 'Plan de manejo').isNotEmpty
+                ? _extractAfterHeading(c.notasHtml, 'Plan de manejo')
+                : _extractAfterHeading(c.notasHtml, 'Plan');
         final recetaFromHtml = _extractAfterHeading(c.notasHtml, 'Receta');
-        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty) dxCtrl.text = dxFromHtml;
-        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty) planCtrl.text = planFromHtml;
-        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty) medicacionCtrl.text = recetaFromHtml;
+        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty)
+          dxCtrl.text = dxFromHtml;
+        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty)
+          planCtrl.text = planFromHtml;
+        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty)
+          medicacionCtrl.text = recetaFromHtml;
 
         // 4) Indicaciones: buscar párrafos con etiquetas <strong>Medidas generales:, Hidratación / Nutrición:, Medicación:
         final m = _extractStrongField(c.notasHtml, 'Medidas generales');
@@ -201,12 +205,18 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         final familiares = _extractStrongField(c.notasHtml, 'Familiares');
         final alergias = _extractStrongField(c.notasHtml, 'Alergias');
         final tiempo = _extractStrongField(c.notasHtml, 'Tiempo');
-        final evolucionFromHtml = _extractAfterHeading(c.notasHtml, 'Evolución');
-        if (personales.isNotEmpty && appCtrl.text.isEmpty) appCtrl.text = personales;
-        if (familiares.isNotEmpty && apfCtrl.text.isEmpty) apfCtrl.text = familiares;
-        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty) alergiasCtrl.text = alergias;
-        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty) tiempoCtrl.text = tiempo;
-        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty) evolucionCtrl.text = evolucionFromHtml;
+        final evolucionFromHtml =
+            _extractAfterHeading(c.notasHtml, 'Evolución');
+        if (personales.isNotEmpty && appCtrl.text.isEmpty)
+          appCtrl.text = personales;
+        if (familiares.isNotEmpty && apfCtrl.text.isEmpty)
+          apfCtrl.text = familiares;
+        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty)
+          alergiasCtrl.text = alergias;
+        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty)
+          tiempoCtrl.text = tiempo;
+        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty)
+          evolucionCtrl.text = evolucionFromHtml;
 
         // 5) Detailed examen parts (Piel, Cabeza, etc.) using strong-labeled <p><strong>Label:</strong>
         final candidates = {
@@ -241,14 +251,17 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
           // Rellenar nombre y apellidos
           // También intentar rellenar sexo y edad si vienen en el payload
           final sexo = (map['sexo'] ?? map['genero'] ?? '').toString();
-          final fechaNac = (map['fecha_nacimiento'] ?? map['fechaNacimiento'] ?? '').toString();
+          final fechaNac =
+              (map['fecha_nacimiento'] ?? map['fechaNacimiento'] ?? '')
+                  .toString();
           String edadText = '';
           try {
             if (fechaNac.isNotEmpty) {
               final dt = DateTime.parse(fechaNac);
               final now = DateTime.now();
               int years = now.year - dt.year;
-              if (now.month < dt.month || (now.month == dt.month && now.day < dt.day)) years--;
+              if (now.month < dt.month ||
+                  (now.month == dt.month && now.day < dt.day)) years--;
               edadText = years > 0 ? years.toString() : '';
             }
           } catch (e) {}
@@ -315,7 +328,9 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     try {
       final esc = RegExp.escape(heading);
       // Match <h4>Heading</h4> and capture everything until next <h4> or end
-      final re = RegExp('<h4[^>]*>\s*' + esc + r'\s*<\/h4>([\s\S]*?)(?:<h4[^>]*>|\z)', caseSensitive: false);
+      final re = RegExp(
+          '<h4[^>]*>\s*' + esc + r'\s*<\/h4>([\s\S]*?)(?:<h4[^>]*>|\z)',
+          caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) {
         final content = m.group(1) ?? '';
@@ -345,7 +360,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     }
   }
 
-  String buildHtml() {
+  String buildHtml({bool includeStructuredSections = true}) {
     final buffer = StringBuffer();
     buffer.writeln('<div>');
     // Include patient full name if available
@@ -430,7 +445,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     if (labsCtrl.text.trim().isNotEmpty)
       buffer.writeln('<h4>Pruebas</h4><pre>${labsCtrl.text}</pre>');
     // Imágenes seleccionadas localmente
-    if (_imagenesGuardadas.isNotEmpty) {
+    if (includeStructuredSections && _imagenesGuardadas.isNotEmpty) {
       buffer.writeln('<h4>Imágenes (guardadas)</h4>');
       for (var raw in _imagenesGuardadas) {
         final uri = raw.toString();
@@ -440,7 +455,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
             '<p><img src="$display" style="max-width:360px;max-height:240px;"/></p>');
       }
     }
-    if (_imagenes.isNotEmpty) {
+    if (includeStructuredSections && _imagenes.isNotEmpty) {
       buffer.writeln('<h4>Imágenes</h4>');
       for (var f in _imagenes) {
         final uri = Uri.file(f.path).toString();
@@ -450,15 +465,18 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     }
     if (analisisCtrl.text.trim().isNotEmpty)
       buffer.writeln('<h4>Análisis clínico</h4><p>${analisisCtrl.text}</p>');
-    if (dxCtrl.text.trim().isNotEmpty)
-      buffer.writeln(
-          '<h4>Diagnósticos</h4><p><strong>${dxCtrl.text}</strong></p>');
-    if (planCtrl.text.trim().isNotEmpty)
-      buffer.writeln('<h4>Plan de manejo</h4><p>${planCtrl.text}</p>');
+    if (includeStructuredSections) {
+      if (dxCtrl.text.trim().isNotEmpty)
+        buffer.writeln(
+            '<h4>Diagnósticos</h4><p><strong>${dxCtrl.text}</strong></p>');
+      if (planCtrl.text.trim().isNotEmpty)
+        buffer.writeln('<h4>Plan de manejo</h4><p>${planCtrl.text}</p>');
+    }
 
-    if (medidasCtrl.text.trim().isNotEmpty ||
-        hidratacionCtrl.text.trim().isNotEmpty ||
-        medicacionCtrl.text.trim().isNotEmpty) {
+    if (includeStructuredSections &&
+        (medidasCtrl.text.trim().isNotEmpty ||
+            hidratacionCtrl.text.trim().isNotEmpty ||
+            medicacionCtrl.text.trim().isNotEmpty)) {
       buffer.writeln('<h4>Indicaciones</h4>');
       if (medidasCtrl.text.trim().isNotEmpty)
         buffer.writeln(
@@ -559,8 +577,10 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       'examen_abdomen': abdomenCtrl.text,
       'examen_extremidades': extremidadesCtrl.text,
       'examen_neuro': neuroCtrl.text,
-      // Include the rich HTML for full preview in backend if desired
-      'notas_html': buildHtml(),
+      // Include the rich HTML: send both a cleaned version (no structured sections)
+      // for storage/display and the full original HTML for backups/printing.
+      'notas_html': buildHtml(includeStructuredSections: false),
+      'notas_html_full': buildHtml(includeStructuredSections: true),
       'fecha': now.toIso8601String().split('T')[0],
     };
 
@@ -605,6 +625,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         receta: data['receta'] ?? '',
         imagenes: [..._imagenesGuardadas, ...archivos],
         notasHtml: data['notas_html'] ?? '',
+        notasHtmlFull: data['notas_html_full'] ?? '',
         fecha: now,
       );
       Navigator.of(context).pop(c);

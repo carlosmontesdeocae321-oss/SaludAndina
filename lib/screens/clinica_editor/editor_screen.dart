@@ -57,7 +57,7 @@ class _EditorScreenState extends State<EditorScreen> {
     super.dispose();
   }
 
-  String buildHtml() {
+  String buildHtml({bool includeStructuredSections = true}) {
     // Build a simple HTML representation of the form contents
     final buffer = StringBuffer();
     buffer.writeln('<div>');
@@ -101,14 +101,16 @@ class _EditorScreenState extends State<EditorScreen> {
       buffer.writeln('<p>${analisisCtrl.text}</p>');
     }
 
-    if (dxCtrl.text.trim().isNotEmpty) {
-      buffer.writeln('<h4>Diagnósticos</h4>');
-      buffer.writeln('<p><strong>${dxCtrl.text}</strong></p>');
-    }
+    if (includeStructuredSections) {
+      if (dxCtrl.text.trim().isNotEmpty) {
+        buffer.writeln('<h4>Diagnósticos</h4>');
+        buffer.writeln('<p><strong>${dxCtrl.text}</strong></p>');
+      }
 
-    if (planCtrl.text.trim().isNotEmpty) {
-      buffer.writeln('<h4>Plan de manejo</h4>');
-      buffer.writeln('<p>${planCtrl.text}</p>');
+      if (planCtrl.text.trim().isNotEmpty) {
+        buffer.writeln('<h4>Plan de manejo</h4>');
+        buffer.writeln('<p>${planCtrl.text}</p>');
+      }
     }
 
     buffer.writeln('</div>');

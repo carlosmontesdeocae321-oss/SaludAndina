@@ -44,6 +44,7 @@ async function crearHistorial(historial) {
         paciente_id,
         motivo_consulta,
         notas_html,
+        notas_html_full,
         peso,
         estatura,
         imc,
@@ -61,12 +62,13 @@ async function crearHistorial(historial) {
 
     const [result] = await pool.query(
         `INSERT INTO historial 
-         (paciente_id, motivo_consulta, notas_html, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (paciente_id, motivo_consulta, notas_html, notas_html_full, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             paciente_id,
             motivo_consulta ?? null,
             notas_html ?? null,
+            notas_html_full ?? null,
             peso ?? null,
             estatura ?? null,
             imc ?? null,
@@ -90,6 +92,7 @@ async function crearHistorial(historial) {
             pacienteId: paciente_id ?? null,
             motivo_consulta: motivo_consulta ?? null,
             notas_html: notas_html ?? null,
+            notas_html_full: notas_html_full ?? null,
             peso: peso ?? null,
             estatura: estatura ?? null,
             imc: imc ?? null,
@@ -116,6 +119,7 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
         paciente_id,
         motivo_consulta,
         notas_html,
+        notas_html_full,
         peso,
         estatura,
         imc,
@@ -141,6 +145,7 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
                 paciente_id,
                 motivo_consulta ?? null,
                 notas_html ?? null,
+                notas_html_full ?? null,
                 peso ?? null,
                 estatura ?? null,
                 imc ?? null,
@@ -164,6 +169,7 @@ async function actualizarHistorial(id, historial, clinica_id, doctor_id) {
                 pacienteId: paciente_id ?? null,
                 motivo_consulta: motivo_consulta ?? null,
                 notas_html: notas_html ?? null,
+                notas_html_full: notas_html_full ?? null,
                 peso: peso ?? null,
                 estatura: estatura ?? null,
                 imc: imc ?? null,

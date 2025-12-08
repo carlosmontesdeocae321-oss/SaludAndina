@@ -10,6 +10,33 @@ class ConsultaDetalleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use full HTML when available (notasHtmlFull), otherwise fallback to notasHtml.
+    final sourceHtml = (consulta.notasHtmlFull.isNotEmpty)
+        ? consulta.notasHtmlFull
+        : consulta.notasHtml;
+    // Preprocess sourceHtml: extract img srcs and clean the HTML to avoid duplicates
+    final extracted = _extractImagesAndCleanHtml(sourceHtml);
+    // Keep the HTML content largely intact (we only remove image tags); further
+    // sanitization that removes duplicated headings is applied but patient card
+    // headings remain.
+    final cleanedNotasHtml = _sanitizeNotasHtml(extracted['html'] ?? '');
+    final notasImagesFromHtml = List<String>.from(extracted['images'] ?? []);
+    // Merge consulta.imagenes and notasImagesFromHtml, keeping order and uniqueness
+    final mergedImages = <String>[];
+    final seen = <String>{};
+    for (final u in [...consulta.imagenes, ...notasImagesFromHtml]) {
+      var normalized = u;
+      if (normalized.startsWith('/'))
+        normalized = ApiService.baseUrl + normalized;
+      if (!seen.contains(normalized)) {
+        seen.add(normalized);
+        mergedImages.add(normalized);
+      }
+    }
+    // Extract only the first top-level <div> content if present (the editor wraps
+    // the card inside a div). This ensures we render only the card inside
+    // 'Notas detalladas' and not other surrounding UI elements.
+    final displayedHtml = _extractFirstDivContent(cleanedNotasHtml).trim();
     const accentColor = Color(0xFF1BD1C2);
     const overlayColor = Color(0xFF101D32);
     final baseTheme = Theme.of(context);
@@ -144,119 +171,221 @@ class ConsultaDetalleScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         // Mostrar sección de examen sólo si hay métricas o campos detallados
-                        if (_hasExamData(consulta)) ...[
-                          _buildSectionTitle(context, 'Examen físico'),
-                          const SizedBox(height: 10),
-                          Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            if (consulta.peso > 0)
-                              _buildMetricChip('Peso: ${consulta.peso} kg'),
-                            if (consulta.estatura > 0)
-                              _buildMetricChip(
-                                  'Estatura: ${consulta.estatura} m'),
-                            if (consulta.imc > 0)
-                              _buildMetricChip('IMC: ${consulta.imc}'),
-                            if (consulta.presion.isNotEmpty)
-                              _buildMetricChip(
-                                  'Presión arterial: ${consulta.presion}'),
-                            if (consulta.frecuenciaCardiaca > 0)
-                              _buildMetricChip(
-                                  'Frecuencia cardiaca: ${consulta.frecuenciaCardiaca}'),
-                            if (consulta.frecuenciaRespiratoria > 0)
-                              _buildMetricChip(
-                                  'Frecuencia respiratoria: ${consulta.frecuenciaRespiratoria}'),
-                            if (consulta.temperatura > 0)
-                              _buildMetricChip(
-                                  'Temperatura: ${consulta.temperatura}°C'),
-                          ],
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        _buildDetailBlock(context,
-                          title: 'Diagnóstico',
-                          value: consulta.diagnostico,
-                        ),
-                        _buildDetailBlock(context,
-                          title: 'Tratamiento',
-                          value: consulta.tratamiento,
-                        ),
-                        _buildDetailBlock(context,
-                          title: 'Receta',
-                          value: consulta.receta,
-                        ),
-                        if (consulta.notasHtml.isNotEmpty) ...[
-                          const SizedBox(height: 12),
+                        // If the cleaned notas detalladas exists, show ONLY that
+                        if (cleanedNotasHtml.isNotEmpty) ...[
                           _buildSectionTitle(context, 'Notas detalladas'),
                           const SizedBox(height: 8),
                           Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.03),
-                              borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xFF0B1626),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: Colors.white10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.35),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                )
+                              ],
                             ),
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 20),
                             child: Html(
-                              data: consulta.notasHtml,
+                              data: displayedHtml.isNotEmpty
+                                  ? displayedHtml
+                                  : cleanedNotasHtml,
                               style: {
                                 "body": Style(
                                   color: Colors.white70,
+                                  fontSize: FontSize(15.0),
+                                  lineHeight: LineHeight.number(1.45),
+                                ),
+                                "h2": Style(
+                                  color: Colors.white,
+                                  fontSize: FontSize(20.0),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                "h3": Style(
+                                  color: Colors.white70,
+                                  fontSize: FontSize(16.0),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                "p": Style(
+                                  color: Colors.white70,
                                   fontSize: FontSize(14.0),
-                                  lineHeight: LineHeight.number(1.4),
+                                ),
+                                "strong": Style(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               },
                             ),
                           ),
-                        ],
-                        if (consulta.imagenes.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _buildSectionTitle(context, 'Imágenes adjuntas'),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 140,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemBuilder: (ctx, i) {
-                                final rawUrl = consulta.imagenes[i];
-                                String displayUrl = rawUrl;
-                                if (rawUrl.startsWith('/')) {
-                                  displayUrl = ApiService.baseUrl + rawUrl;
-                                }
-                                if (displayUrl.startsWith('http')) {
+                          if (mergedImages.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildSectionTitle(context, 'Imágenes adjuntas'),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 140,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemBuilder: (ctx, i) {
+                                  final displayUrl = mergedImages[i];
+                                  if (displayUrl.startsWith('http')) {
+                                    return GestureDetector(
+                                      onTap: () =>
+                                          _openImage(context, displayUrl),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: Image.network(
+                                          displayUrl,
+                                          width: 170,
+                                          height: 140,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    );
+                                  }
                                   return GestureDetector(
                                     onTap: () =>
                                         _openImage(context, displayUrl),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(14),
-                                      child: Image.network(
-                                        displayUrl,
+                                      child: Image.file(
+                                        File(displayUrl),
                                         width: 170,
                                         height: 140,
                                         fit: BoxFit.cover,
                                       ),
                                     ),
                                   );
-                                }
-                                return GestureDetector(
-                                  onTap: () => _openImage(context, rawUrl),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: Image.file(
-                                      File(rawUrl),
-                                      width: 170,
-                                      height: 140,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                );
-                              },
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 12),
-                              itemCount: consulta.imagenes.length,
+                                },
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 12),
+                                itemCount: mergedImages.length,
+                              ),
                             ),
+                          ],
+                        ] else ...[
+                          // Fallback: render original structured fields and original notasHtml/images
+                          if (_hasExamData(consulta)) ...[
+                            _buildSectionTitle(context, 'Examen físico'),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                if (consulta.peso > 0)
+                                  _buildMetricChip('Peso: ${consulta.peso} kg'),
+                                if (consulta.estatura > 0)
+                                  _buildMetricChip(
+                                      'Estatura: ${consulta.estatura} m'),
+                                if (consulta.imc > 0)
+                                  _buildMetricChip('IMC: ${consulta.imc}'),
+                                if (consulta.presion.isNotEmpty)
+                                  _buildMetricChip(
+                                      'Presión arterial: ${consulta.presion}'),
+                                if (consulta.frecuenciaCardiaca > 0)
+                                  _buildMetricChip(
+                                      'Frecuencia cardiaca: ${consulta.frecuenciaCardiaca}'),
+                                if (consulta.frecuenciaRespiratoria > 0)
+                                  _buildMetricChip(
+                                      'Frecuencia respiratoria: ${consulta.frecuenciaRespiratoria}'),
+                                if (consulta.temperatura > 0)
+                                  _buildMetricChip(
+                                      'Temperatura: ${consulta.temperatura}°C'),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          _buildDetailBlock(
+                            context,
+                            title: 'Diagnóstico',
+                            value: consulta.diagnostico,
                           ),
+                          _buildDetailBlock(
+                            context,
+                            title: 'Tratamiento',
+                            value: consulta.tratamiento,
+                          ),
+                          _buildDetailBlock(
+                            context,
+                            title: 'Receta',
+                            value: consulta.receta,
+                          ),
+                          if (consulta.notasHtml.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildSectionTitle(context, 'Notas detalladas'),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.03),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Html(
+                                data: _sanitizeNotasHtml(consulta.notasHtml),
+                                style: {
+                                  "body": Style(
+                                    color: Colors.white70,
+                                    fontSize: FontSize(14.0),
+                                    lineHeight: LineHeight.number(1.4),
+                                  ),
+                                },
+                              ),
+                            ),
+                          ],
+                          if (consulta.imagenes.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildSectionTitle(context, 'Imágenes adjuntas'),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 140,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemBuilder: (ctx, i) {
+                                  final rawUrl = consulta.imagenes[i];
+                                  String displayUrl = rawUrl;
+                                  if (rawUrl.startsWith('/')) {
+                                    displayUrl = ApiService.baseUrl + rawUrl;
+                                  }
+                                  if (displayUrl.startsWith('http')) {
+                                    return GestureDetector(
+                                      onTap: () =>
+                                          _openImage(context, displayUrl),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(14),
+                                        child: Image.network(
+                                          displayUrl,
+                                          width: 170,
+                                          height: 140,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return GestureDetector(
+                                    onTap: () => _openImage(context, rawUrl),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Image.file(
+                                        File(rawUrl),
+                                        width: 170,
+                                        height: 140,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 12),
+                                itemCount: consulta.imagenes.length,
+                              ),
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -270,9 +399,94 @@ class ConsultaDetalleScreen extends StatelessWidget {
     );
   }
 
+  String _sanitizeNotasHtml(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    var html = raw;
+    // Remove duplicate headings that are shown separately in the UI.
+    // This is a simple heuristic: remove sections starting with common headings
+    // like <h2>Diagnóstico</h2>, <h2>Tratamiento</h2>, <h2>Receta</h2> and their content.
+    final patterns = [
+      RegExp(r'<h\d[^>]*>\s*diagnostico\b[^<]*<\/h\d>.*?(?=(<h\d|$))',
+          caseSensitive: false, dotAll: true),
+      RegExp(r'<h\d[^>]*>\s*tratamiento\b[^<]*<\/h\d>.*?(?=(<h\d|$))',
+          caseSensitive: false, dotAll: true),
+      RegExp(r'<h\d[^>]*>\s*receta\b[^<]*<\/h\d>.*?(?=(<h\d|$))',
+          caseSensitive: false, dotAll: true),
+    ];
+    for (final p in patterns) {
+      html = html.replaceAll(p, '');
+    }
+    // Trim excessive whitespace/newlines
+    html = html.replaceAll(RegExp(r'\n{2,}'), '\n').trim();
+    return html;
+  }
+
+  /// Extracts the inner HTML of the first top-level <div> found in [html].
+  /// If no <div> is present or an error occurs, returns the original [html].
+  String _extractFirstDivContent(String html) {
+    if (html.trim().isEmpty) return '';
+    try {
+      final openTagRe = RegExp(r'<div\b[^>]*>', caseSensitive: false);
+      final openMatch = openTagRe.firstMatch(html);
+      if (openMatch == null) return html;
+      final openStart = openMatch.start;
+      final openEnd = openMatch.end;
+
+      final tagFinder = RegExp(r'<\/?div\b', caseSensitive: false);
+      final matches = tagFinder.allMatches(html).toList();
+      int i = 0;
+      while (i < matches.length && matches[i].start < openStart) i++;
+      if (i >= matches.length) return html;
+
+      int depth = 0;
+      for (int j = i; j < matches.length; j++) {
+        final m = matches[j];
+        final isClosing = (html.length >= m.start + 2 &&
+            html.substring(m.start, m.start + 2) == '</');
+        if (!isClosing) {
+          depth++;
+        } else {
+          depth--;
+        }
+        if (depth == 0) {
+          final closeTagStart = m.start;
+          final closeTagEnd = html.indexOf('>', closeTagStart);
+          if (closeTagEnd == -1) return html;
+          final inner = html.substring(openEnd, closeTagStart);
+          return inner;
+        }
+      }
+    } catch (e) {}
+    return html;
+  }
+
+  /// Extracts all <img src="..."> URLs from the provided HTML and returns
+  /// a map with keys 'images' (List<String>) and 'html' (the HTML with <img> tags removed).
+  Map<String, dynamic> _extractImagesAndCleanHtml(String? raw) {
+    if (raw == null || raw.isEmpty) return {'images': <String>[], 'html': ''};
+    var html = raw;
+    final images = <String>[];
+    try {
+      final re = RegExp('<img[^>]*src=["\']([^"\']+)["\'][^>]*>',
+          caseSensitive: false);
+      html = html.replaceAllMapped(re, (m) {
+        try {
+          var src = m.group(1) ?? '';
+          if (src.startsWith('/')) src = ApiService.baseUrl + src;
+          images.add(src);
+        } catch (e) {}
+        return ''; // remove the image tag from HTML
+      });
+    } catch (e) {}
+    return {'images': images, 'html': html};
+  }
+
   bool _hasExamData(Consulta c) {
     if (c.peso > 0 || c.estatura > 0 || c.imc > 0) return true;
-    if (c.presion.isNotEmpty || c.frecuenciaCardiaca > 0 || c.frecuenciaRespiratoria > 0 || c.temperatura > 0) return true;
+    if (c.presion.isNotEmpty ||
+        c.frecuenciaCardiaca > 0 ||
+        c.frecuenciaRespiratoria > 0 ||
+        c.temperatura > 0) return true;
     final examFields = [
       c.examenPiel,
       c.examenCabeza,
@@ -292,7 +506,8 @@ class ConsultaDetalleScreen extends StatelessWidget {
     for (final s in examFields) {
       if (s.trim().isNotEmpty) return true;
     }
-    if (c.notasHtml.isNotEmpty && c.notasHtml.toLowerCase().contains('examen')) return true;
+    if (c.notasHtml.isNotEmpty && c.notasHtml.toLowerCase().contains('examen'))
+      return true;
     return false;
   }
 
@@ -342,7 +557,8 @@ class ConsultaDetalleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailBlock(BuildContext context, {required String title, required String value}) {
+  Widget _buildDetailBlock(BuildContext context,
+      {required String title, required String value}) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
       return const SizedBox.shrink();

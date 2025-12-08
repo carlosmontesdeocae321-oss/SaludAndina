@@ -19,7 +19,8 @@ void insertTextAtSelection(TextEditingController controller, String text) {
 
   final newText = value.text.replaceRange(start, end, text);
   final newSelection = TextSelection.collapsed(offset: start + text.length);
-  controller.value = value.copyWith(text: newText, selection: newSelection, composing: TextRange.empty);
+  controller.value = value.copyWith(
+      text: newText, selection: newSelection, composing: TextRange.empty);
 }
 
 /// Calcula una representación ordinal simple en español para números pequeños.
