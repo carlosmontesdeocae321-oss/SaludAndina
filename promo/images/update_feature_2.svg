@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="g2" x1="0" x2="1">
+      <stop offset="0" stop-color="#06b6d4" />
+      <stop offset="1" stop-color="#06b6d4" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="#071429" />
+  <rect x="70" y="70" width="1060" height="660" rx="18" fill="url(#g2)" opacity="0.95" />
+  <text x="120" y="220" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="50" font-weight="700">Nuevo sistema de consultas</text>
+  <text x="120" y="300" fill="#dffafe" font-family="Inter, Arial, sans-serif" font-size="24">Captura completa: diagnóstico, receta, imágenes y PDF clínico listo para compartir</text>
+  <g transform="translate(120,380)">
+    <circle cx="60" cy="60" r="52" fill="#fff" opacity="0.08" />
+    <circle cx="200" cy="60" r="52" fill="#fff" opacity="0.06" />
+    <circle cx="340" cy="60" r="52" fill="#fff" opacity="0.04" />
+  </g>
+</svg>

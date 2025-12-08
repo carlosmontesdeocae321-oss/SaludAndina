@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#1e40af" />
+      <stop offset="1" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="#0f172a" />
+  <rect x="60" y="60" width="1080" height="680" rx="20" fill="url(#g)" opacity="0.95" />
+  <text x="120" y="220" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="700">Nuevo sistema de consultas</text>
+  <text x="120" y="300" fill="#e6eefc" font-family="Inter, Arial, sans-serif" font-size="28">Datos más completos: motivos, signos vitales, antecedentes y notas estructuradas</text>
+  <g transform="translate(120,380)">
+    <rect x="0" y="0" width="220" height="120" rx="12" fill="#fff" opacity="0.08" />
+    <rect x="260" y="0" width="220" height="120" rx="12" fill="#fff" opacity="0.08" />
+    <rect x="520" y="0" width="220" height="120" rx="12" fill="#fff" opacity="0.08" />
+  </g>
+</svg>
