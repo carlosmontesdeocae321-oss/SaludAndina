@@ -115,6 +115,9 @@ class ApiService {
     developer.log(message, name: 'ApiService');
   }
 
+  // Last raw response body from create/edit calls (for UI debugging)
+  static String? lastErrorBody;
+
   // Invalidate cached profile for a user id (use after updates)
   static void invalidateProfileCache(int usuarioId) {
     try {
@@ -421,7 +424,13 @@ class ApiService {
     final respBody = await streamed.stream.bytesToString();
     _log('📥 crearHistorial - status: ${streamed.statusCode} body: $respBody');
 
-    return streamed.statusCode == 200 || streamed.statusCode == 201;
+    if (streamed.statusCode == 200 || streamed.statusCode == 201) {
+      lastErrorBody = null;
+      return true;
+    }
+    // store body for UI debugging
+    lastErrorBody = respBody;
+    return false;
   }
 
   static Future<bool> editarHistorial(
@@ -437,7 +446,14 @@ class ApiService {
     }
 
     final res = await request.send();
-    return res.statusCode == 200;
+    final respBody = await res.stream.bytesToString();
+    if (res.statusCode == 200) {
+      lastErrorBody = null;
+      return true;
+    }
+    lastErrorBody = respBody;
+    _log('📥 editarHistorial - status: ${res.statusCode} body: $respBody');
+    return false;
   }
 
   static Future<bool> eliminarHistorial(String id) async {

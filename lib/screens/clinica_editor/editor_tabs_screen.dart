@@ -147,17 +147,21 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       if (c.examenNariz.isNotEmpty) narizCtrl.text = c.examenNariz;
       if (c.examenBoca.isNotEmpty) bocaCtrl.text = c.examenBoca;
       if (c.examenOidos.isNotEmpty) oidosCtrl.text = c.examenOidos;
-      if (c.examenOrofaringe.isNotEmpty)
+      if (c.examenOrofaringe.isNotEmpty) {
         orofaringeCtrl.text = c.examenOrofaringe;
+      }
       if (c.examenCuello.isNotEmpty) cuelloCtrl.text = c.examenCuello;
       if (c.examenTorax.isNotEmpty) toraxCtrl.text = c.examenTorax;
-      if (c.examenCamposPulm.isNotEmpty)
+      if (c.examenCamposPulm.isNotEmpty) {
         camposPulmCtrl.text = c.examenCamposPulm;
-      if (c.examenRuidosCard.isNotEmpty)
+      }
+      if (c.examenRuidosCard.isNotEmpty) {
         ruidosCardCtrl.text = c.examenRuidosCard;
+      }
       if (c.examenAbdomen.isNotEmpty) abdomenCtrl.text = c.examenAbdomen;
-      if (c.examenExtremidades.isNotEmpty)
+      if (c.examenExtremidades.isNotEmpty) {
         extremidadesCtrl.text = c.examenExtremidades;
+      }
       if (c.examenNeuro.isNotEmpty) neuroCtrl.text = c.examenNeuro;
       // If the backend returned notasHtml, try to populate more fields from it
       if (c.notasHtml.isNotEmpty) {
@@ -185,12 +189,15 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                 ? _extractAfterHeading(c.notasHtml, 'Plan de manejo')
                 : _extractAfterHeading(c.notasHtml, 'Plan');
         final recetaFromHtml = _extractAfterHeading(c.notasHtml, 'Receta');
-        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty)
+        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty) {
           dxCtrl.text = dxFromHtml;
-        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty)
+        }
+        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty) {
           planCtrl.text = planFromHtml;
-        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty)
+        }
+        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty) {
           medicacionCtrl.text = recetaFromHtml;
+        }
 
         // 4) Indicaciones: buscar párrafos con etiquetas <strong>Medidas generales:, Hidratación / Nutrición:, Medicación:
         final m = _extractStrongField(c.notasHtml, 'Medidas generales');
@@ -207,16 +214,21 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         final tiempo = _extractStrongField(c.notasHtml, 'Tiempo');
         final evolucionFromHtml =
             _extractAfterHeading(c.notasHtml, 'Evolución');
-        if (personales.isNotEmpty && appCtrl.text.isEmpty)
+        if (personales.isNotEmpty && appCtrl.text.isEmpty) {
           appCtrl.text = personales;
-        if (familiares.isNotEmpty && apfCtrl.text.isEmpty)
+        }
+        if (familiares.isNotEmpty && apfCtrl.text.isEmpty) {
           apfCtrl.text = familiares;
-        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty)
+        }
+        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty) {
           alergiasCtrl.text = alergias;
-        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty)
+        }
+        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty) {
           tiempoCtrl.text = tiempo;
-        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty)
+        }
+        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty) {
           evolucionCtrl.text = evolucionFromHtml;
+        }
 
         // 5) Detailed examen parts (Piel, Cabeza, etc.) using strong-labeled <p><strong>Label:</strong>
         final candidates = {
@@ -291,11 +303,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
   String _extractTagContent(String html, String tag) {
     try {
       final re = RegExp(
-          '<' +
-              RegExp.escape(tag) +
-              '[^>]*>([\s\S]*?)<\/' +
-              RegExp.escape(tag) +
-              '>',
+          '<${RegExp.escape(tag)}[^>]*>([\s\S]*?)<\/${RegExp.escape(tag)}>',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) return _stripHtml(m.group(1) ?? '');
@@ -307,7 +315,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     try {
       final esc = RegExp.escape(label);
       final re = RegExp(
-          '<p[^>]*>\s*<strong>\s*' + esc + '\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
+          '<p[^>]*>\s*<strong>\s*${esc}\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) return _stripHtml(m.group(1) ?? '');
@@ -316,7 +324,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     try {
       final esc = RegExp.escape(label);
       final re2 = RegExp(
-          '<strong>\s*' + esc + '\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
+          '<strong>\s*${esc}\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
           caseSensitive: false);
       final m2 = re2.firstMatch(html);
       if (m2 != null) return _stripHtml(m2.group(1) ?? '');
@@ -329,13 +337,13 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       final esc = RegExp.escape(heading);
       // Match <h4>Heading</h4> and capture everything until next <h4> or end
       final re = RegExp(
-          '<h4[^>]*>\s*' + esc + r'\s*<\/h4>([\s\S]*?)(?:<h4[^>]*>|\z)',
+          '<h4[^>]*>s*' + esc + r'\s*<\/h4>([\s\S]*?)(?:<h4[^>]*>|\z)',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) {
         final content = m.group(1) ?? '';
         // extract text from paragraphs inside the captured block
-        final pRe = RegExp('<p[^>]*>([\s\S]*?)<\/p>', caseSensitive: false);
+        final pRe = RegExp('<p[^>]*>([sS]*?)</p>', caseSensitive: false);
         final parts = <String>[];
         for (final pm in pRe.allMatches(content)) {
           parts.add(_stripHtml(pm.group(1) ?? ''));
@@ -368,7 +376,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         (_pacienteApellidos.trim().isNotEmpty)) {
       final full =
           '${_pacienteNombres.trim()} ${_pacienteApellidos.trim()}'.trim();
-      buffer.writeln('<h2>Paciente: ${full}</h2>');
+      buffer.writeln('<h2>Paciente: $full</h2>');
     }
     buffer.writeln('<h3>Paciente</h3>');
     buffer.writeln('<p><strong>Sexo:</strong> ${sexoCtrl.text}</p>');
@@ -377,8 +385,9 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       final ordinal = calcularOrdinalFromInt(int.tryParse(diaCtrl.text) ?? 0);
       buffer.writeln('<p><strong>Día de estancia:</strong> $ordinal</p>');
     }
-    if (areaCtrl.text.trim().isNotEmpty)
+    if (areaCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Área:</strong> ${areaCtrl.text}</p>');
+    }
 
     buffer.writeln('<h4>Historia</h4>');
     buffer.writeln(
@@ -389,9 +398,10 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         '<p><strong>Alergias:</strong> ${alergiasCtrl.text.isEmpty ? 'NIEGA' : alergiasCtrl.text}</p>');
 
     if (tiempoCtrl.text.trim().isNotEmpty ||
-        evolucionCtrl.text.trim().isNotEmpty)
+        evolucionCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<h4>Evolución</h4><p>${tiempoCtrl.text} ${evolucionCtrl.text}</p>');
+    }
 
     if (svTaCtrl.text.isNotEmpty || svFcCtrl.text.isNotEmpty) {
       buffer.writeln('<h4>Signos vitales</h4>');
@@ -405,45 +415,61 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       buffer.writeln('<p>${sv.join(' - ')}</p>');
     }
 
-    if (examenCtrl.text.trim().isNotEmpty)
+    if (examenCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<h4>Examen físico</h4><p>${examenCtrl.text.replaceAll('\n', '<br>')}</p>');
+    }
     // Detailed examen fields
-    if (pielCtrl.text.trim().isNotEmpty)
+    if (pielCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Piel:</strong> ${pielCtrl.text}</p>');
-    if (cabezaCtrl.text.trim().isNotEmpty)
+    }
+    if (cabezaCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Cabeza:</strong> ${cabezaCtrl.text}</p>');
-    if (ojosCtrl.text.trim().isNotEmpty)
+    }
+    if (ojosCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Ojos:</strong> ${ojosCtrl.text}</p>');
-    if (narizCtrl.text.trim().isNotEmpty)
+    }
+    if (narizCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Nariz:</strong> ${narizCtrl.text}</p>');
-    if (bocaCtrl.text.trim().isNotEmpty)
+    }
+    if (bocaCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Boca:</strong> ${bocaCtrl.text}</p>');
-    if (oidosCtrl.text.trim().isNotEmpty)
+    }
+    if (oidosCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Oídos:</strong> ${oidosCtrl.text}</p>');
-    if (orofaringeCtrl.text.trim().isNotEmpty)
+    }
+    if (orofaringeCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<p><strong>Orofaringe:</strong> ${orofaringeCtrl.text}</p>');
-    if (cuelloCtrl.text.trim().isNotEmpty)
+    }
+    if (cuelloCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Cuello:</strong> ${cuelloCtrl.text}</p>');
-    if (toraxCtrl.text.trim().isNotEmpty)
+    }
+    if (toraxCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Tórax:</strong> ${toraxCtrl.text}</p>');
-    if (camposPulmCtrl.text.trim().isNotEmpty)
+    }
+    if (camposPulmCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<p><strong>Campos pulmonares:</strong> ${camposPulmCtrl.text}</p>');
-    if (ruidosCardCtrl.text.trim().isNotEmpty)
+    }
+    if (ruidosCardCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<p><strong>Ruidos cardíacos:</strong> ${ruidosCardCtrl.text}</p>');
-    if (abdomenCtrl.text.trim().isNotEmpty)
+    }
+    if (abdomenCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<p><strong>Abdomen:</strong> ${abdomenCtrl.text}</p>');
-    if (extremidadesCtrl.text.trim().isNotEmpty)
+    }
+    if (extremidadesCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<p><strong>Extremidades:</strong> ${extremidadesCtrl.text}</p>');
-    if (neuroCtrl.text.trim().isNotEmpty)
+    }
+    if (neuroCtrl.text.trim().isNotEmpty) {
       buffer.writeln(
           '<p><strong>Sistema neurológico:</strong> ${neuroCtrl.text}</p>');
-    if (labsCtrl.text.trim().isNotEmpty)
+    }
+    if (labsCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<h4>Pruebas</h4><pre>${labsCtrl.text}</pre>');
+    }
     // Imágenes seleccionadas localmente
     if (includeStructuredSections && _imagenesGuardadas.isNotEmpty) {
       buffer.writeln('<h4>Imágenes (guardadas)</h4>');
@@ -463,14 +489,17 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
             '<p><img src="$uri" style="max-width:360px;max-height:240px;"/></p>');
       }
     }
-    if (analisisCtrl.text.trim().isNotEmpty)
+    if (analisisCtrl.text.trim().isNotEmpty) {
       buffer.writeln('<h4>Análisis clínico</h4><p>${analisisCtrl.text}</p>');
+    }
     if (includeStructuredSections) {
-      if (dxCtrl.text.trim().isNotEmpty)
+      if (dxCtrl.text.trim().isNotEmpty) {
         buffer.writeln(
             '<h4>Diagnósticos</h4><p><strong>${dxCtrl.text}</strong></p>');
-      if (planCtrl.text.trim().isNotEmpty)
+      }
+      if (planCtrl.text.trim().isNotEmpty) {
         buffer.writeln('<h4>Plan de manejo</h4><p>${planCtrl.text}</p>');
+      }
     }
 
     if (includeStructuredSections &&
@@ -478,15 +507,18 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
             hidratacionCtrl.text.trim().isNotEmpty ||
             medicacionCtrl.text.trim().isNotEmpty)) {
       buffer.writeln('<h4>Indicaciones</h4>');
-      if (medidasCtrl.text.trim().isNotEmpty)
+      if (medidasCtrl.text.trim().isNotEmpty) {
         buffer.writeln(
             '<p><strong>Medidas generales:</strong> ${medidasCtrl.text}</p>');
-      if (hidratacionCtrl.text.trim().isNotEmpty)
+      }
+      if (hidratacionCtrl.text.trim().isNotEmpty) {
         buffer.writeln(
             '<p><strong>Hidratación / Nutrición:</strong> ${hidratacionCtrl.text}</p>');
-      if (medicacionCtrl.text.trim().isNotEmpty)
+      }
+      if (medicacionCtrl.text.trim().isNotEmpty) {
         buffer.writeln(
             '<p><strong>Medicación:</strong> ${medicacionCtrl.text}</p>');
+      }
     }
 
     buffer.writeln('</div>');
@@ -630,8 +662,11 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       );
       Navigator.of(context).pop(c);
     } else {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Error al guardar la consulta')));
+      final err = ApiService.lastErrorBody;
+      final msg = (err == null || err.isEmpty)
+          ? 'Error al guardar la consulta'
+          : 'Error al guardar: ' + (err.length > 300 ? err.substring(0, 300) + '…' : err);
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -986,8 +1021,9 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                     itemBuilder: (ctx, i) {
                       final raw = _imagenesGuardadas[i];
                       String display = raw;
-                      if (display.startsWith('/'))
+                      if (display.startsWith('/')) {
                         display = ApiService.baseUrl + display;
+                      }
                       return Stack(
                         children: [
                           ClipRRect(
@@ -1104,15 +1140,18 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                       onPressed: () {
                         // Copy combined Indicaciones to clipboard
                         final parts = <String>[];
-                        if (medidasCtrl.text.trim().isNotEmpty)
+                        if (medidasCtrl.text.trim().isNotEmpty) {
                           parts.add(
                               'MEDIDAS GENERALES:\n${medidasCtrl.text.trim()}');
-                        if (hidratacionCtrl.text.trim().isNotEmpty)
+                        }
+                        if (hidratacionCtrl.text.trim().isNotEmpty) {
                           parts.add(
                               'HIDRATACIÓN / NUTRICIÓN:\n${hidratacionCtrl.text.trim()}');
-                        if (medicacionCtrl.text.trim().isNotEmpty)
+                        }
+                        if (medicacionCtrl.text.trim().isNotEmpty) {
                           parts.add(
                               'MEDICACIÓN:\n${medicacionCtrl.text.trim()}');
+                        }
                         final combined = parts.join('\n\n');
                         Clipboard.setData(ClipboardData(text: combined));
                         ScaffoldMessenger.of(context).showSnackBar(
