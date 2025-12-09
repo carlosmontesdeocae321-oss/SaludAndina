@@ -1,6 +1,6 @@
 ; Inno Setup script to package the Windows build of SaludAndina
 #define AppName "SaludAndina"
-#define AppVersion "1.0.0"
+#define AppVersion "2025.12.09"
 #define AppPublisher "SaludAndina"
 #define AppExeName "clinica_app.exe"
 
@@ -11,7 +11,7 @@ AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={pf}\{#AppName}
 DefaultGroupName={#AppName}
-OutputBaseFilename=SaludAndinaSetup
+OutputBaseFilename=SaludAndinaSetup_2025-12-09
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=admin
@@ -22,8 +22,8 @@ ArchitecturesInstallIn64BitMode=x64
 WizardStyle=modern
 
 [Files]
-; Copies the entire release folder produced by `flutter build windows --release`
-Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+; Copies the prepared Windows release folder (promo/windows_release)
+Source: "..\promo\windows_release\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
 [Tasks]
 Name: "desktopicon"; Description: "Crear acceso directo en el escritorio"; GroupDescription: "Opciones adicionales:"; Flags: unchecked
