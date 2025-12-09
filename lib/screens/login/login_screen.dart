@@ -41,6 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginWithCredentials() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => cargando = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final res = await AuthService.loginWithCredentials(
       _usuarioCtrl.text.trim(),
       _claveCtrl.text,
@@ -49,35 +51,33 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => cargando = false);
 
     if (res['ok'] == true) {
-      Navigator.pushReplacement(
-        context,
+      navigator.pushReplacement(
         MaterialPageRoute(builder: (_) => const MenuPrincipalScreen()),
       );
       return;
     }
 
     final message = (res['message'] ?? 'No se pudo iniciar sesión.').toString();
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    if (messenger.mounted) messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _loginWithGoogle() async {
     setState(() => cargando = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final credential = await AuthService.signInWithGoogle();
     setState(() => cargando = false);
 
     if (credential != null) {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
+      navigator.pushReplacement(
         MaterialPageRoute(builder: (_) => const MenuPrincipalScreen()),
       );
     } else {
       if (!mounted) return;
       final message = AuthService.lastGoogleSignInError ??
           'No se pudo iniciar sesión con Google.';
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      if (messenger.mounted) messenger.showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -161,22 +161,23 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               FilledButton.icon(
                                 onPressed: cargando
-                                    ? null
-                                    : () async {
-                                        final ok =
-                                            await AuthService.tryOfflineLogin();
+                                  ? null
+                                  : () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    final navigator = Navigator.of(context);
+                                    final ok = await AuthService.tryOfflineLogin();
                                         if (ok && mounted) {
-                                          Navigator.pushReplacement(
-                                            context,
+                                          navigator.pushReplacement(
                                             MaterialPageRoute(
                                                 builder: (_) =>
                                                     const MenuPrincipalScreen()),
                                           );
-                                        } else if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                                  content: Text(
-                                                      'No es posible iniciar sesión offline')));
+                                        } else {
+                                          if (messenger.mounted) {
+                                            messenger.showSnackBar(const SnackBar(
+                                                content: Text(
+                                                    'No es posible iniciar sesión offline')));
+                                          }
                                         }
                                       },
                                 icon: const Icon(Icons.wifi_off),

@@ -335,15 +335,19 @@ class AppDrawer extends StatelessWidget {
                                 },
                               ),
                               action: (navigator) async {
-                                final messenger = ScaffoldMessenger.of(navigator.context);
+                                final messenger =
+                                    ScaffoldMessenger.of(navigator.context);
                                 messenger.showSnackBar(const SnackBar(
-                                    content: Text('Iniciando sincronización...')));
+                                    content:
+                                        Text('Iniciando sincronización...')));
                                 try {
                                   await SyncService.instance.onLogin();
                                   messenger.showSnackBar(const SnackBar(
-                                      content: Text('Sincronización finalizada')));
+                                      content:
+                                          Text('Sincronización finalizada')));
                                 } catch (e) {
-                                  messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+                                  messenger.showSnackBar(
+                                      SnackBar(content: Text('Error: $e')));
                                 }
                               },
                             ),
@@ -480,18 +484,22 @@ class AppDrawer extends StatelessWidget {
                               },
                             ),
                             action: (navigator) async {
-                              final messenger = ScaffoldMessenger.of(navigator.context);
+                              final messenger =
+                                  ScaffoldMessenger.of(navigator.context);
                               messenger.showSnackBar(const SnackBar(
-                                  content: Text('Iniciando sincronización...')));
+                                  content:
+                                      Text('Iniciando sincronización...')));
                               try {
                                 await SyncService.instance.onLogin();
                                 if (messenger.mounted) {
                                   messenger.showSnackBar(const SnackBar(
-                                      content: Text('Sincronización finalizada')));
+                                      content:
+                                          Text('Sincronización finalizada')));
                                 }
                               } catch (e) {
                                 if (messenger.mounted) {
-                                  messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+                                  messenger.showSnackBar(
+                                      SnackBar(content: Text('Error: $e')));
                                 }
                               }
                             },
