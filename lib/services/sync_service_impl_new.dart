@@ -166,10 +166,11 @@ class SyncService {
                       // refresh badge after successful upload and mark
                       SyncNotifier.instance.refresh();
                     } else {
-                      if (srvObj != null)
+                      if (srvObj != null) {
                         await LocalDb.markAsSynced(localId, serverId, srvObj);
-                      else
+                      } else {
                         await LocalDb.markAsSynced(localId, serverId, null);
+                      }
                       SyncNotifier.instance.refresh();
                     }
                   } else {

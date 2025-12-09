@@ -459,7 +459,10 @@ class ConsultaDetalleScreen extends StatelessWidget {
           return inner;
         }
       }
-    } catch (e) {}
+    } catch (e, st) {
+      debugPrint(
+          'consulta_detalle_screen._extractFirstDivContent error: $e\n$st');
+    }
     return html;
   }
 
@@ -477,10 +480,16 @@ class ConsultaDetalleScreen extends StatelessWidget {
           var src = m.group(1) ?? '';
           if (src.startsWith('/')) src = ApiService.baseUrl + src;
           images.add(src);
-        } catch (e) {}
+        } catch (e, st) {
+          debugPrint(
+              'consulta_detalle_screen._extractImagesAndCleanHtml mapping error: $e\n$st');
+        }
         return ''; // remove the image tag from HTML
       });
-    } catch (e) {}
+    } catch (e, st) {
+      debugPrint(
+          'consulta_detalle_screen._extractImagesAndCleanHtml error: $e\n$st');
+    }
     return {'images': images, 'html': html};
   }
 

@@ -152,8 +152,8 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agregar historial'),
-        backgroundColor: cs.background,
-        iconTheme: IconThemeData(color: cs.onBackground),
+        backgroundColor: cs.surface,
+        iconTheme: IconThemeData(color: cs.onSurface),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: cs.primary,
@@ -323,7 +323,7 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
                                   if (_imagenes.isNotEmpty)
                                     Text(
                                       '${_imagenes.length} imagen(es) seleccionadas',
-                                      style: TextStyle(color: cs.onBackground),
+                                      style: TextStyle(color: cs.onSurface),
                                     )
                                 ],
                               ),

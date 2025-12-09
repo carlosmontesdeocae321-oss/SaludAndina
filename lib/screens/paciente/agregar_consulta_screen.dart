@@ -54,7 +54,7 @@ class _AgregarConsultaScreenState extends State<AgregarConsultaScreen> {
     try {
       final imgs = await _picker.pickMultiImage(imageQuality: 80);
       if (!mounted) return;
-      if (imgs != null && imgs.isNotEmpty) {
+      if (imgs.isNotEmpty) {
         setState(() => _imagenes.addAll(imgs));
       }
     } catch (e) {
@@ -145,7 +145,7 @@ class _AgregarConsultaScreenState extends State<AgregarConsultaScreen> {
           color: cs.onSurface,
           fontWeight: FontWeight.w600,
         ),
-        backgroundColor: cs.background,
+        backgroundColor: cs.surface,
       ),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())

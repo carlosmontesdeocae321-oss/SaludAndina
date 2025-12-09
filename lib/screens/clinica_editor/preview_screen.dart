@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -61,10 +60,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
             perfil['especialidades']);
         String especialTxt = '';
         if (especial != null) {
-          if (especial is List)
+          if (especial is List) {
             especialTxt = especial.join(', ');
-          else
+          } else {
             especialTxt = especial.toString();
+          }
         }
         final telefono = (perfil['telefono'] ??
                 perfil['telefono_movil'] ??
@@ -223,24 +223,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Text(
             (_doctorName +
-                        (_doctorLastName.isNotEmpty
-                            ? ' ' + _doctorLastName
-                            : ''))
+                        (_doctorLastName.isNotEmpty ? ' $_doctorLastName' : ''))
                     .trim()
                     .isNotEmpty
                 ? (_doctorName +
-                        (_doctorLastName.isNotEmpty
-                            ? ' ' + _doctorLastName
-                            : ''))
+                        (_doctorLastName.isNotEmpty ? ' $_doctorLastName' : ''))
                     .trim()
                 : 'Médico',
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
         if (_doctorSpecialty.isNotEmpty)
           pw.Text(_doctorSpecialty,
-              style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+              style:
+                  const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
         if (_doctorPhone.isNotEmpty)
           pw.Text(_doctorPhone,
-              style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+              style:
+                  const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
       ]));
 
       final right = <pw.Widget>[];
@@ -248,7 +246,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         right.add(pw.Container(
             width: 48,
             height: 48,
-            decoration: pw.BoxDecoration(shape: pw.BoxShape.circle),
+            decoration: const pw.BoxDecoration(shape: pw.BoxShape.circle),
             child: pw.ClipOval(
                 child: pw.Image(pw.MemoryImage(_doctorImageBytes!)))));
       }
@@ -274,7 +272,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         if (matches.isEmpty) {
           // Fallback: whole body as paragraph
           blocks.add(pw.Text(_stripHtmlTags(cleanedHtml),
-              style: pw.TextStyle(fontSize: 11)));
+              style: const pw.TextStyle(fontSize: 11)));
           return blocks;
         }
 
@@ -301,12 +299,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
             blocks.add(pw.Padding(
                 padding: const pw.EdgeInsets.only(bottom: 8),
                 child: pw.Text(text,
-                    style: pw.TextStyle(fontSize: 11, lineSpacing: 2))));
+                    style: const pw.TextStyle(fontSize: 11, lineSpacing: 2))));
           }
         }
       } catch (e) {
         blocks.add(pw.Text(_stripHtmlTags(cleanedHtml),
-            style: pw.TextStyle(fontSize: 11)));
+            style: const pw.TextStyle(fontSize: 11)));
       }
       return blocks;
     }
@@ -321,7 +319,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(top: 8.0),
           child: pw.Text('Página ${context.pageNumber} / ${context.pagesCount}',
-              style: pw.TextStyle(color: PdfColors.grey, fontSize: 9)),
+              style: const pw.TextStyle(color: PdfColors.grey, fontSize: 9)),
         );
       },
       build: (pw.Context context) {

@@ -43,10 +43,6 @@ Future<void> main() async {
 class ClinicaApp extends StatelessWidget {
   const ClinicaApp({super.key});
 
-  Future<bool> _isLoggedIn() async {
-    return AuthService.isAuthenticated();
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

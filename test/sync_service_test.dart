@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
 import 'package:hive/hive.dart';
 import 'package:clinica_app/services/local_db.dart';
 import 'package:clinica_app/services/sync_service.dart';

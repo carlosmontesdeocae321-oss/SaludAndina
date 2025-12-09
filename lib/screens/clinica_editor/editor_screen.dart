@@ -162,8 +162,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scaffoldBg = const Color(0xFF0F1720);
-    final fg = Colors.white;
+    const scaffoldBg = Color(0xFF0F1720);
+    const fg = Colors.white;
 
     return Theme(
       data: ThemeData.dark().copyWith(
@@ -213,7 +213,7 @@ class _EditorScreenState extends State<EditorScreen> {
                           onChanged: (v) =>
                               setState(() => sexoCtrl.text = v ?? ''),
                           decoration: _dec("Sexo"),
-                          style: TextStyle(color: fg),
+                          style: const TextStyle(color: fg),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -222,7 +222,7 @@ class _EditorScreenState extends State<EditorScreen> {
                           controller: edadCtrl,
                           decoration: _dec("Edad"),
                           keyboardType: TextInputType.number,
-                          style: TextStyle(color: fg),
+                          style: const TextStyle(color: fg),
                         ),
                       ),
                     ]),
@@ -232,7 +232,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         child: TextFormField(
                           controller: diaCtrl,
                           decoration: _dec("Día estancia"),
-                          style: TextStyle(color: fg),
+                          style: const TextStyle(color: fg),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -240,7 +240,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         child: TextFormField(
                           controller: areaCtrl,
                           decoration: _dec("Área"),
-                          style: TextStyle(color: fg),
+                          style: const TextStyle(color: fg),
                         ),
                       ),
                     ]),
@@ -257,26 +257,26 @@ class _EditorScreenState extends State<EditorScreen> {
                         controller: appCtrl,
                         maxLines: 2,
                         decoration: _dec("Personales (APP)"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 12),
                     TextFormField(
                         controller: apfCtrl,
                         maxLines: 2,
                         decoration: _dec("Familiares (APF)"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 12),
                     TextFormField(
                         controller: alergiasCtrl,
                         maxLines: 1,
                         decoration: _dec("Alergias"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 22),
                     Row(children: [
                       Expanded(
                         child: TextFormField(
                           controller: tiempoCtrl,
                           decoration: _dec("Tiempo de evolución"),
-                          style: TextStyle(color: fg),
+                          style: const TextStyle(color: fg),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -284,7 +284,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         child: TextFormField(
                           controller: evolucionCtrl,
                           decoration: _dec("Cuadro clínico"),
-                          style: TextStyle(color: fg),
+                          style: const TextStyle(color: fg),
                         ),
                       ),
                     ]),
@@ -305,7 +305,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         maxLines: null,
                         minLines: 3,
                         decoration: _dec("Hallazgos"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 22),
                     const Text("Labs / Dx / Plan",
                         style: TextStyle(
@@ -321,19 +321,19 @@ class _EditorScreenState extends State<EditorScreen> {
                         maxLines: null,
                         minLines: 3,
                         decoration: _dec("Laboratorio / Imagen"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 12),
                     TextFormField(
                         controller: analisisCtrl,
                         maxLines: 2,
                         decoration: _dec("Análisis clínico"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 12),
                     TextFormField(
                         controller: dxCtrl,
                         maxLines: 2,
                         decoration: _dec("Diagnósticos presuntivos"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 12),
                     MacroBar(
                         macros: indiMacros,
@@ -343,7 +343,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         maxLines: null,
                         minLines: 2,
                         decoration: _dec("Plan de manejo"),
-                        style: TextStyle(color: fg)),
+                        style: const TextStyle(color: fg)),
                     const SizedBox(height: 22),
                     Row(children: [
                       ElevatedButton.icon(
@@ -374,8 +374,8 @@ class _EditorScreenState extends State<EditorScreen> {
                           dxCtrl.clear();
                           planCtrl.clear();
                         },
-                        icon: Icon(Icons.delete, color: fg),
-                        label: Text("Limpiar", style: TextStyle(color: fg)),
+                        icon: const Icon(Icons.delete, color: fg),
+                        label: const Text("Limpiar", style: TextStyle(color: fg)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1C2733),
                         ),

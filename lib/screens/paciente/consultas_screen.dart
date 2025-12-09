@@ -36,11 +36,9 @@ class _ConsultasScreenState extends State<ConsultasScreen>
       if (!mounted) return;
       setState(() => consultas = lista);
     } catch (e) {
-      if (!mounted) return;
-      setState(() => consultas = []);
+      if (mounted) setState(() => consultas = []);
     } finally {
-      if (!mounted) return;
-      setState(() => cargando = false);
+      if (mounted) setState(() => cargando = false);
     }
   }
 
@@ -421,7 +419,7 @@ class _ConsultasScreenState extends State<ConsultasScreen>
         children: [
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
               letterSpacing: 0.3,

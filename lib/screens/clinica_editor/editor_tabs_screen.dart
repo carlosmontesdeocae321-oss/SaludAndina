@@ -129,80 +129,53 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       evolucionCtrl.text = c.motivo;
       dxCtrl.text = c.diagnostico;
       planCtrl.text = c.tratamiento;
-      medicacionCtrl.text = c.receta;
-      // vital signs
-      svTaCtrl.text = c.presion;
       svFcCtrl.text =
           c.frecuenciaCardiaca > 0 ? c.frecuenciaCardiaca.toString() : '';
       svFrCtrl.text = c.frecuenciaRespiratoria > 0
           ? c.frecuenciaRespiratoria.toString()
           : '';
       svTempCtrl.text = c.temperatura > 0 ? c.temperatura.toString() : '';
-      // map other basic fields if present
       if (c.otros.isNotEmpty) medidasCtrl.text = c.otros;
-      // images (if backend returned paths) - we won't convert to XFile, but keep paths
-      // for preview in the list we keep Consulta.imagenes. For editing, user can add new images.
-      if (c.imagenes.isNotEmpty) _imagenesGuardadas.addAll(c.imagenes);
-      // Prefill detailed examen fields if the backend returned them separately
-      if (c.examenPiel.isNotEmpty) pielCtrl.text = c.examenPiel;
-      if (c.examenCabeza.isNotEmpty) cabezaCtrl.text = c.examenCabeza;
-      if (c.examenOjos.isNotEmpty) ojosCtrl.text = c.examenOjos;
-      if (c.examenNariz.isNotEmpty) narizCtrl.text = c.examenNariz;
-      if (c.examenBoca.isNotEmpty) bocaCtrl.text = c.examenBoca;
-      if (c.examenOidos.isNotEmpty) oidosCtrl.text = c.examenOidos;
-      if (c.examenOrofaringe.isNotEmpty) {
-        orofaringeCtrl.text = c.examenOrofaringe;
-      }
-      if (c.examenCuello.isNotEmpty) cuelloCtrl.text = c.examenCuello;
-      if (c.examenTorax.isNotEmpty) toraxCtrl.text = c.examenTorax;
-      if (c.examenCamposPulm.isNotEmpty) {
-        camposPulmCtrl.text = c.examenCamposPulm;
-      }
-      if (c.examenRuidosCard.isNotEmpty) {
-        ruidosCardCtrl.text = c.examenRuidosCard;
-      }
-      if (c.examenAbdomen.isNotEmpty) abdomenCtrl.text = c.examenAbdomen;
-      if (c.examenExtremidades.isNotEmpty) {
-        extremidadesCtrl.text = c.examenExtremidades;
-      }
-      if (c.examenNeuro.isNotEmpty) neuroCtrl.text = c.examenNeuro;
-      // If the backend returned notasHtml, try to populate more fields from it
+
+      // Map explicit examen fields returned by backend
+      pielCtrl.text = c.examenPiel;
+      cabezaCtrl.text = c.examenCabeza;
+      ojosCtrl.text = c.examenOjos;
+      narizCtrl.text = c.examenNariz;
+      bocaCtrl.text = c.examenBoca;
+      oidosCtrl.text = c.examenOidos;
+      orofaringeCtrl.text = c.examenOrofaringe;
+      cuelloCtrl.text = c.examenCuello;
+      toraxCtrl.text = c.examenTorax;
+      camposPulmCtrl.text = c.examenCamposPulm;
+      ruidosCardCtrl.text = c.examenRuidosCard;
+      abdomenCtrl.text = c.examenAbdomen;
+      extremidadesCtrl.text = c.examenExtremidades;
+      neuroCtrl.text = c.examenNeuro;
+
+      // Try to extract structured parts from notasHtml when available
       if (c.notasHtml.isNotEmpty) {
-        // Try to extract structured parts from notasHtml instead of dumping all text
-        // 1) Examen físico general (after <h4>Examen físico</h4>)
         final examenGeneral =
             _extractAfterHeading(c.notasHtml, 'Examen físico');
-        if (examenGeneral.isNotEmpty) {
-          examenCtrl.text = examenGeneral;
-        } else {
-          // fallback: plain text
-          examenCtrl.text = _stripHtml(c.notasHtml);
-        }
+        examenCtrl.text =
+            examenGeneral.isNotEmpty ? examenGeneral : _stripHtml(c.notasHtml);
 
-        // 2) Pruebas (inside <pre>..</pre>)
         final pruebas = _extractTagContent(c.notasHtml, 'pre');
-        if (pruebas.isNotEmpty) {
-          labsCtrl.text = pruebas;
-        }
+        if (pruebas.isNotEmpty) labsCtrl.text = pruebas;
 
-        // 3) Diagnóstico / Tratamiento / Receta (Plan)
         final dxFromHtml = _extractAfterHeading(c.notasHtml, 'Diagnóstico');
         final planFromHtml =
             _extractAfterHeading(c.notasHtml, 'Plan de manejo').isNotEmpty
                 ? _extractAfterHeading(c.notasHtml, 'Plan de manejo')
                 : _extractAfterHeading(c.notasHtml, 'Plan');
         final recetaFromHtml = _extractAfterHeading(c.notasHtml, 'Receta');
-        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty) {
+        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty)
           dxCtrl.text = dxFromHtml;
-        }
-        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty) {
+        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty)
           planCtrl.text = planFromHtml;
-        }
-        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty) {
+        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty)
           medicacionCtrl.text = recetaFromHtml;
-        }
 
-        // 4) Indicaciones: buscar párrafos con etiquetas <strong>Medidas generales:, Hidratación / Nutrición:, Medicación:
         final m = _extractStrongField(c.notasHtml, 'Medidas generales');
         final h = _extractStrongField(c.notasHtml, 'Hidratación / Nutrición');
         final md = _extractStrongField(c.notasHtml, 'Medicación');
@@ -210,30 +183,23 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         if (h.isNotEmpty) hidratacionCtrl.text = h;
         if (md.isNotEmpty) medicacionCtrl.text = md;
 
-        // 4b) Historia: intentar extraer campos comunes (Personales, Familiares, Alergias, Tiempo/Evolución)
         final personales = _extractStrongField(c.notasHtml, 'Personales');
         final familiares = _extractStrongField(c.notasHtml, 'Familiares');
         final alergias = _extractStrongField(c.notasHtml, 'Alergias');
         final tiempo = _extractStrongField(c.notasHtml, 'Tiempo');
         final evolucionFromHtml =
             _extractAfterHeading(c.notasHtml, 'Evolución');
-        if (personales.isNotEmpty && appCtrl.text.isEmpty) {
+        if (personales.isNotEmpty && appCtrl.text.isEmpty)
           appCtrl.text = personales;
-        }
-        if (familiares.isNotEmpty && apfCtrl.text.isEmpty) {
+        if (familiares.isNotEmpty && apfCtrl.text.isEmpty)
           apfCtrl.text = familiares;
-        }
-        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty) {
+        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty)
           alergiasCtrl.text = alergias;
-        }
-        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty) {
+        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty)
           tiempoCtrl.text = tiempo;
-        }
-        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty) {
+        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty)
           evolucionCtrl.text = evolucionFromHtml;
-        }
 
-        // 5) Detailed examen parts (Piel, Cabeza, etc.) using strong-labeled <p><strong>Label:</strong>
         final candidates = {
           'Piel': (String v) => pielCtrl.text = v,
           'Cabeza': (String v) => cabezaCtrl.text = v,
@@ -264,9 +230,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
           final nombres = (map['nombres'] ?? '').toString();
           final apellidos = (map['apellidos'] ?? '').toString();
           final sexo = (map['sexo'] ?? map['genero'] ?? '').toString();
-          final fechaNac =
-              (map['fecha_nacimiento'] ?? map['fechaNacimiento'] ?? '')
-                  .toString();
+
           setState(() {
             _pacienteNombres = nombres;
             _pacienteApellidos = apellidos;
@@ -287,55 +251,61 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
   String _extractTagContent(String html, String tag) {
     try {
       final re = RegExp(
-          '<${RegExp.escape(tag)}[^>]*>([\s\S]*?)<\/${RegExp.escape(tag)}>',
+          '<${RegExp.escape(tag)}[^>]*>([\s\S]*?)</${RegExp.escape(tag)}>',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) return _stripHtml(m.group(1) ?? '');
-    } catch (e) {}
+    } catch (e, st) {
+      debugPrint('Error extracting <$tag> content: $e\n$st');
+    }
     return '';
   }
 
   String _extractStrongField(String html, String label) {
+    // Look for patterns like: <p> <strong>Label:</strong> value </p>
     try {
       final esc = RegExp.escape(label);
-      final re = RegExp(
-          '<p[^>]*>\s*<strong>\s*${esc}\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
-          caseSensitive: false);
-      final m = re.firstMatch(html);
-      if (m != null) return _stripHtml(m.group(1) ?? '');
-    } catch (e) {}
-    // fallback: search for '<strong>Label:</strong>' pattern
-    try {
-      final esc = RegExp.escape(label);
-      final re2 = RegExp('<strong>\s*${esc}\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
-          caseSensitive: false);
-      final m2 = re2.firstMatch(html);
-      if (m2 != null) return _stripHtml(m2.group(1) ?? '');
-    } catch (e) {}
+      final patterns = [
+        RegExp(
+            '<p[^>]*>\\s*<strong>\\s*' +
+                esc +
+                '\\s*:?' +
+                '\\s*<\\/strong>\\s*(.*?)<\\/p>',
+            caseSensitive: false),
+        RegExp(
+            '<strong>\\s*' + esc + '\\s*:?' + '\\s*<\\/strong>\\s*(.*?)<\\/p>',
+            caseSensitive: false),
+      ];
+      for (final re in patterns) {
+        final m = re.firstMatch(html);
+        if (m != null) return _stripHtml(m.group(1) ?? '');
+      }
+    } catch (e, st) {
+      debugPrint('Error extracting strong field "$label": $e\n$st');
+    }
     return '';
   }
 
   String _extractAfterHeading(String html, String heading) {
     try {
       final esc = RegExp.escape(heading);
-      // Match <h4>Heading</h4> and capture everything until next <h4> or end
       final re = RegExp(
-          '<h4[^>]*>s*' + esc + r'\s*<\/h4>([\s\S]*?)(?:<h4[^>]*>|\z)',
+          '<h4[^>]*>\\s*' + esc + '\\s*<\\/h4>([\\s\\S]*?)(?:<h4[^>]*>|\\z)',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) {
         final content = m.group(1) ?? '';
-        // extract text from paragraphs inside the captured block
-        final pRe = RegExp('<p[^>]*>([sS]*?)</p>', caseSensitive: false);
+        // collect paragraph content inside the captured block
+        final pRe = RegExp('<p[^>]*>([\\s\\S]*?)<\\/p>', caseSensitive: false);
         final parts = <String>[];
         for (final pm in pRe.allMatches(content)) {
           parts.add(_stripHtml(pm.group(1) ?? ''));
         }
-        // if no <p> found, fallback to stripping the captured block
-        if (parts.isEmpty) return _stripHtml(content);
-        return parts.join('\n\n');
+        return parts.isEmpty ? _stripHtml(content) : parts.join('\n\n');
       }
-    } catch (e) {}
+    } catch (e, st) {
+      debugPrint('Error extracting after heading "$heading": $e\n$st');
+    }
     return '';
   }
 
@@ -648,8 +618,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       final err = ApiService.lastErrorBody;
       final msg = (err == null || err.isEmpty)
           ? 'Error al guardar la consulta'
-          : 'Error al guardar: ' +
-              (err.length > 300 ? err.substring(0, 300) + '…' : err);
+          : 'Error al guardar: ${err.length > 300 ? err.substring(0, 300) + '…' : err}';
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -700,17 +669,17 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                     onPressed: autoFillDemo,
                     icon: const Icon(Icons.auto_fix_high))
               ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(kToolbarHeight),
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 0.0, bottom: 6.0),
+                    padding: EdgeInsets.only(left: 0.0, bottom: 6.0),
                     child: TabBar(
                       isScrollable: true,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      labelPadding: EdgeInsets.symmetric(horizontal: 8.0),
                       indicatorPadding: EdgeInsets.zero,
-                      tabs: const [
+                      tabs: [
                         Tab(text: 'Paciente'),
                         Tab(text: 'Historia'),
                         Tab(text: 'Signos'),
@@ -743,7 +712,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                             ],
                             onChanged: (v) =>
                                 setState(() => sexoCtrl.text = v ?? ''),
-                            decoration: InputDecoration(labelText: 'Sexo'),
+                            decoration:
+                                const InputDecoration(labelText: 'Sexo'),
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),
@@ -751,7 +721,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                         Expanded(
                             child: TextFormField(
                                 controller: edadCtrl,
-                                decoration: InputDecoration(labelText: 'Edad'),
+                                decoration:
+                                    const InputDecoration(labelText: 'Edad'),
                                 keyboardType: TextInputType.number,
                                 style: const TextStyle(color: Colors.white))),
                       ]),
@@ -760,14 +731,15 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                         Expanded(
                             child: TextFormField(
                                 controller: diaCtrl,
-                                decoration:
-                                    InputDecoration(labelText: 'Día estancia'),
+                                decoration: const InputDecoration(
+                                    labelText: 'Día estancia'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
                         Expanded(
                             child: TextFormField(
                                 controller: areaCtrl,
-                                decoration: InputDecoration(labelText: 'Área'),
+                                decoration:
+                                    const InputDecoration(labelText: 'Área'),
                                 style: const TextStyle(color: Colors.white))),
                       ])
                     ]),
@@ -785,35 +757,36 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                       TextFormField(
                           controller: appCtrl,
                           maxLines: 2,
-                          decoration:
-                              InputDecoration(labelText: 'Personales (APP)'),
+                          decoration: const InputDecoration(
+                              labelText: 'Personales (APP)'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 6),
                       TextFormField(
                           controller: apfCtrl,
                           maxLines: 2,
-                          decoration:
-                              InputDecoration(labelText: 'Familiares (APF)'),
+                          decoration: const InputDecoration(
+                              labelText: 'Familiares (APF)'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 6),
                       TextFormField(
                           controller: alergiasCtrl,
                           maxLines: 1,
-                          decoration: InputDecoration(labelText: 'Alergias'),
+                          decoration:
+                              const InputDecoration(labelText: 'Alergias'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 12),
                       Row(children: [
                         Expanded(
                             child: TextFormField(
                                 controller: tiempoCtrl,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                     labelText: 'Tiempo de evolución'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
                         Expanded(
                             child: TextFormField(
                                 controller: evolucionCtrl,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                     labelText: 'Cuadro clínico'),
                                 style: const TextStyle(color: Colors.white))),
                       ])
@@ -865,15 +838,15 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                             child: TextFormField(
                                 controller: svSatCtrl,
                                 keyboardType: TextInputType.number,
-                                decoration:
-                                    InputDecoration(labelText: 'SatO2 (%)'),
+                                decoration: const InputDecoration(
+                                    labelText: 'SatO2 (%)'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
                         Expanded(
                             child: TextFormField(
                                 controller: svGliCtrl,
                                 keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                     labelText: 'Glicemia (mg/dL)'),
                                 style: const TextStyle(color: Colors.white))),
                       ])
@@ -945,14 +918,14 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                           maxLines: null,
                           minLines: 3,
                           keyboardType: TextInputType.multiline,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                               labelText: 'Hallazgos (texto libre)'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 10),
                       // Detailed fields
                       TextFormField(
                           controller: pielCtrl,
-                          decoration: InputDecoration(labelText: 'Piel'),
+                          decoration: const InputDecoration(labelText: 'Piel'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
                       Row(children: [
@@ -960,13 +933,14 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                             child: TextFormField(
                                 controller: cabezaCtrl,
                                 decoration:
-                                    InputDecoration(labelText: 'Cabeza'),
+                                    const InputDecoration(labelText: 'Cabeza'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
                         Expanded(
                             child: TextFormField(
                                 controller: ojosCtrl,
-                                decoration: InputDecoration(labelText: 'Ojos'),
+                                decoration:
+                                    const InputDecoration(labelText: 'Ojos'),
                                 style: const TextStyle(color: Colors.white))),
                       ]),
                       const SizedBox(height: 8),
@@ -974,13 +948,15 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                         Expanded(
                             child: TextFormField(
                                 controller: narizCtrl,
-                                decoration: InputDecoration(labelText: 'Nariz'),
+                                decoration:
+                                    const InputDecoration(labelText: 'Nariz'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
                         Expanded(
                             child: TextFormField(
                                 controller: bocaCtrl,
-                                decoration: InputDecoration(labelText: 'Boca'),
+                                decoration:
+                                    const InputDecoration(labelText: 'Boca'),
                                 style: const TextStyle(color: Colors.white))),
                       ]),
                       const SizedBox(height: 8),
@@ -988,38 +964,40 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                         Expanded(
                             child: TextFormField(
                                 controller: oidosCtrl,
-                                decoration: InputDecoration(labelText: 'Oídos'),
+                                decoration:
+                                    const InputDecoration(labelText: 'Oídos'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
                         Expanded(
                             child: TextFormField(
                                 controller: orofaringeCtrl,
-                                decoration:
-                                    InputDecoration(labelText: 'Orofaringe'),
+                                decoration: const InputDecoration(
+                                    labelText: 'Orofaringe'),
                                 style: const TextStyle(color: Colors.white))),
                       ]),
                       const SizedBox(height: 8),
                       TextFormField(
                           controller: cuelloCtrl,
-                          decoration: InputDecoration(labelText: 'Cuello'),
+                          decoration:
+                              const InputDecoration(labelText: 'Cuello'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
                       TextFormField(
                           controller: toraxCtrl,
-                          decoration: InputDecoration(labelText: 'Tórax'),
+                          decoration: const InputDecoration(labelText: 'Tórax'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
                       TextFormField(
                           controller: camposPulmCtrl,
-                          decoration:
-                              InputDecoration(labelText: 'Campos pulmonares'),
+                          decoration: const InputDecoration(
+                              labelText: 'Campos pulmonares'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
                       Row(children: [
                         Expanded(
                             child: TextFormField(
                                 controller: ruidosCardCtrl,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                     labelText: 'Ruidos cardíacos'),
                                 style: const TextStyle(color: Colors.white))),
                         const SizedBox(width: 8),
@@ -1027,14 +1005,14 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                             child: TextFormField(
                                 controller: abdomenCtrl,
                                 decoration:
-                                    InputDecoration(labelText: 'Abdomen'),
+                                    const InputDecoration(labelText: 'Abdomen'),
                                 style: const TextStyle(color: Colors.white))),
                       ]),
                       const SizedBox(height: 8),
                       TextFormField(
                           controller: extremidadesCtrl,
                           decoration:
-                              InputDecoration(labelText: 'Extremidades'),
+                              const InputDecoration(labelText: 'Extremidades'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -1179,14 +1157,14 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                       TextFormField(
                           controller: analisisCtrl,
                           maxLines: 2,
-                          decoration:
-                              InputDecoration(labelText: 'Análisis clínico'),
+                          decoration: const InputDecoration(
+                              labelText: 'Análisis clínico'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
                       TextFormField(
                           controller: dxCtrl,
                           maxLines: 2,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                               labelText: 'Diagnósticos presuntivos'),
                           style: const TextStyle(color: Colors.white)),
                       const SizedBox(height: 8),
@@ -1194,8 +1172,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                           controller: planCtrl,
                           maxLines: null,
                           minLines: 2,
-                          decoration:
-                              InputDecoration(labelText: 'Plan de manejo'),
+                          decoration: const InputDecoration(
+                              labelText: 'Plan de manejo'),
                           style: const TextStyle(color: Colors.white)),
                     ]),
               ),
@@ -1272,7 +1250,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                           final macroText = indiMacros[k] ?? '';
                           final cs = Theme.of(context).colorScheme;
                           final chipBg = cs.secondary;
-                          final chipFg = Colors.white;
+                          const chipFg = Colors.white;
                           return TextButton.icon(
                             icon: Icon(Icons.flash_on, size: 16, color: chipFg),
                             label: Text(display,
@@ -1312,7 +1290,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                               controller: medidasCtrl,
                               maxLines: null,
                               minLines: 3,
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                   labelText: 'Medidas generales'),
                               style: const TextStyle(color: Colors.white)),
                         ),
@@ -1329,7 +1307,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                           child: TextFormField(
                               controller: hidratacionCtrl,
                               maxLines: 2,
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                   labelText: 'Hidratación / Nutrición'),
                               style: const TextStyle(color: Colors.white)),
                         ),
@@ -1348,8 +1326,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                               controller: medicacionCtrl,
                               maxLines: null,
                               minLines: 3,
-                              decoration:
-                                  InputDecoration(labelText: 'Medicación'),
+                              decoration: const InputDecoration(
+                                  labelText: 'Medicación'),
                               style: const TextStyle(color: Colors.white)),
                         ),
                         IconButton(
