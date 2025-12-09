@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AgendarCitaScreen extends StatefulWidget {
   final String pacienteId;
@@ -69,18 +71,57 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
       'motivo': _motivoCtrl.text.trim(),
     };
 
-    final ok = await ApiService.agendarCita(payload);
+    // Check connectivity and fallback to local save
+    final conn = await (Connectivity().checkConnectivity());
+    if (conn == ConnectivityResult.none) {
+      try {
+        await LocalDb.saveCitaLocal(payload);
+        if (!mounted) return;
+        setState(() => _loading = false);
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Cita guardada localmente (pendiente)')));
+        navigator.pop(true);
+        return;
+      } catch (e) {
+        debugPrint('Error guardando cita localmente: $e');
+        if (!mounted) return;
+        setState(() => _loading = false);
+        messenger.showSnackBar(
+            const SnackBar(content: Text('Error al agendar la cita')));
+        return;
+      }
+    }
 
-    if (!mounted) return;
-
-    setState(() => _loading = false);
-
-    if (ok) {
-      messenger.showSnackBar(const SnackBar(content: Text('Cita agendada')));
-      navigator.pop(true);
-    } else {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('Error al agendar la cita')));
+    try {
+      final ok = await ApiService.agendarCita(payload)
+          .timeout(const Duration(seconds: 12));
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (ok) {
+        messenger.showSnackBar(const SnackBar(content: Text('Cita agendada')));
+        navigator.pop(true);
+      } else {
+        messenger.showSnackBar(
+            const SnackBar(content: Text('Error al agendar la cita')));
+      }
+    } catch (e) {
+      debugPrint('Error remoto agendar cita: $e');
+      // fallback to local
+      try {
+        await LocalDb.saveCitaLocal(payload);
+        if (!mounted) return;
+        setState(() => _loading = false);
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Cita guardada localmente (pendiente)')));
+        navigator.pop(true);
+        return;
+      } catch (e2) {
+        debugPrint('Error fallback local cita: $e2');
+        if (!mounted) return;
+        setState(() => _loading = false);
+        messenger.showSnackBar(
+            const SnackBar(content: Text('Error al agendar la cita')));
+      }
     }
   }
 

@@ -9,6 +9,8 @@ class Cita {
   final String? apellidos;
   final int? clinicaId;
   final int? doctorId;
+  final String? localId;
+  final String? syncStatus;
 
   Cita({
     required this.id,
@@ -21,6 +23,8 @@ class Cita {
     this.apellidos,
     this.clinicaId,
     this.doctorId,
+    this.localId,
+    this.syncStatus,
   });
 
   factory Cita.fromJson(Map<String, dynamic> json) => Cita(
@@ -44,5 +48,7 @@ class Cita {
             : (json['doctorId'] != null
                 ? int.tryParse(json['doctorId'].toString())
                 : null),
+        localId: json['localId']?.toString(),
+        syncStatus: json['syncStatus']?.toString(),
       );
 }

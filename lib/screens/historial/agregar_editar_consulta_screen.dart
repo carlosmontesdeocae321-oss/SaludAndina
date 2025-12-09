@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../models/paciente.dart';
 import '../../models/consulta.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AgregarEditarConsultaScreen extends StatefulWidget {
   final Paciente? paciente;
@@ -145,14 +147,62 @@ class _AgregarEditarConsultaScreenState
     // las existentes (si las hay) como campo 'imagenes' en formato JSON
     final nuevasPaths = nuevasImagenes.map((e) => e.path).toList();
 
-    bool exito;
-    if (widget.consulta == null) {
-      exito = await ApiService.crearHistorial(data, nuevasPaths);
-    } else {
-      // Incluir imagenes existentes para que el backend las conserve
-      data['imagenes'] = jsonEncode(imagenesExistentes);
-      exito = await ApiService.editarHistorial(
-          widget.consulta!.id, data, nuevasPaths);
+    bool exito = false;
+    // Decide online vs offline
+    final conn = await (Connectivity().checkConnectivity());
+    if (conn == ConnectivityResult.none) {
+      // Save locally as pending
+      try {
+        await LocalDb.saveConsultaLocal(data, attachments: nuevasPaths);
+        if (!mounted) return;
+        setState(() => cargando = false);
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Consulta guardada localmente (pendiente de sincronización)')));
+        return;
+      } catch (e) {
+        debugPrint('Error guardando consulta localmente: $e');
+        if (!mounted) return;
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error guardando consulta')));
+        return;
+      }
+    }
+
+    // When online, try remote with timeout and fallback to local on failure
+    try {
+      if (widget.consulta == null) {
+        final ok = await ApiService.crearHistorial(data, nuevasPaths)
+            .timeout(const Duration(seconds: 12));
+        exito = ok;
+      } else {
+        data['imagenes'] = jsonEncode(imagenesExistentes);
+        final ok = await ApiService.editarHistorial(
+                widget.consulta!.id, data, nuevasPaths)
+            .timeout(const Duration(seconds: 12));
+        exito = ok;
+      }
+    } catch (e) {
+      debugPrint('Error remoto guardando consulta: $e');
+      try {
+        await LocalDb.saveConsultaLocal(data, attachments: nuevasPaths);
+        if (!mounted) return;
+        setState(() => cargando = false);
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Consulta guardada localmente (pendiente de sincronización)')));
+        return;
+      } catch (e2) {
+        debugPrint('Error fallback local consulta: $e2');
+        if (!mounted) return;
+        setState(() => cargando = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Error al guardar')));
+        return;
+      }
     }
 
     if (!mounted) return;

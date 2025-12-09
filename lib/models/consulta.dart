@@ -18,6 +18,8 @@ class Consulta {
   final String notasHtmlFull;
   final String pacienteNombres;
   final String pacienteApellidos;
+  final String? localId;
+  final String? syncStatus;
   // Examen físico fields (parsed individually when available)
   final String examenPiel;
   final String examenCabeza;
@@ -71,10 +73,12 @@ class Consulta {
     this.examenNeuro = '',
     this.otros = '',
     required this.fecha,
+    this.localId,
+    this.syncStatus,
   });
 
-  factory Consulta.fromJson(Map<String, dynamic> json) => Consulta(
-        id: json['id'].toString(),
+    factory Consulta.fromJson(Map<String, dynamic> json) => Consulta(
+      id: json['id'].toString(),
         // Backend puede usar nombres con guion bajo (motivo_consulta, frecuencia_cardiaca, ...)
         motivo: json['motivo'] ?? json['motivo_consulta'] ?? '',
         peso: _toDouble(json['peso']),
@@ -115,6 +119,8 @@ class Consulta {
         examenNeuro: json['examen_neuro'] ?? json['examenNeuro'] ?? '',
         otros: json['otros'] ?? json['medidas'] ?? '',
         fecha: _parseDate(json['fecha']),
+        localId: json['localId']?.toString(),
+        syncStatus: json['syncStatus']?.toString(),
       );
 }
 

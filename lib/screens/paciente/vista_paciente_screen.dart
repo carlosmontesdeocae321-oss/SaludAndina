@@ -91,8 +91,12 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
             widget.paciente.id.toString());
         if (localCons.isNotEmpty) {
           cons = localCons
-              .map((m) => Consulta.fromJson(
-                  Map<String, dynamic>.from(m['data'] as Map)))
+              .map((m) {
+                final base = Map<String, dynamic>.from(m['data'] as Map);
+                base['localId'] = m['localId'];
+                base['syncStatus'] = m['syncStatus'];
+                return Consulta.fromJson(base);
+              })
               .toList();
         }
       } catch (e) {
@@ -104,8 +108,12 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
             await LocalDb.getCitasByPacienteId(widget.paciente.id.toString());
         if (localCitas.isNotEmpty) {
           cit = localCitas
-              .map((m) =>
-                  Cita.fromJson(Map<String, dynamic>.from(m['data'] as Map)))
+              .map((m) {
+                final base = Map<String, dynamic>.from(m['data'] as Map);
+                base['localId'] = m['localId'];
+                base['syncStatus'] = m['syncStatus'];
+                return Cita.fromJson(base);
+              })
               .toList();
         }
       } catch (e) {
@@ -310,8 +318,9 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
               if (rec == null) return const SizedBox.shrink();
               final attempts = (rec['attempts'] ?? 0) as int;
               final lastRaw = rec['lastAttemptAt']?.toString() ?? '';
-              if (attempts == 0 && lastRaw.isEmpty)
+              if (attempts == 0 && lastRaw.isEmpty) {
                 return const SizedBox.shrink();
+              }
               String lastText = lastRaw;
               final parsed = DateTime.tryParse(lastRaw);
               if (parsed != null) lastText = _fechaFormatter.format(parsed);
@@ -374,7 +383,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
               color: scheme.secondary,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.event_available_outlined, color: Colors.black),
+            child:
+                const Icon(Icons.event_available_outlined, color: Colors.black),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -594,6 +604,24 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                   },
                   icon: Icon(Icons.open_in_new, color: fg),
                 ),
+                // Pending badge for local/syncing consultas
+                if ((consulta.syncStatus != null &&
+                        consulta.syncStatus == 'pending') ||
+                    (consulta.localId != null && consulta.localId!.isNotEmpty))
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.orangeAccent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+                    ),
+                    child: const Text('Pendiente',
+                        style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontWeight: FontWeight.w700)),
+                  ),
               ],
             ),
             if (metrics.isNotEmpty) ...[
@@ -763,7 +791,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                     scheme.primary.withOpacity(0.14),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(Icons.event_note, color: Colors.black),
+              child: const Icon(Icons.event_note, color: Colors.black),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -807,6 +835,22 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                 ],
               ),
             ),
+            // Pending badge for local/syncing citas
+            if ((cita.syncStatus != null && cita.syncStatus == 'pending') ||
+                (cita.localId != null && cita.localId!.isNotEmpty))
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.orangeAccent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+                ),
+                child: const Text('Pendiente',
+                    style: TextStyle(
+                        color: Colors.orangeAccent,
+                        fontWeight: FontWeight.w700)),
+              ),
           ],
         ),
       ),
@@ -844,8 +888,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                         scheme.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child:
-                      Icon(Icons.calendar_month_outlined, color: Colors.black),
+                  child: const Icon(Icons.calendar_month_outlined,
+                      color: Colors.black),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

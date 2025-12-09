@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 
 import '../../services/auth_servicios.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../menu/menu_principal_screen.dart';
 import '../inicio_screen.dart';
 
@@ -58,26 +59,56 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final message = (res['message'] ?? 'No se pudo iniciar sesión.').toString();
-    if (messenger.mounted) messenger.showSnackBar(SnackBar(content: Text(message)));
+    if (messenger.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   Future<void> _loginWithGoogle() async {
     setState(() => cargando = true);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final credential = await AuthService.signInWithGoogle();
-    setState(() => cargando = false);
+    try {
+      final conn = await Connectivity().checkConnectivity();
+      // If offline, try offline login fallback (use cached session)
+      if (conn == ConnectivityResult.none) {
+        final ok = await AuthService.tryOfflineLogin();
+        setState(() => cargando = false);
+        if (ok) {
+          if (!mounted) return;
+          navigator.pushReplacement(
+            MaterialPageRoute(builder: (_) => const MenuPrincipalScreen()),
+          );
+          return;
+        }
+        if (messenger.mounted) {
+          messenger.showSnackBar(const SnackBar(
+              content: Text('No es posible iniciar sesión con Google sin Internet')));
+        }
+        return;
+      }
 
-    if (credential != null) {
-      if (!mounted) return;
-      navigator.pushReplacement(
-        MaterialPageRoute(builder: (_) => const MenuPrincipalScreen()),
-      );
-    } else {
-      if (!mounted) return;
-      final message = AuthService.lastGoogleSignInError ??
-          'No se pudo iniciar sesión con Google.';
-      if (messenger.mounted) messenger.showSnackBar(SnackBar(content: Text(message)));
+      final credential = await AuthService.signInWithGoogle();
+      setState(() => cargando = false);
+
+      if (credential != null) {
+        if (!mounted) return;
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (_) => const MenuPrincipalScreen()),
+        );
+      } else {
+        if (!mounted) return;
+        final message = AuthService.lastGoogleSignInError ??
+            'No se pudo iniciar sesión con Google.';
+        if (messenger.mounted) {
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        }
+      }
+    } catch (e) {
+      setState(() => cargando = false);
+      if (messenger.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Error iniciando sesión: $e')));
+      }
     }
   }
 
@@ -161,11 +192,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               FilledButton.icon(
                                 onPressed: cargando
-                                  ? null
-                                  : () async {
-                                    final messenger = ScaffoldMessenger.of(context);
-                                    final navigator = Navigator.of(context);
-                                    final ok = await AuthService.tryOfflineLogin();
+                                    ? null
+                                    : () async {
+                                        final messenger =
+                                            ScaffoldMessenger.of(context);
+                                        final navigator = Navigator.of(context);
+                                        final ok =
+                                            await AuthService.tryOfflineLogin();
                                         if (ok && mounted) {
                                           navigator.pushReplacement(
                                             MaterialPageRoute(

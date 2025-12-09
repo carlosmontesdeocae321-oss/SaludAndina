@@ -158,30 +158,37 @@ class _AgregarEditarPacienteScreenState
         // Only try remote uniqueness check when online
         final conn = await (Connectivity().checkConnectivity());
         if (conn != ConnectivityResult.none) {
-          final found = await ApiService.buscarPacientePorCedula(cedulaTrim);
-          if (!mounted) return;
-          if (found != null && found['ok'] == true && found['data'] != null) {
-            final existing = found['data'];
-            final existingId = (existing['id'] ??
-                    existing['paciente_id'] ??
-                    existing['user_id'])
-                ?.toString();
-            if (widget.paciente == null) {
-              messenger.showSnackBar(const SnackBar(
-                  content:
-                      Text('La cédula ya está registrada para otro paciente')));
-              if (!mounted) return;
-              setState(() => cargando = false);
-              return;
-            } else if (existingId != null &&
-                existingId != widget.paciente!.id.toString()) {
-              messenger.showSnackBar(const SnackBar(
-                  content:
-                      Text('La cédula ya está registrada para otro paciente')));
-              if (!mounted) return;
-              setState(() => cargando = false);
-              return;
+          try {
+            final found = await ApiService
+                .buscarPacientePorCedula(cedulaTrim)
+                .timeout(const Duration(seconds: 8));
+            if (!mounted) return;
+            if (found != null && found['ok'] == true && found['data'] != null) {
+              final existing = found['data'];
+              final existingId = (existing['id'] ??
+                      existing['paciente_id'] ??
+                      existing['user_id'])
+                  ?.toString();
+              if (widget.paciente == null) {
+                messenger.showSnackBar(const SnackBar(
+                    content: Text(
+                        'La cédula ya está registrada para otro paciente')));
+                if (!mounted) return;
+                setState(() => cargando = false);
+                return;
+              } else if (existingId != null &&
+                  existingId != widget.paciente!.id.toString()) {
+                messenger.showSnackBar(const SnackBar(
+                    content: Text(
+                        'La cédula ya está registrada para otro paciente')));
+                if (!mounted) return;
+                setState(() => cargando = false);
+                return;
+              }
             }
+          } catch (e) {
+            debugPrint('⚠️ Timeout/error comprobando unicidad de cédula: $e');
+            // Do not block save if uniqueness check fails due to network/timeouts
           }
         }
       }
@@ -214,14 +221,47 @@ class _AgregarEditarPacienteScreenState
     }
 
     if (widget.paciente == null) {
-      // AGREGAR (online)
-      final resp = await ApiService.crearPaciente(data);
-      exito = resp['ok'] == true;
-      mensaje = resp['message'] ?? '';
+      // AGREGAR (online) - use timeout and fallback to local save if network fails
+      try {
+        final resp = await ApiService.crearPaciente(data)
+            .timeout(const Duration(seconds: 12));
+        exito = resp['ok'] == true;
+        mensaje = resp['message'] ?? '';
+      } catch (e) {
+        debugPrint('Error creando paciente remotamente: $e');
+        // Fallback: save locally as pending
+        try {
+          await LocalDb.savePatient(data);
+          messenger.showSnackBar(const SnackBar(
+              content: Text(
+                  'Paciente guardado localmente (pendiente de sincronización)')));
+          if (!mounted) return;
+          setState(() => cargando = false);
+          navigator.pop(true);
+          return;
+        } catch (e2) {
+          debugPrint('Error guardando paciente localmente tras fallo remoto: $e2');
+          messenger.showSnackBar(const SnackBar(
+              content: Text('Error guardando paciente localmente')));
+          if (!mounted) return;
+          setState(() => cargando = false);
+          return;
+        }
+      }
     } else {
       // EDITAR (online)
-      exito = await ApiService.editarPaciente(widget.paciente!.id, data);
-      mensaje = exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
+      try {
+        exito = await ApiService.editarPaciente(widget.paciente!.id, data)
+            .timeout(const Duration(seconds: 12));
+        mensaje = exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
+      } catch (e) {
+        debugPrint('Error actualizando paciente remotamente: $e');
+        messenger.showSnackBar(const SnackBar(
+            content: Text('No fue posible actualizar en el servidor')));
+        if (!mounted) return;
+        setState(() => cargando = false);
+        return;
+      }
     }
 
     if (!mounted) return;
