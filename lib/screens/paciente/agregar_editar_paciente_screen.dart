@@ -3,6 +3,7 @@ import '../../models/paciente.dart';
 import '../../services/api_services.dart';
 import '../../services/local_db.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:http/http.dart' as http;
 
 class AgregarEditarPacienteScreen extends StatefulWidget {
   final Paciente? paciente; // Si es null → agregar, si no → editar
@@ -28,6 +29,10 @@ class _AgregarEditarPacienteScreenState
   late TextEditingController _direccionController;
 
   bool cargando = false;
+  List<Map<String, dynamic>> _clinics = [];
+  List<Map<String, dynamic>> _doctors = [];
+  int? _selectedClinicaId;
+  int? _selectedDoctorId;
 
   Future<void> _pickFecha() async {
     DateTime initialDate = DateTime.now();
@@ -51,6 +56,18 @@ class _AgregarEditarPacienteScreenState
           '${fecha.month.toString().padLeft(2, '0')}-'
           '${fecha.day.toString().padLeft(2, '0')}';
       _fechaNacimientoController.text = formatted;
+    }
+  }
+
+  // Quick HTTP check to verify real internet access (not just network link)
+  Future<bool> _checkInternetAvailability() async {
+    try {
+      final resp = await http
+          .get(Uri.parse('https://clients3.google.com/generate_204'))
+          .timeout(const Duration(seconds: 3));
+      return resp.statusCode == 204 || resp.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -81,6 +98,28 @@ class _AgregarEditarPacienteScreenState
         TextEditingController(text: widget.paciente?.telefono ?? '');
     _direccionController =
         TextEditingController(text: widget.paciente?.direccion ?? '');
+
+    // Load cached clinics/doctors for dropdowns (best-effort)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final cl = await LocalDb.getClinics();
+        final docs = await LocalDb.getDoctors();
+        if (!mounted) return;
+        setState(() {
+          _clinics = cl;
+          _doctors = docs;
+        });
+        // Try refresh clinics from API in background
+        try {
+          final fetched = await ApiService.obtenerClinicasRaw();
+          if (fetched.isNotEmpty) {
+            await LocalDb.saveClinics(fetched);
+            if (!mounted) return;
+            setState(() => _clinics = fetched);
+          }
+        } catch (_) {}
+      } catch (_) {}
+    });
 
     // Validación de seguridad: cuando se quiere AGREGAR un paciente (widget.paciente == null)
     // debemos recibir al menos `doctorId` o `clinicaId`. Si ambos son null, informar y cerrar.
@@ -136,12 +175,14 @@ class _AgregarEditarPacienteScreenState
       "telefono": _telefonoController.text.trim(),
       "direccion": _direccionController.text.trim(),
     };
-    // Asignar doctorId o clinicaId según contexto
-    if (widget.doctorId != null) {
-      data["doctor_id"] = widget.doctorId!.toString();
+    // Asignar doctorId o clinicaId según contexto (prioriza valores del widget)
+    final resolvedDoctorId = widget.doctorId ?? _selectedDoctorId;
+    final resolvedClinicaId = widget.clinicaId ?? _selectedClinicaId;
+    if (resolvedDoctorId != null) {
+      data["doctor_id"] = resolvedDoctorId.toString();
     }
-    if (widget.clinicaId != null) {
-      data["clinica_id"] = widget.clinicaId!.toString();
+    if (resolvedClinicaId != null) {
+      data["clinica_id"] = resolvedClinicaId.toString();
     }
 
     // Debug: mostrar qué ids tiene el widget y qué payload vamos a enviar
@@ -155,40 +196,49 @@ class _AgregarEditarPacienteScreenState
     try {
       final cedulaTrim = _cedulaController.text.trim();
       if (cedulaTrim.isNotEmpty) {
-        // Only try remote uniqueness check when online
+        // Only try remote uniqueness check when we detect real internet access
         final conn = await (Connectivity().checkConnectivity());
         if (conn != ConnectivityResult.none) {
+          bool hasInternet = false;
           try {
-            final found = await ApiService
-                .buscarPacientePorCedula(cedulaTrim)
-                .timeout(const Duration(seconds: 8));
-            if (!mounted) return;
-            if (found != null && found['ok'] == true && found['data'] != null) {
-              final existing = found['data'];
-              final existingId = (existing['id'] ??
-                      existing['paciente_id'] ??
-                      existing['user_id'])
-                  ?.toString();
-              if (widget.paciente == null) {
-                messenger.showSnackBar(const SnackBar(
-                    content: Text(
-                        'La cédula ya está registrada para otro paciente')));
-                if (!mounted) return;
-                setState(() => cargando = false);
-                return;
-              } else if (existingId != null &&
-                  existingId != widget.paciente!.id.toString()) {
-                messenger.showSnackBar(const SnackBar(
-                    content: Text(
-                        'La cédula ya está registrada para otro paciente')));
-                if (!mounted) return;
-                setState(() => cargando = false);
-                return;
+            hasInternet = await _checkInternetAvailability();
+          } catch (_) {
+            hasInternet = false;
+          }
+          if (hasInternet) {
+            try {
+              final found = await ApiService.buscarPacientePorCedula(cedulaTrim)
+                  .timeout(const Duration(seconds: 8));
+              if (!mounted) return;
+              if (found != null &&
+                  found['ok'] == true &&
+                  found['data'] != null) {
+                final existing = found['data'];
+                final existingId = (existing['id'] ??
+                        existing['paciente_id'] ??
+                        existing['user_id'])
+                    ?.toString();
+                if (widget.paciente == null) {
+                  messenger.showSnackBar(const SnackBar(
+                      content: Text(
+                          'La cédula ya está registrada para otro paciente')));
+                  if (!mounted) return;
+                  setState(() => cargando = false);
+                  return;
+                } else if (existingId != null &&
+                    existingId != widget.paciente!.id.toString()) {
+                  messenger.showSnackBar(const SnackBar(
+                      content: Text(
+                          'La cédula ya está registrada para otro paciente')));
+                  if (!mounted) return;
+                  setState(() => cargando = false);
+                  return;
+                }
               }
+            } catch (e) {
+              debugPrint('⚠️ Timeout/error comprobando unicidad de cédula: $e');
+              // Do not block save if uniqueness check fails due to network/timeouts
             }
-          } catch (e) {
-            debugPrint('⚠️ Timeout/error comprobando unicidad de cédula: $e');
-            // Do not block save if uniqueness check fails due to network/timeouts
           }
         }
       }
@@ -197,10 +247,19 @@ class _AgregarEditarPacienteScreenState
       debugPrint('⚠️ Error comprobando unicidad de cédula: $e');
     }
 
-    // Decide online vs offline
+    // Decide online vs offline using a quick reachability test
     final conn = await (Connectivity().checkConnectivity());
-    if (conn == ConnectivityResult.none) {
-      // Save locally
+    bool hasInternet = false;
+    if (conn != ConnectivityResult.none) {
+      try {
+        hasInternet = await _checkInternetAvailability();
+      } catch (_) {
+        hasInternet = false;
+      }
+    }
+
+    if (!hasInternet) {
+      // Save locally immediately (fast feedback)
       try {
         await LocalDb.savePatient(data);
         messenger.showSnackBar(const SnackBar(
@@ -240,7 +299,8 @@ class _AgregarEditarPacienteScreenState
           navigator.pop(true);
           return;
         } catch (e2) {
-          debugPrint('Error guardando paciente localmente tras fallo remoto: $e2');
+          debugPrint(
+              'Error guardando paciente localmente tras fallo remoto: $e2');
           messenger.showSnackBar(const SnackBar(
               content: Text('Error guardando paciente localmente')));
           if (!mounted) return;
@@ -253,7 +313,8 @@ class _AgregarEditarPacienteScreenState
       try {
         exito = await ApiService.editarPaciente(widget.paciente!.id, data)
             .timeout(const Duration(seconds: 12));
-        mensaje = exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
+        mensaje =
+            exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
       } catch (e) {
         debugPrint('Error actualizando paciente remotamente: $e');
         messenger.showSnackBar(const SnackBar(
@@ -397,6 +458,46 @@ class _AgregarEditarPacienteScreenState
                         ],
                       ),
                     ),
+                    // If both doctorId and clinicaId are null allow user to pick cached options
+                    if (widget.paciente == null &&
+                        widget.doctorId == null &&
+                        widget.clinicaId == null) ...[
+                      if (_clinics.isNotEmpty)
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                              labelText: 'Clínica (opcional)'),
+                          items: _clinics.map((c) {
+                            final id = c['id'] is int
+                                ? c['id'] as int
+                                : int.tryParse(c['id']?.toString() ?? '') ?? 0;
+                            final name =
+                                c['nombre'] ?? c['name'] ?? 'Clínica $id';
+                            return DropdownMenuItem<int>(
+                                value: id, child: Text(name.toString()));
+                          }).toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedClinicaId = v),
+                          value: _selectedClinicaId,
+                        ),
+                      if (_doctors.isNotEmpty)
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                              labelText: 'Doctor (opcional)'),
+                          items: _doctors.map((d) {
+                            final id = d['id'] is int
+                                ? d['id'] as int
+                                : int.tryParse(d['id']?.toString() ?? '') ?? 0;
+                            final name =
+                                d['nombre'] ?? d['usuario'] ?? 'Doctor $id';
+                            return DropdownMenuItem<int>(
+                                value: id, child: Text(name.toString()));
+                          }).toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedDoctorId = v),
+                          value: _selectedDoctorId,
+                        ),
+                      const SizedBox(height: 8),
+                    ],
                     TextFormField(
                       controller: _nombresController,
                       decoration: const InputDecoration(labelText: "Nombres"),

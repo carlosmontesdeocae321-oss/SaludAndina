@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/consulta.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
 import '../../route_refresh_mixin.dart';
 import '../../utils/formato_fecha.dart';
 // import '../historial/agregar_editar_consulta_screen.dart'; // antiguo editor (reemplazado)
@@ -31,8 +32,24 @@ class _ConsultasScreenState extends State<ConsultasScreen>
     if (!mounted) return;
     setState(() => cargando = true);
     try {
-      final lista =
-          await ApiService.obtenerConsultasPaciente(widget.pacienteId);
+      List<Consulta> lista = [];
+      final pid = widget.pacienteId;
+      // If pacienteId looks like a local id (uuid with '-') load local consultas
+      if (pid.contains('-')) {
+        final local = await LocalDb.getConsultasByPacienteId(pid);
+        for (final rec in local) {
+          try {
+            final data = Map<String, dynamic>.from(rec['data'] ?? {});
+            data['id'] =
+                rec['localId']?.toString() ?? data['id']?.toString() ?? '';
+            data['localId'] = rec['localId']?.toString();
+            data['syncStatus'] = rec['syncStatus']?.toString();
+            lista.add(Consulta.fromJson(data));
+          } catch (_) {}
+        }
+      } else {
+        lista = await ApiService.obtenerConsultasPaciente(widget.pacienteId);
+      }
       if (!mounted) return;
       setState(() => consultas = lista);
     } catch (e) {
@@ -459,6 +476,7 @@ class _ConsultasScreenState extends State<ConsultasScreen>
     );
   }
 
+  // ignore: unused_element
   String _buildConsultaHtml(Consulta c) {
     final b = StringBuffer();
     b.writeln('<div>');

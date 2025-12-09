@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AgregarConsultaScreen extends StatefulWidget {
   final String pacienteId;
@@ -112,6 +114,35 @@ class _AgregarConsultaScreenState extends State<AgregarConsultaScreen> {
 
     final paths = _imagenes.map((x) => x.path).toList();
 
+    // Decide online vs offline quickly
+    final conn = await (Connectivity().checkConnectivity());
+    bool hasInternet = false;
+    if (conn != ConnectivityResult.none) {
+      // perform a light reachability test (server or google) could be added,
+      // but for speed we assume connectivity result is enough here.
+      hasInternet = true;
+    }
+
+    if (!hasInternet) {
+      // Save consulta locally for later sync
+      try {
+        await LocalDb.saveConsultaLocal(data, attachments: paths);
+        if (!mounted) return;
+        setState(() => _cargando = false);
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Consulta guardada localmente (pendiente)')));
+        navigator.pop(true);
+        return;
+      } catch (e) {
+        debugPrint('Error guardando consulta localmente: $e');
+        if (!mounted) return;
+        setState(() => _cargando = false);
+        messenger
+            .showSnackBar(const SnackBar(content: Text('Error al guardar')));
+        return;
+      }
+    }
+
     final ok = await ApiService.crearHistorial(data, paths);
 
     if (!mounted) return;
@@ -123,9 +154,19 @@ class _AgregarConsultaScreenState extends State<AgregarConsultaScreen> {
           .showSnackBar(const SnackBar(content: Text('Consulta guardada')));
       navigator.pop(true);
     } else {
-      final lastErr = ApiService.lastErrorBody;
-      messenger
-          .showSnackBar(SnackBar(content: Text(lastErr ?? 'Error al guardar')));
+      // Fallback: save locally if remote create failed
+      try {
+        await LocalDb.saveConsultaLocal(data, attachments: paths);
+        if (!mounted) return;
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Consulta guardada localmente (pendiente)')));
+        navigator.pop(true);
+        return;
+      } catch (e) {
+        final lastErr = ApiService.lastErrorBody;
+        messenger.showSnackBar(
+            SnackBar(content: Text(lastErr ?? 'Error al guardar')));
+      }
     }
   }
 

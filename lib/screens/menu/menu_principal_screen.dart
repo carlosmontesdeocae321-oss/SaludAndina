@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
 import '../../route_refresh_mixin.dart';
 import '../admin/buy_doctor_slot_dialog.dart';
 import '../../utils/formato_fecha.dart';
@@ -54,6 +56,15 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
     _loadLastRefreshTime();
     _initDatos();
     _scheduleAutoRefresh();
+    // Listen to local pending patients changes to refresh list/UI
+    try {
+      LocalDb.pendingPatientsCount.addListener(_onPendingPatientsChanged);
+    } catch (_) {}
+  }
+
+  void _onPendingPatientsChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _showBankTransferPurchase({
@@ -349,6 +360,9 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
   @override
   void dispose() {
     _cancelAutoRefresh();
+    try {
+      LocalDb.pendingPatientsCount.removeListener(_onPendingPatientsChanged);
+    } catch (_) {}
     super.dispose();
   }
 
@@ -829,7 +843,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
     const accentColor = Color(0xFF1BD1C2);
     const cardColor = Color(0xFF101D32);
     return FutureBuilder<List<Paciente>>(
-      future: ApiService.obtenerPacientesPorClinica(view: viewToSend),
+      future: _loadPatientsForView(viewToSend),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -904,12 +918,32 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${p.nombres} ${p.apellidos}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            )),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text('${p.nombres} ${p.apellidos}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  )),
+                            ),
+                            // If id looks like a local UUID (contains '-') show pending badge
+                            if (p.id.contains('-'))
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade700,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text('Pendiente',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 12)),
+                              ),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           'Cédula: ${p.cedula.isEmpty ? 'No registrada' : p.cedula}',
@@ -1005,6 +1039,45 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
     );
   }
 
+  /// Load patients from server and merge local pending patients so they are visible in the list.
+  Future<List<Paciente>> _loadPatientsForView(String viewToSend) async {
+    try {
+      final serverList =
+          await ApiService.obtenerPacientesPorClinica(view: viewToSend);
+      final serverMapByCedula = <String, Paciente>{};
+      for (final s in serverList) {
+        final ced = s.cedula;
+        if (ced.isNotEmpty) serverMapByCedula[ced] = s;
+      }
+
+      // Load local pending patients and merge where server doesn't have them
+      final local = await LocalDb.getPending('patients');
+      final out = <Paciente>[];
+      out.addAll(serverList);
+
+      for (final rec in local) {
+        try {
+          final data = Map<String, dynamic>.from(rec['data'] ?? {});
+          final ced = data['cedula']?.toString() ?? '';
+          // If server already has this cedula, skip to avoid duplicate
+          if (ced.isNotEmpty && serverMapByCedula.containsKey(ced)) continue;
+
+          // create a Paciente object from local data but ensure id is localId so UI can detect
+          final localId = rec['localId']?.toString() ?? '';
+          final pseudo = Map<String, dynamic>.from(data);
+          pseudo['id'] = localId; // use local id as id
+          final p = Paciente.fromJson(pseudo);
+          out.insert(0, p); // put local pending on top
+        } catch (_) {}
+      }
+
+      return out;
+    } catch (e) {
+      debugPrint('Load patients merge error: $e');
+      return await ApiService.obtenerPacientesPorClinica(view: viewToSend);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Decidir si se muestran las vistas
@@ -1059,7 +1132,27 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                 onPressed: () async {
                   final buttonContext = context;
                   final messenger = ScaffoldMessenger.of(buttonContext);
-                  final datos = await ApiService.obtenerMisDatos();
+                  // Evitar bloqueo si no hay conectividad: usar SharedPreferences como fallback
+                  Map<String, dynamic>? datos;
+                  final conn = await (Connectivity().checkConnectivity());
+                  if (conn == ConnectivityResult.none) {
+                    final prefs = await SharedPreferences.getInstance();
+                    final userIdStr = prefs.getString('userId');
+                    final clinicaIdStr = prefs.getString('clinicaId');
+                    datos = {
+                      'id': userIdStr != null ? int.tryParse(userIdStr) : null,
+                      'doctorId':
+                          userIdStr != null ? int.tryParse(userIdStr) : null,
+                      'clinicaId': clinicaIdStr != null
+                          ? int.tryParse(clinicaIdStr)
+                          : null,
+                      // Valores conservadores para permitir creación offline
+                      'totalPacientes': 0,
+                      'limite': 999999,
+                    };
+                  } else {
+                    datos = await ApiService.obtenerMisDatos();
+                  }
                   if (!buttonContext.mounted || !mounted) return;
                   // Debug: mostrar qué retorna mis-datos y qué id de doctor vamos a pasar
                   final potentialDoctorId =

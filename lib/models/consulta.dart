@@ -77,8 +77,8 @@ class Consulta {
     this.syncStatus,
   });
 
-    factory Consulta.fromJson(Map<String, dynamic> json) => Consulta(
-      id: json['id'].toString(),
+  factory Consulta.fromJson(Map<String, dynamic> json) => Consulta(
+        id: json['id'].toString(),
         // Backend puede usar nombres con guion bajo (motivo_consulta, frecuencia_cardiaca, ...)
         motivo: json['motivo'] ?? json['motivo_consulta'] ?? '',
         peso: _toDouble(json['peso']),

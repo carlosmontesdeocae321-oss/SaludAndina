@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'sync_notifier.dart';
 
 class LocalDb {
   LocalDb._();
@@ -17,9 +18,78 @@ class LocalDb {
     if (!Hive.isBoxOpen(_metaBox)) await Hive.openBox(_metaBox);
     if (!Hive.isBoxOpen(_consultasBox)) await Hive.openBox(_consultasBox);
     if (!Hive.isBoxOpen(_citasBox)) await Hive.openBox(_citasBox);
+    // Initialize pending counters
+    try {
+      await _recomputePendingCounts();
+    } catch (_) {}
+  }
+
+  // ----------------------- DOCTORES / CLINICAS CACHE -----------------------
+  static Future<void> saveDoctors(List<Map<String, dynamic>> doctors) async {
+    final box = Hive.box(_metaBox);
+    try {
+      await box.put('doctors', doctors);
+    } catch (e) {
+      debugPrint('LocalDb.saveDoctors error: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getDoctors() async {
+    final box = Hive.box(_metaBox);
+    final raw = box.get('doctors');
+    if (raw is List) {
+      return raw
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  static Future<void> saveClinics(List<Map<String, dynamic>> clinics) async {
+    final box = Hive.box(_metaBox);
+    try {
+      await box.put('clinics', clinics);
+    } catch (e) {
+      debugPrint('LocalDb.saveClinics error: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getClinics() async {
+    final box = Hive.box(_metaBox);
+    final raw = box.get('clinics');
+    if (raw is List) {
+      return raw
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
   }
 
   static String _newId() => const Uuid().v4();
+
+  // Reactive notifier for pending patients count (UI can listen to this)
+  static final ValueNotifier<int> pendingPatientsCount = ValueNotifier<int>(0);
+
+  static Future<void> _recomputePendingCounts() async {
+    try {
+      final box = Hive.box(_patientsBox);
+      int cnt = 0;
+      for (final key in box.keys) {
+        final v = box.get(key);
+        if (v is Map) {
+          final map = Map<String, dynamic>.from(v.cast<String, dynamic>());
+          if (map['syncStatus'] == 'pending') cnt += 1;
+        }
+      }
+      pendingPatientsCount.value = cnt;
+      // Also refresh global sync notifier so drawer/other UI elements stay in sync
+      try {
+        SyncNotifier.instance.refresh();
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('LocalDb._recomputePendingCounts error: $e');
+    }
+  }
 
   // Save patient locally. Returns localId
   static Future<String> savePatient(Map<String, dynamic> patient,
@@ -38,6 +108,8 @@ class LocalDb {
       'lastError': null,
     };
     await box.put(id, record);
+    // Update reactive pending counter
+    await _recomputePendingCounts();
     return id;
   }
 
@@ -226,6 +298,10 @@ class LocalDb {
       'lastError': null,
     };
     await box.put(id, record);
+    // If the consulta references a local patient, ensure pending counts recomputed
+    try {
+      await _recomputePendingCounts();
+    } catch (_) {}
     return id;
   }
 
@@ -394,6 +470,24 @@ class LocalDb {
       map['updatedAt'] = DateTime.now().toIso8601String();
       if (serverObj != null) map['data'] = serverObj;
       await box.put(localId, map);
+      try {
+        await _recomputePendingCounts();
+      } catch (_) {}
+    }
+  }
+
+  /// Mark a patient local record as 'syncing' to avoid duplicate concurrent uploads.
+  static Future<void> setPatientSyncing(String localId) async {
+    final box = Hive.box(_patientsBox);
+    final v = box.get(localId);
+    if (v is Map) {
+      final map = Map<String, dynamic>.from(v.cast<String, dynamic>());
+      map['syncStatus'] = 'syncing';
+      map['updatedAt'] = DateTime.now().toIso8601String();
+      await box.put(localId, map);
+      try {
+        await _recomputePendingCounts();
+      } catch (_) {}
     }
   }
 
@@ -406,6 +500,9 @@ class LocalDb {
       map['lastError'] = message;
       map['updatedAt'] = DateTime.now().toIso8601String();
       await box.put(localId, map);
+      try {
+        await _recomputePendingCounts();
+      } catch (_) {}
     }
   }
 

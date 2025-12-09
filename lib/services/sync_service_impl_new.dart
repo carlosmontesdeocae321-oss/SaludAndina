@@ -43,6 +43,7 @@ class SyncService {
   static SyncService get instance => _instance;
 
   final _statusController = StreamController<String>.broadcast();
+  bool _syncInProgress = false;
   StreamSubscription<ConnectivityResult>? _connSub;
 
   Stream<String> get statusStream => _statusController.stream;
@@ -80,6 +81,12 @@ class SyncService {
 
   /// Sync pending local records: patients, consultas and citas.
   Future<void> syncPending() async {
+    if (_syncInProgress) {
+      debugPrint(
+          'SyncService: sync already in progress, skipping concurrent call');
+      return;
+    }
+    _syncInProgress = true;
     _statusController.add('syncing');
     try {
       // --- PATIENTS ---
@@ -97,7 +104,33 @@ class SyncService {
             continue;
           }
 
+          // Mark record as syncing to avoid race conditions / duplicate creates
+          await LocalDb.setPatientSyncing(localId);
+
+          // Pre-check: try resolving an existing server record by cedula to avoid duplicates
+          try {
+            final ced = data['cedula']?.toString();
+            if (ced != null && ced.isNotEmpty) {
+              final lookup = await api.buscarPacientePorCedula(ced);
+              if (lookup != null &&
+                  lookup['ok'] == true &&
+                  lookup['data'] != null) {
+                final srv = Map<String, dynamic>.from(lookup['data']);
+                final serverId = srv['id']?.toString() ?? '';
+                if (serverId.isNotEmpty) {
+                  await LocalDb.markAsSynced(localId, serverId, srv);
+                  SyncNotifier.instance.refresh();
+                  continue;
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('SyncService: pre-lookup error: $e');
+          }
+
+            debugPrint('SyncService: creating patient localId=$localId payload=$data');
           final res = await api.crearPaciente(data);
+            debugPrint('SyncService: create patient result localId=$localId -> $res');
           if (res['ok'] == true) {
             String serverId = '';
             Map<String, dynamic>? srvObj;
@@ -220,7 +253,11 @@ class SyncService {
           data.forEach((k, v) {
             if (v != null) fields[k.toString()] = v.toString();
           });
+          debugPrint(
+              'SyncService: creating consulta localId=$localId paciente=${data['paciente_id']} attachments=${archivos.length}');
           final ok = await api.crearHistorial(fields, archivos);
+          debugPrint(
+              'SyncService: create consulta result localId=$localId -> $ok');
           if (ok == true) {
             await LocalDb.markConsultaAsSynced(localId, '', null);
             // refresh badge after successful sync

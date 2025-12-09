@@ -7,6 +7,7 @@ import '../services/api_services.dart';
 import '../services/auth_servicios.dart';
 import '../services/sync_service.dart';
 import '../services/sync_notifier.dart';
+import '../services/local_db.dart';
 import '../screens/citas/citas_screen.dart';
 import '../screens/doctor/profile_screen.dart';
 import '../screens/dueno/dashboard_screen.dart';
@@ -424,6 +425,24 @@ class AppDrawer extends StatelessWidget {
                             context,
                             icon: Icons.people_alt_outlined,
                             label: 'Pacientes',
+                            trailing: ValueListenableBuilder<int>(
+                              valueListenable: LocalDb.pendingPatientsCount,
+                              builder: (ctx, cnt, _) {
+                                if (cnt <= 0) return const SizedBox.shrink();
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text('$cnt',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold)),
+                                );
+                              },
+                            ),
                             action: (navigator) async {
                               navigator.push(
                                 MaterialPageRoute(

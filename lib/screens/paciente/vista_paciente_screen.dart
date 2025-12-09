@@ -90,14 +90,12 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
         final localCons = await LocalDb.getConsultasByPacienteId(
             widget.paciente.id.toString());
         if (localCons.isNotEmpty) {
-          cons = localCons
-              .map((m) {
-                final base = Map<String, dynamic>.from(m['data'] as Map);
-                base['localId'] = m['localId'];
-                base['syncStatus'] = m['syncStatus'];
-                return Consulta.fromJson(base);
-              })
-              .toList();
+          cons = localCons.map((m) {
+            final base = Map<String, dynamic>.from(m['data'] as Map);
+            base['localId'] = m['localId'];
+            base['syncStatus'] = m['syncStatus'];
+            return Consulta.fromJson(base);
+          }).toList();
         }
       } catch (e) {
         debugPrint('Error cargando consultas locales: $e');
@@ -107,14 +105,12 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
         final localCitas =
             await LocalDb.getCitasByPacienteId(widget.paciente.id.toString());
         if (localCitas.isNotEmpty) {
-          cit = localCitas
-              .map((m) {
-                final base = Map<String, dynamic>.from(m['data'] as Map);
-                base['localId'] = m['localId'];
-                base['syncStatus'] = m['syncStatus'];
-                return Cita.fromJson(base);
-              })
-              .toList();
+          cit = localCitas.map((m) {
+            final base = Map<String, dynamic>.from(m['data'] as Map);
+            base['localId'] = m['localId'];
+            base['syncStatus'] = m['syncStatus'];
+            return Cita.fromJson(base);
+          }).toList();
         }
       } catch (e) {
         debugPrint('Error cargando citas locales: $e');
@@ -615,7 +611,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                     decoration: BoxDecoration(
                       color: Colors.orangeAccent.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+                      border: Border.all(
+                          color: Colors.orangeAccent.withOpacity(0.2)),
                     ),
                     child: const Text('Pendiente',
                         style: TextStyle(
@@ -844,7 +841,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                 decoration: BoxDecoration(
                   color: Colors.orangeAccent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+                  border:
+                      Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
                 ),
                 child: const Text('Pendiente',
                     style: TextStyle(

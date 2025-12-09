@@ -83,7 +83,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         if (messenger.mounted) {
           messenger.showSnackBar(const SnackBar(
-              content: Text('No es posible iniciar sesión con Google sin Internet')));
+              content: Text(
+                  'No es posible iniciar sesión con Google sin Internet')));
         }
         return;
       }
@@ -107,7 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => cargando = false);
       if (messenger.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Error iniciando sesión: $e')));
+        messenger.showSnackBar(
+            SnackBar(content: Text('Error iniciando sesión: $e')));
       }
     }
   }

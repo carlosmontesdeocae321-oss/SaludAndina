@@ -169,19 +169,28 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                 ? _extractAfterHeading(c.notasHtml, 'Plan de manejo')
                 : _extractAfterHeading(c.notasHtml, 'Plan');
         final recetaFromHtml = _extractAfterHeading(c.notasHtml, 'Receta');
-        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty)
+        if (dxFromHtml.isNotEmpty && dxCtrl.text.isEmpty) {
           dxCtrl.text = dxFromHtml;
-        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty)
+        }
+        if (planFromHtml.isNotEmpty && planCtrl.text.isEmpty) {
           planCtrl.text = planFromHtml;
-        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty)
+        }
+        if (recetaFromHtml.isNotEmpty && medicacionCtrl.text.isEmpty) {
           medicacionCtrl.text = recetaFromHtml;
+        }
 
         final m = _extractStrongField(c.notasHtml, 'Medidas generales');
         final h = _extractStrongField(c.notasHtml, 'Hidratación / Nutrición');
         final md = _extractStrongField(c.notasHtml, 'Medicación');
-        if (m.isNotEmpty) medidasCtrl.text = m;
-        if (h.isNotEmpty) hidratacionCtrl.text = h;
-        if (md.isNotEmpty) medicacionCtrl.text = md;
+        if (m.isNotEmpty) {
+          medidasCtrl.text = m;
+        }
+        if (h.isNotEmpty) {
+          hidratacionCtrl.text = h;
+        }
+        if (md.isNotEmpty) {
+          medicacionCtrl.text = md;
+        }
 
         final personales = _extractStrongField(c.notasHtml, 'Personales');
         final familiares = _extractStrongField(c.notasHtml, 'Familiares');
@@ -189,16 +198,21 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         final tiempo = _extractStrongField(c.notasHtml, 'Tiempo');
         final evolucionFromHtml =
             _extractAfterHeading(c.notasHtml, 'Evolución');
-        if (personales.isNotEmpty && appCtrl.text.isEmpty)
+        if (personales.isNotEmpty && appCtrl.text.isEmpty) {
           appCtrl.text = personales;
-        if (familiares.isNotEmpty && apfCtrl.text.isEmpty)
+        }
+        if (familiares.isNotEmpty && apfCtrl.text.isEmpty) {
           apfCtrl.text = familiares;
-        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty)
+        }
+        if (alergias.isNotEmpty && alergiasCtrl.text.isEmpty) {
           alergiasCtrl.text = alergias;
-        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty)
+        }
+        if (tiempo.isNotEmpty && tiempoCtrl.text.isEmpty) {
           tiempoCtrl.text = tiempo;
-        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty)
+        }
+        if (evolucionFromHtml.isNotEmpty && evolucionCtrl.text.isEmpty) {
           evolucionCtrl.text = evolucionFromHtml;
+        }
 
         final candidates = {
           'Piel': (String v) => pielCtrl.text = v,
@@ -250,8 +264,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
 
   String _extractTagContent(String html, String tag) {
     try {
-      final re = RegExp(
-          '<${RegExp.escape(tag)}[^>]*>([\s\S]*?)</${RegExp.escape(tag)}>',
+        final re = RegExp(
+          '<${RegExp.escape(tag)}[^>]*>([\\s\\S]*?)</${RegExp.escape(tag)}>',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) return _stripHtml(m.group(1) ?? '');
@@ -265,17 +279,12 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     // Look for patterns like: <p> <strong>Label:</strong> value </p>
     try {
       final esc = RegExp.escape(label);
-      final patterns = [
-        RegExp(
-            '<p[^>]*>\\s*<strong>\\s*' +
-                esc +
-                '\\s*:?' +
-                '\\s*<\\/strong>\\s*(.*?)<\\/p>',
-            caseSensitive: false),
-        RegExp(
-            '<strong>\\s*' + esc + '\\s*:?' + '\\s*<\\/strong>\\s*(.*?)<\\/p>',
-            caseSensitive: false),
-      ];
+        final patterns = <RegExp>[
+        RegExp('<p[^>]*>\\s*<strong>\\s*$esc\\s*:?\\s*<\\/strong>\\s*(.*?)<\\/p>',
+          caseSensitive: false),
+        RegExp('<strong>\\s*$esc\\s*:?\\s*<\\/strong>\\s*(.*?)<\\/p>',
+          caseSensitive: false),
+        ];
       for (final re in patterns) {
         final m = re.firstMatch(html);
         if (m != null) return _stripHtml(m.group(1) ?? '');
@@ -289,8 +298,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
   String _extractAfterHeading(String html, String heading) {
     try {
       final esc = RegExp.escape(heading);
-      final re = RegExp(
-          '<h4[^>]*>\\s*' + esc + '\\s*<\\/h4>([\\s\\S]*?)(?:<h4[^>]*>|\\z)',
+        final re = RegExp('<h4[^>]*>\\s*$esc\\s*<\\/h4>([\\s\\S]*?)(?:<h4[^>]*>|\\z)',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) {
@@ -616,9 +624,9 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       Navigator.of(context).pop(c);
     } else {
       final err = ApiService.lastErrorBody;
-      final msg = (err == null || err.isEmpty)
+        final msg = (err == null || err.isEmpty)
           ? 'Error al guardar la consulta'
-          : 'Error al guardar: ${err.length > 300 ? err.substring(0, 300) + '…' : err}';
+          : 'Error al guardar: ${err.length > 300 ? '${err.substring(0, 300)}…' : err}';
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -1252,11 +1260,11 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                           final chipBg = cs.secondary;
                           const chipFg = Colors.white;
                           return TextButton.icon(
-                            icon: Icon(Icons.flash_on, size: 16, color: chipFg),
+                            icon: const Icon(Icons.flash_on, size: 16, color: Colors.white),
                             label: Text(display,
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontSize: 13,
-                                    color: chipFg,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.w600)),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
