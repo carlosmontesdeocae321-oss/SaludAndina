@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'paciente/ingreso_paciente_screen.dart';
 import 'login/login_screen.dart';
 import '../widgets/app_drawer.dart';
-import '../services/sync_service.dart';
 
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key});
@@ -11,24 +10,6 @@ class InicioScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Iniciando sincronización...')));
-          try {
-            await SyncService.instance.onLogin();
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sincronización finalizada')));
-          } catch (e) {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Error: $e')));
-          }
-        },
-        icon: const Icon(Icons.sync),
-        label: const Text('Sincronizar'),
-      ),
       appBar: AppBar(
         backgroundColor: const Color(0xFF070F1E),
         elevation: 0,
