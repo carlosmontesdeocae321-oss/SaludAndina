@@ -303,6 +303,41 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
             runSpacing: 8,
             children: infoBadges,
           ),
+          FutureBuilder<Map<String, dynamic>?>(
+            future: LocalDb.getPatientById(widget.paciente.id.toString()),
+            builder: (ctx, snap) {
+              final rec = snap.data;
+              if (rec == null) return const SizedBox.shrink();
+              final attempts = (rec['attempts'] ?? 0) as int;
+              final lastRaw = rec['lastAttemptAt']?.toString() ?? '';
+              if (attempts == 0 && lastRaw.isEmpty) return const SizedBox.shrink();
+              String lastText = lastRaw;
+              final parsed = DateTime.tryParse(lastRaw);
+              if (parsed != null) lastText = _fechaFormatter.format(parsed);
+              return Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.sync_problem, size: 16, color: Colors.white70),
+                    const SizedBox(width: 8),
+                    Text('Intentos: $attempts',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.85))),
+                    if (lastText.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Text('Último: $lastText',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.72))),
+                    ]
+                  ],
+                ),
+              );
+            },
+          ),
           if (nextCita != null) ...[
             const SizedBox(height: 18),
             _buildNextCitaBanner(context, nextCita),

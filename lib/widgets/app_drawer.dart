@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_services.dart';
 import '../services/auth_servicios.dart';
+import '../services/sync_service.dart';
+import '../services/local_db.dart';
 import '../screens/citas/citas_screen.dart';
 import '../screens/doctor/profile_screen.dart';
 import '../screens/dueno/dashboard_screen.dart';
@@ -312,6 +314,49 @@ class AppDrawer extends StatelessWidget {
                             const SizedBox(height: 12),
                             _drawerTile(
                               context,
+                              icon: Icons.sync,
+                              label: 'Sincronizar',
+                              trailing: FutureBuilder<int>(
+                                future: LocalDb.getPending('all')
+                                    .then((list) => list.length),
+                                builder: (ctx, s) {
+                                  final cnt = s.data ?? 0;
+                                  if (cnt <= 0) return const SizedBox.shrink();
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text('$cnt',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold)),
+                                  );
+                                },
+                              ),
+                              action: (navigator) async {
+                                ScaffoldMessenger.of(navigator.context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('Iniciando sincronización...')));
+                                try {
+                                  await SyncService.instance.onLogin();
+                                  ScaffoldMessenger.of(navigator.context)
+                                      .showSnackBar(const SnackBar(
+                                          content: Text(
+                                              'Sincronización finalizada')));
+                                } catch (e) {
+                                  ScaffoldMessenger.of(navigator.context)
+                                      .showSnackBar(SnackBar(
+                                          content: Text('Error: $e')));
+                                }
+                              },
+                            ),
+
+                            _drawerTile(
+                              context,
                               icon: Icons.logout,
                               label: 'Cerrar sesión',
                               action: (navigator) async {
@@ -420,6 +465,49 @@ class AppDrawer extends StatelessWidget {
                               );
                             },
                           ),
+                          _drawerTile(
+                            context,
+                            icon: Icons.sync,
+                            label: 'Sincronizar',
+                            trailing: FutureBuilder<int>(
+                              future: LocalDb.getPending('all')
+                                  .then((list) => list.length),
+                              builder: (ctx, s) {
+                                final cnt = s.data ?? 0;
+                                if (cnt <= 0) return const SizedBox.shrink();
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text('$cnt',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold)),
+                                );
+                              },
+                            ),
+                            action: (navigator) async {
+                              ScaffoldMessenger.of(navigator.context).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Iniciando sincronización...')));
+                              try {
+                                await SyncService.instance.onLogin();
+                                ScaffoldMessenger.of(navigator.context)
+                                    .showSnackBar(const SnackBar(
+                                        content:
+                                            Text('Sincronización finalizada')));
+                              } catch (e) {
+                                ScaffoldMessenger.of(navigator.context)
+                                    .showSnackBar(SnackBar(
+                                        content: Text('Error: $e')));
+                              }
+                            },
+                          ),
+
                           _drawerTile(
                             context,
                             icon: Icons.logout,
