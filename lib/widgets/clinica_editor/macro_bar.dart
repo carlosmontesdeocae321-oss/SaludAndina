@@ -15,6 +15,7 @@ class MacroBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     // Use a Wrap so buttons compact and flow to new lines based on available width.
     return Wrap(
       spacing: 8,
@@ -22,15 +23,23 @@ class MacroBar extends StatelessWidget {
       children: macros.keys.map((key) {
         final label = key;
         final macroText = macros[key] ?? '';
-        return ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            elevation: 0,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        // Render as a pill-like chip: subtle filled background + colored text and border
+        final chipBg = cs.secondary.withOpacity(0.14);
+        final chipFg = cs.secondary;
+        return TextButton(
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            backgroundColor: chipBg,
+            foregroundColor: chipFg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: cs.secondary.withOpacity(0.36)),
+            ),
           ),
           onPressed: () => onInsert(macroText),
-          child: Text(label, style: const TextStyle(fontSize: 12)),
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 12, color: chipFg, fontWeight: FontWeight.w600)),
         );
       }).toList(),
     );

@@ -12,9 +12,16 @@ import 'screens/pagos/solicitar_pago_screen.dart';
 import 'screens/admin/pagos_admin_screen.dart';
 import 'services/auth_servicios.dart';
 import 'firebase_options.dart';
+import 'services/local_db.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize local DB (Hive)
+  try {
+    await LocalDb.init();
+  } catch (e) {
+    debugPrint('Error inicializando LocalDb: $e');
+  }
   final shouldInitFirebase =
       !kIsWeb && defaultTargetPlatform != TargetPlatform.windows;
 
@@ -45,15 +52,47 @@ class ClinicaApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SaludAndina',
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
+      theme: ThemeData.dark().copyWith(
+        colorScheme: ThemeData.dark().colorScheme.copyWith(
+              primary: const Color(0xFF0B2B3A), // deep navy primary
+              onPrimary: Colors.white,
+              secondary: const Color(0xFF06B6D4), // teal accent
+              surface: const Color(0xFF0E2A37),
+              onSurface: Colors.white,
+            ),
+        scaffoldBackgroundColor:
+            const Color(0xFF071620), // deep navy background
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF006D5B),
+          backgroundColor: Color(0xFF0B2B3A),
           foregroundColor: Colors.white,
-          elevation: 2,
+          elevation: 1,
         ),
-        colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.teal)
-            .copyWith(secondary: const Color(0xFF06B6D4)),
+        cardTheme: CardTheme(
+          color: const Color(0xFF0E2A37),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Color(0xFF06B6D4),
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF06B6D4),
+          foregroundColor: Colors.white,
+        )),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF0B1A20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          labelStyle: const TextStyle(color: Colors.white70),
+        ),
+        textTheme: ThemeData.dark().textTheme.apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
       ),
       home: const InicioScreen(),
       navigatorObservers: [routeObserver],

@@ -28,14 +28,18 @@ class _ConsultasScreenState extends State<ConsultasScreen>
   }
 
   Future<void> _cargar() async {
+    if (!mounted) return;
     setState(() => cargando = true);
     try {
       final lista =
           await ApiService.obtenerConsultasPaciente(widget.pacienteId);
+      if (!mounted) return;
       setState(() => consultas = lista);
     } catch (e) {
+      if (!mounted) return;
       setState(() => consultas = []);
     } finally {
+      if (!mounted) return;
       setState(() => cargando = false);
     }
   }
@@ -107,15 +111,15 @@ class _ConsultasScreenState extends State<ConsultasScreen>
             child: const Icon(Icons.add),
           ),
           body: cargando
-              ? Center(
+              ? const Center(
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                   ),
                 )
               : consultas.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        padding: EdgeInsets.symmetric(horizontal: 32),
                         child: Text(
                           'No hay consultas registradas aún.',
                           textAlign: TextAlign.center,
@@ -166,9 +170,12 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                               c.motivo.isNotEmpty
                                                   ? c.motivo
                                                   : 'Consulta sin motivo',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.w700,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
                                               ),
                                             ),
                                             const SizedBox(height: 6),
@@ -176,7 +183,7 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                               formatoFecha(
                                                   c.fecha.toIso8601String()),
                                               style: const TextStyle(
-                                                color: Colors.white60,
+                                                color: Colors.white70,
                                                 fontSize: 12,
                                                 letterSpacing: 0.2,
                                               ),
@@ -235,9 +242,16 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                             CrossAxisAlignment.end,
                                         children: [
                                           TextButton.icon(
-                                            icon: const Icon(Icons.visibility,
-                                                size: 18),
-                                            label: const Text('Ver detalle'),
+                                            icon: Icon(Icons.visibility,
+                                                size: 18,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary),
+                                            label: Text('Ver detalle',
+                                                style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface)),
                                             onPressed: () {
                                               Navigator.push(
                                                   context,
@@ -248,8 +262,10 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                             },
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.edit,
-                                                color: Colors.blueAccent),
+                                            icon: Icon(Icons.edit,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary),
                                             tooltip: 'Editar consulta',
                                             onPressed: () async {
                                               final updated = await Navigator.push<
@@ -261,40 +277,44 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                                               pacienteId: widget
                                                                   .pacienteId,
                                                               consulta: c)));
-                                              if (updated != null)
+                                              if (updated != null) {
                                                 await _cargar();
+                                              }
                                             },
                                           ),
                                           IconButton(
-                                            icon: const Icon(
-                                                Icons.delete_outline,
-                                                color: Colors.redAccent),
+                                            icon: Icon(Icons.delete_outline,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error),
                                             tooltip: 'Eliminar consulta',
                                             onPressed: () async {
-                                              final confirm = await showDialog<
-                                                      bool>(
-                                                  context: context,
-                                                  builder: (ctx) => AlertDialog(
-                                                          title: const Text(
-                                                              'Confirmar'),
-                                                          content: const Text(
-                                                              '¿Eliminar esta consulta del historial?'),
-                                                          actions: [
-                                                            TextButton(
-                                                                onPressed: () =>
-                                                                    Navigator.pop(
-                                                                        ctx,
-                                                                        false),
-                                                                child: const Text(
-                                                                    'Cancelar')),
-                                                            TextButton(
-                                                                onPressed: () =>
-                                                                    Navigator.pop(
-                                                                        ctx,
-                                                                        true),
-                                                                child: const Text(
-                                                                    'Eliminar')),
-                                                          ]));
+                                              final confirm =
+                                                  await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (ctx) =>
+                                                          AlertDialog(
+                                                            title: const Text(
+                                                                'Confirmar'),
+                                                            content: const Text(
+                                                                '¿Eliminar esta consulta del historial?'),
+                                                            actions: [
+                                                              TextButton(
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                          ctx,
+                                                                          false),
+                                                                  child: const Text(
+                                                                      'Cancelar')),
+                                                              TextButton(
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                          ctx,
+                                                                          true),
+                                                                  child: const Text(
+                                                                      'Eliminar')),
+                                                            ],
+                                                          ));
                                               if (confirm == true) {
                                                 final ok = await ApiService
                                                     .eliminarHistorial(c.id);
@@ -337,8 +357,9 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                                       fit: BoxFit.cover),
                                             ),
                                           );
-                                          if (displayUrl.startsWith('http'))
+                                          if (displayUrl.startsWith('http')) {
                                             return preview;
+                                          }
                                           return GestureDetector(
                                             onTap: () =>
                                                 _openImage(context, rawUrl),
@@ -370,17 +391,18 @@ class _ConsultasScreenState extends State<ConsultasScreen>
   }
 
   Widget _buildMetricChip({required String label}) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: cs.surface.withOpacity(0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withOpacity(0.12)),
+        border: Border.all(color: cs.onSurface.withOpacity(0.06)),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.black87,
+        style: TextStyle(
+          color: cs.onSurface,
           fontSize: 13,
           letterSpacing: 0.2,
         ),
@@ -392,7 +414,6 @@ class _ConsultasScreenState extends State<ConsultasScreen>
     final trimmed = value.trim();
     final isEmpty = trimmed.isEmpty;
     final display = isEmpty ? 'Sin registrar' : trimmed;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(
@@ -401,7 +422,7 @@ class _ConsultasScreenState extends State<ConsultasScreen>
           Text(
             title,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Colors.white,
               fontSize: 12,
               letterSpacing: 0.3,
             ),
@@ -410,7 +431,7 @@ class _ConsultasScreenState extends State<ConsultasScreen>
           Text(
             display,
             style: TextStyle(
-              color: isEmpty ? Colors.grey[500] : Colors.black87,
+              color: isEmpty ? Colors.white70 : Colors.white,
               fontWeight: isEmpty ? FontWeight.w500 : FontWeight.w600,
               height: 1.32,
             ),
@@ -448,30 +469,39 @@ class _ConsultasScreenState extends State<ConsultasScreen>
     b.writeln(
         '<p><strong>Fecha:</strong> ${formatoFecha(c.fecha.toIso8601String())}</p>');
     if (c.peso > 0) b.writeln('<p><strong>Peso:</strong> ${c.peso} kg</p>');
-    if (c.estatura > 0)
+    if (c.estatura > 0) {
       b.writeln('<p><strong>Estatura:</strong> ${c.estatura} m</p>');
-    if (c.imc > 0)
+    }
+    if (c.imc > 0) {
       b.writeln('<p><strong>IMC:</strong> ${c.imc.toStringAsFixed(2)}</p>');
-    if (c.presion.isNotEmpty)
+    }
+    if (c.presion.isNotEmpty) {
       b.writeln('<p><strong>Presión:</strong> ${c.presion}</p>');
-    if (c.frecuenciaCardiaca > 0)
+    }
+    if (c.frecuenciaCardiaca > 0) {
       b.writeln('<p><strong>FC:</strong> ${c.frecuenciaCardiaca}</p>');
-    if (c.frecuenciaRespiratoria > 0)
+    }
+    if (c.frecuenciaRespiratoria > 0) {
       b.writeln('<p><strong>FR:</strong> ${c.frecuenciaRespiratoria}</p>');
-    if (c.temperatura > 0)
+    }
+    if (c.temperatura > 0) {
       b.writeln('<p><strong>Temp:</strong> ${c.temperatura} °C</p>');
-    if (c.diagnostico.isNotEmpty)
+    }
+    if (c.diagnostico.isNotEmpty) {
       b.writeln('<h4>Diagnóstico</h4><p>${c.diagnostico}</p>');
-    if (c.tratamiento.isNotEmpty)
+    }
+    if (c.tratamiento.isNotEmpty) {
       b.writeln('<h4>Tratamiento</h4><p>${c.tratamiento}</p>');
+    }
     if (c.receta.isNotEmpty) b.writeln('<h4>Receta</h4><p>${c.receta}</p>');
     if (c.imagenes.isNotEmpty) {
       b.writeln('<h4>Imágenes</h4>');
       for (var raw in c.imagenes) {
         var display = raw.toString();
-        if (display.startsWith('/'))
+        if (display.startsWith('/')) {
           display = ApiService.baseUrl + display;
-        else if (!display.startsWith('http') && !display.startsWith('file:')) {
+        } else if (!display.startsWith('http') &&
+            !display.startsWith('file:')) {
           // assume local absolute path -> make file URI
           display = Uri.file(display).toString();
         }

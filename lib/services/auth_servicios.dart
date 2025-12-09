@@ -177,6 +177,14 @@ class AuthService {
     return hasCredenciales || hasFirebase;
   }
 
+  /// Try to login offline: returns true if there are cached credentials or a cached
+  /// firebase UID allowing the app to function in offline mode.
+  static Future<bool> tryOfflineLogin() async {
+    // For now we consider the same check as isAuthenticated. We can extend this
+    // later to require PIN/biometrics or session freshness checks.
+    return await isAuthenticated();
+  }
+
   static Future<void> _persistUser(User? user,
       {Map<dynamic, dynamic>? backendData}) async {
     if (user == null) return;

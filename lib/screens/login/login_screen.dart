@@ -19,6 +19,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _claveCtrl = TextEditingController();
   bool cargando = false;
   bool _mostrarClave = false;
+  bool _canOfflineLogin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if offline login is possible (cached credentials/profile)
+    AuthService.tryOfflineLogin().then((v) {
+      if (!mounted) return;
+      setState(() => _canOfflineLogin = v);
+    });
+  }
 
   @override
   void dispose() {
@@ -145,6 +156,41 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
+                        if (_canOfflineLogin)
+                          Column(
+                            children: [
+                              FilledButton.icon(
+                                onPressed: cargando
+                                    ? null
+                                    : () async {
+                                        final ok =
+                                            await AuthService.tryOfflineLogin();
+                                        if (ok && mounted) {
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const MenuPrincipalScreen()),
+                                          );
+                                        } else if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text(
+                                                      'No es posible iniciar sesión offline')));
+                                        }
+                                      },
+                                icon: const Icon(Icons.wifi_off),
+                                label: const Text('Entrar sin Internet'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.orangeAccent,
+                                  foregroundColor: Colors.black,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                          ),
                         Text(
                           'Iniciar sesión',
                           textAlign: TextAlign.center,

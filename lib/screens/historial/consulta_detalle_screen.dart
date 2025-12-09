@@ -26,8 +26,9 @@ class ConsultaDetalleScreen extends StatelessWidget {
     final seen = <String>{};
     for (final u in [...consulta.imagenes, ...notasImagesFromHtml]) {
       var normalized = u;
-      if (normalized.startsWith('/'))
+      if (normalized.startsWith('/')) {
         normalized = ApiService.baseUrl + normalized;
+      }
       if (!seen.contains(normalized)) {
         seen.add(normalized);
         mergedImages.add(normalized);
@@ -435,7 +436,9 @@ class ConsultaDetalleScreen extends StatelessWidget {
       final tagFinder = RegExp(r'<\/?div\b', caseSensitive: false);
       final matches = tagFinder.allMatches(html).toList();
       int i = 0;
-      while (i < matches.length && matches[i].start < openStart) i++;
+      while (i < matches.length && matches[i].start < openStart) {
+        i++;
+      }
       if (i >= matches.length) return html;
 
       int depth = 0;
@@ -506,8 +509,10 @@ class ConsultaDetalleScreen extends StatelessWidget {
     for (final s in examFields) {
       if (s.trim().isNotEmpty) return true;
     }
-    if (c.notasHtml.isNotEmpty && c.notasHtml.toLowerCase().contains('examen'))
+    if (c.notasHtml.isNotEmpty &&
+        c.notasHtml.toLowerCase().contains('examen')) {
       return true;
+    }
     return false;
   }
 
@@ -518,7 +523,7 @@ class ConsultaDetalleScreen extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.4,

@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/paciente.dart';
+import 'local_db.dart';
 import '../models/consulta.dart';
 import '../models/cita.dart';
 import '../models/clinica.dart';
@@ -251,6 +252,11 @@ class ApiService {
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as List<dynamic>;
+      // Cache fetched patients locally so they are available offline
+      try {
+        // fire-and-forget cache (best-effort)
+        LocalDb.saveOrUpdateRemotePatientsBatch(data);
+      } catch (_) {}
       return data.map((json) => Paciente.fromJson(json)).toList();
     }
 
@@ -314,16 +320,31 @@ class ApiService {
       final res = await http.post(url, headers: headers, body: body);
       _log('📥 crearPaciente - status: ${res.statusCode} body: ${res.body}');
       if (res.statusCode == 200 || res.statusCode == 201) {
-        return {'ok': true, 'message': 'Paciente creado correctamente'};
+        try {
+          final parsed = jsonDecode(res.body);
+          // If API returns the created resource, return it under 'data'
+          if (parsed is Map<String, dynamic>) {
+            return {'ok': true, 'data': parsed};
+          }
+          // Otherwise return success with raw body
+          return {'ok': true, 'body': res.body};
+        } catch (_) {
+          return {'ok': true, 'body': res.body};
+        }
       } else {
         try {
           final d = jsonDecode(res.body);
           return {
             'ok': false,
-            'message': d['error'] ?? d['message'] ?? 'Error desconocido'
+            'message': d['error'] ?? d['message'] ?? 'Error desconocido',
+            'body': d
           };
         } catch (_) {
-          return {'ok': false, 'message': 'Error desconocido'};
+          return {
+            'ok': false,
+            'message': 'Error desconocido',
+            'body': res.body
+          };
         }
       }
     } catch (e) {
@@ -375,6 +396,27 @@ class ApiService {
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as List<dynamic>;
       return data.map((json) => Consulta.fromJson(json)).toList();
+    }
+    return [];
+  }
+
+  // Devuelve la respuesta raw (lista de mapas) del historial del paciente.
+  static Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    final url = Uri.parse('$baseUrl/api/historial/paciente/$pacienteId');
+    final headers = await _getHeaders();
+    _log('📌 obtenerConsultasPacienteRaw - GET $url');
+    try {
+      final res = await http.get(url, headers: headers);
+      _log(
+          '📌 obtenerConsultasPacienteRaw - status: ${res.statusCode} body: ${res.body}');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as List<dynamic>;
+        return List<Map<String, dynamic>>.from(
+            data.map((e) => Map<String, dynamic>.from(e as Map)));
+      }
+    } catch (e) {
+      _log('❌ obtenerConsultasPacienteRaw - error: $e');
     }
     return [];
   }
@@ -538,6 +580,25 @@ class ApiService {
         _log('❌ obtenerCitas - error parseando JSON: $e');
         return [];
       }
+    }
+    return [];
+  }
+
+  // Devuelve la respuesta raw (lista de mapas) de /api/citas
+  static Future<List<Map<String, dynamic>>> obtenerCitasRaw() async {
+    final url = Uri.parse('$baseUrl/api/citas');
+    final headers = await _getHeaders();
+    _log('📌 obtenerCitasRaw - GET $url');
+    try {
+      final res = await http.get(url, headers: headers);
+      _log('📌 obtenerCitasRaw - status: ${res.statusCode} body: ${res.body}');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as List<dynamic>;
+        return List<Map<String, dynamic>>.from(
+            data.map((e) => Map<String, dynamic>.from(e as Map)));
+      }
+    } catch (e) {
+      _log('❌ obtenerCitasRaw - error: $e');
     }
     return [];
   }

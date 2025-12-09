@@ -5,6 +5,8 @@ import '../../models/paciente.dart';
 import '../../models/consulta.dart';
 import '../../models/cita.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../utils/formato_fecha.dart';
 import '../../utils/pdf_helper.dart';
 import '../../route_refresh_mixin.dart';
@@ -45,27 +47,70 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
     setState(() => cargando = true);
     var cons = List<Consulta>.from(widget.paciente.historial);
     var cit = List<Cita>.from(widget.paciente.citas);
-
-    try {
-      final fetched =
-          await ApiService.obtenerConsultasPaciente(widget.paciente.id);
-      if (fetched.isNotEmpty) {
-        cons = List<Consulta>.from(fetched);
+    // Try online first; fallback to local if offline or API fails
+    final conn = await Connectivity().checkConnectivity();
+    if (conn != ConnectivityResult.none) {
+      try {
+        // Use raw endpoint to cache original server JSON, then convert to models
+        final fetchedRaw =
+            await ApiService.obtenerConsultasPacienteRaw(widget.paciente.id);
+        if (fetchedRaw.isNotEmpty) {
+          try {
+            await LocalDb.saveOrUpdateRemoteConsultasBatch(fetchedRaw);
+          } catch (_) {}
+          cons = fetchedRaw.map((j) => Consulta.fromJson(j)).toList();
+        }
+      } catch (e) {
+        debugPrint(
+            '⚠️ Error cargando consultas de paciente ${widget.paciente.id}: $e');
       }
-    } catch (e) {
-      debugPrint(
-          '⚠️ Error cargando consultas de paciente ${widget.paciente.id}: $e');
-    }
 
-    try {
-      final fetchedCitas =
-          await ApiService.obtenerCitasPaciente(widget.paciente.id);
-      if (fetchedCitas.isNotEmpty) {
-        cit = fetchedCitas;
+      try {
+        // Fetch raw citas and filter by paciente id, cache raw maps first
+        final allCitasRaw = await ApiService.obtenerCitasRaw();
+        final fetchedCitasRaw = allCitasRaw
+            .where((m) => (m['paciente_id'] ?? m['paciente'] ?? m['pacienteId'])
+                .toString()
+                .toString()
+                .contains(widget.paciente.id.toString()))
+            .toList();
+        if (fetchedCitasRaw.isNotEmpty) {
+          try {
+            await LocalDb.saveOrUpdateRemoteCitasBatch(fetchedCitasRaw);
+          } catch (_) {}
+          cit = fetchedCitasRaw.map((j) => Cita.fromJson(j)).toList();
+        }
+      } catch (e) {
+        debugPrint(
+            '⚠️ Error cargando citas de paciente ${widget.paciente.id}: $e');
       }
-    } catch (e) {
-      debugPrint(
-          '⚠️ Error cargando citas de paciente ${widget.paciente.id}: $e');
+    } else {
+      // Offline: load from LocalDb
+      try {
+        final localCons = await LocalDb.getConsultasByPacienteId(
+            widget.paciente.id.toString());
+        if (localCons.isNotEmpty) {
+          cons = localCons
+              .map((m) => Consulta.fromJson(
+                  Map<String, dynamic>.from(m['data'] as Map)))
+              .toList();
+        }
+      } catch (e) {
+        debugPrint('Error cargando consultas locales: $e');
+      }
+
+      try {
+        final localCitas =
+            await LocalDb.getCitasByPacienteId(widget.paciente.id.toString());
+        if (localCitas.isNotEmpty) {
+          cit = localCitas
+              .map((m) =>
+                  Cita.fromJson(Map<String, dynamic>.from(m['data'] as Map)))
+              .toList();
+        }
+      } catch (e) {
+        debugPrint('Error cargando citas locales: $e');
+      }
     }
 
     cons.sort((a, b) => b.fecha.compareTo(a.fecha));
@@ -127,21 +172,30 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
       _buildCalendarSection(context),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.paciente.nombres} ${widget.paciente.apellidos}'),
-      ),
-      backgroundColor: backgroundColor,
-      body: cargando
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: cargarDatos,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: sections,
+    final baseTheme = Theme.of(context);
+    final appBarBg = baseTheme.appBarTheme.backgroundColor ?? scheme.surface;
+
+    return IconTheme(
+      data: const IconThemeData(color: Colors.black),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: appBarBg,
+          iconTheme: const IconThemeData(color: Colors.black),
+          title:
+              Text('${widget.paciente.nombres} ${widget.paciente.apellidos}'),
+        ),
+        backgroundColor: backgroundColor,
+        body: cargando
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: cargarDatos,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: sections,
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -278,8 +332,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
               color: scheme.secondary,
               borderRadius: BorderRadius.circular(12),
             ),
-            child:
-                Icon(Icons.event_available_outlined, color: scheme.onSecondary),
+            child: Icon(Icons.event_available_outlined, color: Colors.black),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -363,6 +416,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
     final dateText = _fechaFormatter.format(consulta.fecha);
 
     final metrics = <Widget>[];
+    final fg =
+        theme.brightness == Brightness.dark ? Colors.white : Colors.black;
     if (consulta.peso > 0) {
       metrics.add(
         _metricChip(
@@ -452,7 +507,9 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                         dateText,
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: scheme.primary,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -493,7 +550,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                       ),
                     );
                   },
-                  icon: const Icon(Icons.open_in_new),
+                  icon: Icon(Icons.open_in_new, color: fg),
                 ),
               ],
             ),
@@ -511,7 +568,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
               runSpacing: 8,
               children: [
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  style: ElevatedButton.styleFrom(foregroundColor: fg),
+                  icon: Icon(Icons.picture_as_pdf_outlined, color: fg),
                   label: const Text('Generar PDF'),
                   onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
@@ -532,7 +590,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                   },
                 ),
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.visibility_outlined),
+                  style: OutlinedButton.styleFrom(foregroundColor: fg),
+                  icon: Icon(Icons.visibility_outlined, color: fg),
                   label: const Text('Detalle'),
                   onPressed: () {
                     Navigator.push(
@@ -546,7 +605,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                 ),
                 if (consulta.receta.isNotEmpty)
                   TextButton.icon(
-                    icon: const Icon(Icons.receipt_long_outlined),
+                    style: TextButton.styleFrom(foregroundColor: fg),
+                    icon: Icon(Icons.receipt_long_outlined, color: fg),
                     label: const Text('Ver receta'),
                     onPressed: () {
                       showDialog(
@@ -566,7 +626,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                   ),
                 if (consulta.diagnostico.isNotEmpty)
                   TextButton.icon(
-                    icon: const Icon(Icons.medical_information_outlined),
+                    style: TextButton.styleFrom(foregroundColor: fg),
+                    icon: Icon(Icons.medical_information_outlined, color: fg),
                     label: const Text('Ver diagnóstico'),
                     onPressed: () {
                       showDialog(
@@ -660,7 +721,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                     scheme.primary.withOpacity(0.14),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(Icons.event_note, color: scheme.primary),
+              child: Icon(Icons.event_note, color: Colors.black),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -741,8 +802,8 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                         scheme.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.calendar_month_outlined,
-                      color: scheme.primary),
+                  child:
+                      Icon(Icons.calendar_month_outlined, color: Colors.black),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -834,7 +895,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
                   scheme.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: scheme.primary),
+            child: Icon(icon, color: Colors.black),
           ),
         if (icon != null) const SizedBox(width: 12),
         Expanded(
@@ -882,7 +943,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 32, color: scheme.outline),
+          Icon(icon, size: 32, color: Colors.black),
           const SizedBox(height: 12),
           Text(
             message,
@@ -964,7 +1025,7 @@ class _VistaPacienteScreenState extends State<VistaPacienteScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: scheme.primary),
+          Icon(icon, size: 16, color: Colors.black),
           const SizedBox(width: 6),
           Text(
             text,

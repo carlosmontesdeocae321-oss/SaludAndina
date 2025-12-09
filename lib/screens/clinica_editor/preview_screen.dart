@@ -174,61 +174,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<Uint8List> _buildPdfBytes(String html) async {
     final doc = pw.Document();
 
-    pw.Widget headerWidget;
+    // helper: load logo safely
+    pw.MemoryImage? logoImage;
     try {
       final bd = await rootBundle.load('assets/images/logo.png');
-      final logo = pw.MemoryImage(bd.buffer.asUint8List());
-
-      // Build left logo + center text; optional doctor image on right
-      final List<pw.Widget> headerRowChildren = [
-        pw.Container(width: 72, height: 72, child: pw.Image(logo)),
-        pw.SizedBox(width: 12),
-        pw.Expanded(
-          child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                    (_doctorName +
-                                (_doctorLastName.isNotEmpty
-                                    ? ' ' + _doctorLastName
-                                    : ''))
-                            .trim()
-                            .isNotEmpty
-                        ? (_doctorName +
-                                (_doctorLastName.isNotEmpty
-                                    ? ' ' + _doctorLastName
-                                    : ''))
-                            .trim()
-                        : 'Médico',
-                    style: pw.TextStyle(
-                        fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                if (_doctorSpecialty.isNotEmpty)
-                  pw.Text(_doctorSpecialty,
-                      style:
-                          pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-                if (_doctorPhone.isNotEmpty)
-                  pw.Text(_doctorPhone,
-                      style:
-                          pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-              ]),
-        ),
-      ];
-
-      if (_doctorImageBytes != null) {
-        headerRowChildren.add(pw.SizedBox(width: 12));
-        headerRowChildren.add(pw.Container(
-            width: 64,
-            height: 64,
-            decoration: pw.BoxDecoration(shape: pw.BoxShape.circle),
-            child: pw.ClipOval(
-                child: pw.Image(pw.MemoryImage(_doctorImageBytes!)))));
-      }
-
-      headerWidget = pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: headerRowChildren);
-    } catch (e) {
-      headerWidget = pw.Container();
+      logoImage = pw.MemoryImage(bd.buffer.asUint8List());
+    } catch (_) {
+      logoImage = null;
     }
 
     // Extract embedded images from the HTML and fetch their bytes to include in PDF
@@ -259,29 +211,153 @@ class _PreviewScreenState extends State<PreviewScreen> {
       }
     }
 
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              headerWidget,
-              pw.SizedBox(height: 12),
-              pw.Divider(),
-              pw.SizedBox(height: 12),
-              pw.Text(_stripHtmlTags(cleanedHtml)),
-              if (pdfImages.isNotEmpty) pw.SizedBox(height: 12),
-              for (final img in pdfImages) ...[
-                pw.SizedBox(height: 8),
-                pw.Center(child: pw.Image(img, width: 150)),
-              ],
-            ],
-          );
-        },
-      ),
-    );
+    // Build header widget for pages
+    pw.Widget header(pw.Context context) {
+      final List<pw.Widget> left = [];
+      if (logoImage != null) {
+        left.add(
+            pw.Container(width: 64, height: 64, child: pw.Image(logoImage)));
+        left.add(pw.SizedBox(width: 10));
+      }
+      left.add(
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Text(
+            (_doctorName +
+                        (_doctorLastName.isNotEmpty
+                            ? ' ' + _doctorLastName
+                            : ''))
+                    .trim()
+                    .isNotEmpty
+                ? (_doctorName +
+                        (_doctorLastName.isNotEmpty
+                            ? ' ' + _doctorLastName
+                            : ''))
+                    .trim()
+                : 'Médico',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+        if (_doctorSpecialty.isNotEmpty)
+          pw.Text(_doctorSpecialty,
+              style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+        if (_doctorPhone.isNotEmpty)
+          pw.Text(_doctorPhone,
+              style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+      ]));
+
+      final right = <pw.Widget>[];
+      if (_doctorImageBytes != null) {
+        right.add(pw.Container(
+            width: 48,
+            height: 48,
+            decoration: pw.BoxDecoration(shape: pw.BoxShape.circle),
+            child: pw.ClipOval(
+                child: pw.Image(pw.MemoryImage(_doctorImageBytes!)))));
+      }
+
+      return pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Row(children: left),
+          if (right.isNotEmpty) pw.Row(children: right)
+        ],
+      );
+    }
+
+    // Parse cleanedHtml into structured blocks (h3, h4, p) preserving order
+    List<pw.Widget> contentBlocks() {
+      final blocks = <pw.Widget>[];
+      try {
+        final re = RegExp(
+            r'(<h3[^>]*>.*?<\/h3>)|(<h4[^>]*>.*?<\/h4>)|(<p[^>]*>.*?<\/p>)',
+            dotAll: true,
+            caseSensitive: false);
+        final matches = re.allMatches(cleanedHtml);
+        if (matches.isEmpty) {
+          // Fallback: whole body as paragraph
+          blocks.add(pw.Text(_stripHtmlTags(cleanedHtml),
+              style: pw.TextStyle(fontSize: 11)));
+          return blocks;
+        }
+
+        for (final m in matches) {
+          final match = m.group(0) ?? '';
+          if (match.toLowerCase().startsWith('<h3')) {
+            final text = _stripHtmlTags(match).trim();
+            blocks.add(pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 8, bottom: 4),
+                child: pw.Text(text,
+                    style: pw.TextStyle(
+                        fontSize: 16, fontWeight: pw.FontWeight.bold))));
+          } else if (match.toLowerCase().startsWith('<h4')) {
+            final text = _stripHtmlTags(match).trim();
+            blocks.add(pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
+                child: pw.Text(text,
+                    style: pw.TextStyle(
+                        fontSize: 13,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey800))));
+          } else if (match.toLowerCase().startsWith('<p')) {
+            final text = _stripHtmlTags(match).trim();
+            blocks.add(pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                child: pw.Text(text,
+                    style: pw.TextStyle(fontSize: 11, lineSpacing: 2))));
+          }
+        }
+      } catch (e) {
+        blocks.add(pw.Text(_stripHtmlTags(cleanedHtml),
+            style: pw.TextStyle(fontSize: 11)));
+      }
+      return blocks;
+    }
+
+    // Use MultiPage to support header/footer and pagination
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(28),
+      header: header,
+      footer: (pw.Context context) {
+        return pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 8.0),
+          child: pw.Text('Página ${context.pageNumber} / ${context.pagesCount}',
+              style: pw.TextStyle(color: PdfColors.grey, fontSize: 9)),
+        );
+      },
+      build: (pw.Context context) {
+        final content = <pw.Widget>[];
+        content.add(pw.SizedBox(height: 8));
+        content.add(pw.Divider());
+        content.add(pw.SizedBox(height: 8));
+        content.addAll(contentBlocks());
+
+        if (pdfImages.isNotEmpty) {
+          content.add(pw.SizedBox(height: 12));
+          content.add(pw.Text('Imágenes',
+              style:
+                  pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)));
+          content.add(pw.SizedBox(height: 6));
+          // layout images in rows of 3
+          final rows = <pw.Widget>[];
+          for (var i = 0; i < pdfImages.length; i += 3) {
+            final rowImgs =
+                pdfImages.sublist(i, (i + 3).clamp(0, pdfImages.length));
+            rows.add(pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: rowImgs
+                    .map((img) => pw.Container(
+                        width: 150,
+                        height: 110,
+                        child: pw.Image(img, fit: pw.BoxFit.contain)))
+                    .toList()));
+            rows.add(pw.SizedBox(height: 8));
+          }
+          content.addAll(rows);
+        }
+
+        return content;
+      },
+    ));
 
     final res = await doc.save();
     return Uint8List.fromList(res);

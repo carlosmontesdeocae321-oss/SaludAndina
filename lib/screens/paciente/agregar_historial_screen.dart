@@ -147,11 +147,16 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agregar historial'),
+        backgroundColor: cs.background,
+        iconTheme: IconThemeData(color: cs.onBackground),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: cs.primary,
           tabs: const [
             Tab(text: 'Motivo'),
             Tab(text: 'Examen físico'),
@@ -309,11 +314,17 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
                                     onPressed: _pickImages,
                                     icon: const Icon(Icons.photo_library),
                                     label: const Text('Seleccionar imágenes'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: cs.primary,
+                                      foregroundColor: cs.onPrimary,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   if (_imagenes.isNotEmpty)
                                     Text(
-                                        '${_imagenes.length} imagen(es) seleccionadas')
+                                      '${_imagenes.length} imagen(es) seleccionadas',
+                                      style: TextStyle(color: cs.onBackground),
+                                    )
                                 ],
                               ),
                               const SizedBox(height: 8),
@@ -371,6 +382,10 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
                       Expanded(
                         child: ElevatedButton(
                           onPressed: _guardar,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                          ),
                           child: const Padding(
                             padding: EdgeInsets.symmetric(vertical: 14),
                             child: Text('Guardar historial'),

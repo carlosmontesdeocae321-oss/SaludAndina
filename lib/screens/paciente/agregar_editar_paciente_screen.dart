@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/paciente.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AgregarEditarPacienteScreen extends StatefulWidget {
   final Paciente? paciente; // Si es null → agregar, si no → editar
@@ -153,30 +155,33 @@ class _AgregarEditarPacienteScreenState
     try {
       final cedulaTrim = _cedulaController.text.trim();
       if (cedulaTrim.isNotEmpty) {
-        final found = await ApiService.buscarPacientePorCedula(cedulaTrim);
-        if (!mounted) return;
-        if (found != null && found['ok'] == true && found['data'] != null) {
-          final existing = found['data'];
-          final existingId =
-              (existing['id'] ?? existing['paciente_id'] ?? existing['user_id'])
-                  ?.toString();
-          // Si estamos creando (widget.paciente == null) -> cualquier coincidencia es error
-          // Si estamos editando -> si la coincidencia corresponde a otro paciente (id distinto) es error
-          if (widget.paciente == null) {
-            messenger.showSnackBar(const SnackBar(
-                content:
-                    Text('La cédula ya está registrada para otro paciente')));
-            if (!mounted) return;
-            setState(() => cargando = false);
-            return;
-          } else if (existingId != null &&
-              existingId != widget.paciente!.id.toString()) {
-            messenger.showSnackBar(const SnackBar(
-                content:
-                    Text('La cédula ya está registrada para otro paciente')));
-            if (!mounted) return;
-            setState(() => cargando = false);
-            return;
+        // Only try remote uniqueness check when online
+        final conn = await (Connectivity().checkConnectivity());
+        if (conn != ConnectivityResult.none) {
+          final found = await ApiService.buscarPacientePorCedula(cedulaTrim);
+          if (!mounted) return;
+          if (found != null && found['ok'] == true && found['data'] != null) {
+            final existing = found['data'];
+            final existingId = (existing['id'] ??
+                    existing['paciente_id'] ??
+                    existing['user_id'])
+                ?.toString();
+            if (widget.paciente == null) {
+              messenger.showSnackBar(const SnackBar(
+                  content:
+                      Text('La cédula ya está registrada para otro paciente')));
+              if (!mounted) return;
+              setState(() => cargando = false);
+              return;
+            } else if (existingId != null &&
+                existingId != widget.paciente!.id.toString()) {
+              messenger.showSnackBar(const SnackBar(
+                  content:
+                      Text('La cédula ya está registrada para otro paciente')));
+              if (!mounted) return;
+              setState(() => cargando = false);
+              return;
+            }
           }
         }
       }
@@ -185,13 +190,36 @@ class _AgregarEditarPacienteScreenState
       debugPrint('⚠️ Error comprobando unicidad de cédula: $e');
     }
 
+    // Decide online vs offline
+    final conn = await (Connectivity().checkConnectivity());
+    if (conn == ConnectivityResult.none) {
+      // Save locally
+      try {
+        await LocalDb.savePatient(data);
+        messenger.showSnackBar(const SnackBar(
+            content: Text(
+                'Paciente guardado localmente (pendiente de sincronización)')));
+        if (!mounted) return;
+        setState(() => cargando = false);
+        navigator.pop(true);
+        return;
+      } catch (e) {
+        debugPrint('Error guardando paciente localmente: $e');
+        messenger.showSnackBar(const SnackBar(
+            content: Text('Error guardando paciente localmente')));
+        if (!mounted) return;
+        setState(() => cargando = false);
+        return;
+      }
+    }
+
     if (widget.paciente == null) {
-      // AGREGAR
+      // AGREGAR (online)
       final resp = await ApiService.crearPaciente(data);
       exito = resp['ok'] == true;
       mensaje = resp['message'] ?? '';
     } else {
-      // EDITAR
+      // EDITAR (online)
       exito = await ApiService.editarPaciente(widget.paciente!.id, data);
       mensaje = exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
     }
