@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'local_db.dart';
 import 'api_client.dart';
 import 'api_service_adapter.dart';
+import 'sync_notifier.dart';
 
 /// Clean implementation of the SyncService (new file).
 class SyncService {
@@ -33,6 +34,9 @@ class SyncService {
 
   SyncService._() {
     _startConnectivityListener();
+    // Seed the notifier asynchronously so the drawer badge has an initial value.
+    // Fire-and-forget is acceptable here; errors are swallowed inside refresh().
+    SyncNotifier.instance.refresh();
   }
 
   static final _instance = SyncService._();
@@ -88,6 +92,8 @@ class SyncService {
           if (existingServerId.isNotEmpty) {
             // If we already have a serverId, assume synced (or update remote if needed).
             await LocalDb.markAsSynced(localId, existingServerId, null);
+            // refresh badge
+            SyncNotifier.instance.refresh();
             continue;
           }
 
@@ -131,12 +137,16 @@ class SyncService {
                   await LocalDb.updateLocalError(
                       localId, 'Missing serverId for upload');
                 }
+                // refresh badge on error
+                SyncNotifier.instance.refresh();
                 continue;
               }
 
               if (attachments.isEmpty) {
                 // nothing to upload, mark as synced
                 await LocalDb.markAsSynced(localId, serverId, srvObj);
+                // refresh badge
+                SyncNotifier.instance.refresh();
               } else {
                 final uid = int.tryParse(serverId);
                 if (uid != null) {
@@ -153,16 +163,21 @@ class SyncService {
                       } else {
                         await LocalDb.markAsSynced(localId, serverId, null);
                       }
+                      // refresh badge after successful upload and mark
+                      SyncNotifier.instance.refresh();
                     } else {
                       if (srvObj != null)
                         await LocalDb.markAsSynced(localId, serverId, srvObj);
                       else
                         await LocalDb.markAsSynced(localId, serverId, null);
+                      SyncNotifier.instance.refresh();
                     }
                   } else {
                     // _uploadWithBackoff already incremented attempts and set error if exhausted
                     debugPrint(
                         'SyncService: upload result not ok: ${up['error'] ?? up}');
+                    // ensure badge updated if upload exhausted
+                    SyncNotifier.instance.refresh();
                   }
                 }
               }
@@ -171,18 +186,24 @@ class SyncService {
                   'SyncService: error uploading patient attachments: $e');
               final attempts =
                   await LocalDb.incrementAttempts('patients', localId);
-              if (attempts >= 3) {
+              if (attempts >= uploadMaxAttempts) {
                 await LocalDb.updateLocalError(
                     localId, 'Upload failed after $attempts attempts');
               }
+              // refresh badge on error
+              SyncNotifier.instance.refresh();
             }
           } else {
             final msg = res['message']?.toString() ?? 'Error creating patient';
             await LocalDb.updateLocalError(localId, msg);
+            // refresh badge on error
+            SyncNotifier.instance.refresh();
           }
         } catch (e) {
           debugPrint('SyncService: error syncing patient $localId -> $e');
           await LocalDb.updateLocalError(localId, e.toString());
+          // refresh badge on error
+          SyncNotifier.instance.refresh();
         }
       }
 
@@ -201,13 +222,19 @@ class SyncService {
           final ok = await api.crearHistorial(fields, archivos);
           if (ok == true) {
             await LocalDb.markConsultaAsSynced(localId, '', null);
+            // refresh badge after successful sync
+            SyncNotifier.instance.refresh();
           } else {
             await LocalDb.updateConsultaError(
                 localId, 'Error creating historial');
+            // refresh badge on error
+            SyncNotifier.instance.refresh();
           }
         } catch (e) {
           debugPrint('SyncService: error syncing consulta $localId -> $e');
           await LocalDb.updateConsultaError(localId, e.toString());
+          // refresh badge on error
+          SyncNotifier.instance.refresh();
         }
       }
 
@@ -220,18 +247,26 @@ class SyncService {
           final ok = await api.agendarCita(data);
           if (ok == true) {
             await LocalDb.markCitaAsSynced(localId, '', null);
+            // refresh badge after successful sync
+            SyncNotifier.instance.refresh();
           } else {
             await LocalDb.updateCitaError(localId, 'Error agendando cita');
+            // refresh badge on error
+            SyncNotifier.instance.refresh();
           }
         } catch (e) {
           debugPrint('SyncService: error syncing cita $localId -> $e');
           await LocalDb.updateCitaError(localId, e.toString());
+          // refresh badge on error
+          SyncNotifier.instance.refresh();
         }
       }
     } catch (e) {
       debugPrint('SyncService.syncPending error: $e');
     } finally {
       _statusController.add('done');
+      // ensure badge reflects final state
+      SyncNotifier.instance.refresh();
     }
   }
 
@@ -251,6 +286,8 @@ class SyncService {
         if (attempts >= uploadMaxAttempts) {
           await LocalDb.updateLocalError(
               localId, 'Upload failed after $attempts attempts');
+          // refresh badge on error
+          SyncNotifier.instance.refresh();
           return res;
         }
       } catch (e) {
@@ -259,6 +296,8 @@ class SyncService {
         if (attempts >= uploadMaxAttempts) {
           await LocalDb.updateLocalError(
               localId, 'Upload failed after $attempts attempts');
+          // refresh badge on error
+          SyncNotifier.instance.refresh();
           return {'ok': false, 'error': e.toString()};
         }
       }

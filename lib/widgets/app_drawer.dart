@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_services.dart';
 import '../services/auth_servicios.dart';
 import '../services/sync_service.dart';
-import '../services/local_db.dart';
+import '../services/sync_notifier.dart';
 import '../screens/citas/citas_screen.dart';
 import '../screens/doctor/profile_screen.dart';
 import '../screens/dueno/dashboard_screen.dart';
@@ -316,11 +316,9 @@ class AppDrawer extends StatelessWidget {
                               context,
                               icon: Icons.sync,
                               label: 'Sincronizar',
-                              trailing: FutureBuilder<int>(
-                                future: LocalDb.getPending('all')
-                                    .then((list) => list.length),
-                                builder: (ctx, s) {
-                                  final cnt = s.data ?? 0;
+                              trailing: ValueListenableBuilder<int>(
+                                valueListenable: SyncNotifier.instance.count,
+                                builder: (ctx, cnt, _) {
                                   if (cnt <= 0) return const SizedBox.shrink();
                                   return Container(
                                     padding: const EdgeInsets.symmetric(
@@ -337,24 +335,18 @@ class AppDrawer extends StatelessWidget {
                                 },
                               ),
                               action: (navigator) async {
-                                ScaffoldMessenger.of(navigator.context).showSnackBar(
-                                    const SnackBar(
-                                        content:
-                                            Text('Iniciando sincronización...')));
+                                final messenger = ScaffoldMessenger.of(navigator.context);
+                                messenger.showSnackBar(const SnackBar(
+                                    content: Text('Iniciando sincronización...')));
                                 try {
                                   await SyncService.instance.onLogin();
-                                  ScaffoldMessenger.of(navigator.context)
-                                      .showSnackBar(const SnackBar(
-                                          content: Text(
-                                              'Sincronización finalizada')));
+                                  messenger.showSnackBar(const SnackBar(
+                                      content: Text('Sincronización finalizada')));
                                 } catch (e) {
-                                  ScaffoldMessenger.of(navigator.context)
-                                      .showSnackBar(SnackBar(
-                                          content: Text('Error: $e')));
+                                  messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
                                 }
                               },
                             ),
-
                             _drawerTile(
                               context,
                               icon: Icons.logout,
@@ -469,11 +461,9 @@ class AppDrawer extends StatelessWidget {
                             context,
                             icon: Icons.sync,
                             label: 'Sincronizar',
-                            trailing: FutureBuilder<int>(
-                              future: LocalDb.getPending('all')
-                                  .then((list) => list.length),
-                              builder: (ctx, s) {
-                                final cnt = s.data ?? 0;
+                            trailing: ValueListenableBuilder<int>(
+                              valueListenable: SyncNotifier.instance.count,
+                              builder: (ctx, cnt, _) {
                                 if (cnt <= 0) return const SizedBox.shrink();
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
@@ -490,24 +480,22 @@ class AppDrawer extends StatelessWidget {
                               },
                             ),
                             action: (navigator) async {
-                              ScaffoldMessenger.of(navigator.context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Iniciando sincronización...')));
+                              final messenger = ScaffoldMessenger.of(navigator.context);
+                              messenger.showSnackBar(const SnackBar(
+                                  content: Text('Iniciando sincronización...')));
                               try {
                                 await SyncService.instance.onLogin();
-                                ScaffoldMessenger.of(navigator.context)
-                                    .showSnackBar(const SnackBar(
-                                        content:
-                                            Text('Sincronización finalizada')));
+                                if (messenger.mounted) {
+                                  messenger.showSnackBar(const SnackBar(
+                                      content: Text('Sincronización finalizada')));
+                                }
                               } catch (e) {
-                                ScaffoldMessenger.of(navigator.context)
-                                    .showSnackBar(SnackBar(
-                                        content: Text('Error: $e')));
+                                if (messenger.mounted) {
+                                  messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+                                }
                               }
                             },
                           ),
-
                           _drawerTile(
                             context,
                             icon: Icons.logout,
