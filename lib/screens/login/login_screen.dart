@@ -20,16 +20,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _claveCtrl = TextEditingController();
   bool cargando = false;
   bool _mostrarClave = false;
-  bool _canOfflineLogin = false;
 
   @override
   void initState() {
     super.initState();
-    // Check if offline login is possible (cached credentials/profile)
-    AuthService.tryOfflineLogin().then((v) {
-      if (!mounted) return;
-      setState(() => _canOfflineLogin = v);
-    });
+    // Keep init light; offline login fallback is handled at action time
   }
 
   @override
@@ -189,44 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-                        if (_canOfflineLogin)
-                          Column(
-                            children: [
-                              FilledButton.icon(
-                                onPressed: cargando
-                                    ? null
-                                    : () async {
-                                        final messenger =
-                                            ScaffoldMessenger.of(context);
-                                        final navigator = Navigator.of(context);
-                                        final ok =
-                                            await AuthService.tryOfflineLogin();
-                                        if (ok && mounted) {
-                                          navigator.pushReplacement(
-                                            MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const MenuPrincipalScreen()),
-                                          );
-                                        } else {
-                                          if (messenger.mounted) {
-                                            messenger.showSnackBar(const SnackBar(
-                                                content: Text(
-                                                    'No es posible iniciar sesión offline')));
-                                          }
-                                        }
-                                      },
-                                icon: const Icon(Icons.wifi_off),
-                                label: const Text('Entrar sin Internet'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.orangeAccent,
-                                  foregroundColor: Colors.black,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                          ),
+                        // Offline entry button removed — use Google/credentials fallback
                         Text(
                           'Iniciar sesión',
                           textAlign: TextAlign.center,
