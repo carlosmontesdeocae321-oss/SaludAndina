@@ -21,6 +21,7 @@ import '../../widgets/app_drawer.dart';
 import '../../widgets/bank_transfer_card.dart';
 import '../../services/auth_servicios.dart';
 import '../inicio_screen.dart';
+import '../../services/connectivity_service.dart';
 
 class MenuPrincipalScreen extends StatefulWidget {
   const MenuPrincipalScreen({super.key});
@@ -913,8 +914,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                       final ok = await ApiService.eliminarPaciente(pid);
                       if (!itemContext.mounted) return;
                       if (ok) {
-                        messenger.showSnackBar(
-                            const SnackBar(content: Text('Paciente eliminado')));
+                        messenger.showSnackBar(const SnackBar(
+                            content: Text('Paciente eliminado')));
                         if (!mounted) return;
                         setState(() {});
                       } else {
@@ -1084,14 +1085,17 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
           final serverId = (map['serverId'] ?? '')?.toString() ?? '';
           // If server already has this cedula or serverId, skip to avoid duplicate
           if ((ced.isNotEmpty && serverMapByCedula.containsKey(ced)) ||
-              (serverId.isNotEmpty && serverList.any((s) => s.id == serverId))) {
+              (serverId.isNotEmpty &&
+                  serverList.any((s) => s.id == serverId))) {
             continue;
           }
 
           // create a Paciente object from local data but ensure id is localId so UI can detect
           final localId = map['localId']?.toString() ?? '';
           final pseudo = Map<String, dynamic>.from(data);
-          pseudo['id'] = localId.isNotEmpty ? localId : (pseudo['id']?.toString() ?? localId);
+          pseudo['id'] = localId.isNotEmpty
+              ? localId
+              : (pseudo['id']?.toString() ?? localId);
           final p = Paciente.fromJson(pseudo);
           out.insert(0, p); // put local records on top
         } catch (_) {}
@@ -1971,7 +1975,33 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                     },
                   ),
                 ),
-                body: TabBarView(children: views),
+                body: Column(
+                  children: [
+                    // Persistent small banner when offline so we don't navigate away
+                    ValueListenableBuilder<bool>(
+                      valueListenable: ConnectivityService.isOnline,
+                      builder: (context, online, child) {
+                        if (online) return const SizedBox.shrink();
+                        return Container(
+                          width: double.infinity,
+                          color: Colors.orange.shade700,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          child: const SafeArea(
+                            top: false,
+                            bottom: false,
+                            child: Text(
+                              'Sin conexión — trabajando en modo offline',
+                              style: TextStyle(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Expanded(child: TabBarView(children: views)),
+                  ],
+                ),
               ),
             ),
           ),

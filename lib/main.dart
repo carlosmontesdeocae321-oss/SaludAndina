@@ -13,6 +13,7 @@ import 'screens/admin/pagos_admin_screen.dart';
 import 'services/auth_servicios.dart';
 import 'firebase_options.dart';
 import 'services/local_db.dart';
+import 'services/connectivity_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,12 @@ Future<void> main() async {
     await LocalDb.init();
   } catch (e) {
     debugPrint('Error inicializando LocalDb: $e');
+  }
+  // Start connectivity listener so UI can react to online/offline changes
+  try {
+    await ConnectivityService.init();
+  } catch (e) {
+    debugPrint('Error inicializando ConnectivityService: $e');
   }
   final shouldInitFirebase =
       !kIsWeb && defaultTargetPlatform != TargetPlatform.windows;
