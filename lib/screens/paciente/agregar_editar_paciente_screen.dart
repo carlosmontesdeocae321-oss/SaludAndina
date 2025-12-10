@@ -309,12 +309,33 @@ class _AgregarEditarPacienteScreenState
         }
       }
     } else {
-      // EDITAR (online)
+      // EDITAR
+      final pid = widget.paciente!.id.toString();
+      // If this is a local pending patient (localId UUID), allow local edit while offline
+      if (pid.contains('-') && !hasInternet) {
+        try {
+          await LocalDb.savePatient(data, localId: pid);
+          messenger.showSnackBar(const SnackBar(
+              content: Text('Paciente actualizado localmente (pendiente)')));
+          if (!mounted) return;
+          setState(() => cargando = false);
+          navigator.pop(true);
+          return;
+        } catch (e) {
+          debugPrint('Error actualizando paciente localmente: $e');
+          messenger.showSnackBar(const SnackBar(
+              content: Text('Error al actualizar paciente localmente')));
+          if (!mounted) return;
+          setState(() => cargando = false);
+          return;
+        }
+      }
+
+      // Otherwise attempt online edit
       try {
         exito = await ApiService.editarPaciente(widget.paciente!.id, data)
             .timeout(const Duration(seconds: 12));
-        mensaje =
-            exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
+        mensaje = exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
       } catch (e) {
         debugPrint('Error actualizando paciente remotamente: $e');
         messenger.showSnackBar(const SnackBar(

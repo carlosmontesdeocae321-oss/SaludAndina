@@ -888,17 +888,39 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                     ),
                   );
                   if (confirm == true) {
-                    final ok =
-                        await ApiService.eliminarPaciente(p.id.toString());
-                    if (!itemContext.mounted) return;
-                    if (ok) {
-                      messenger.showSnackBar(
-                          const SnackBar(content: Text('Paciente eliminado')));
-                      if (!mounted) return;
-                      setState(() {});
-                    } else {
+                    // If this is a local (pending) patient, allow local delete even offline
+                    final pid = p.id.toString();
+                    final conn = await (Connectivity().checkConnectivity());
+                    if (pid.contains('-')) {
+                      final removed = await LocalDb.deleteLocalPatient(pid);
+                      if (!itemContext.mounted) return;
+                      if (removed) {
+                        messenger.showSnackBar(const SnackBar(
+                            content: Text('Paciente eliminado localmente')));
+                        if (!mounted) return;
+                        setState(() {});
+                      } else {
+                        messenger.showSnackBar(const SnackBar(
+                            content: Text('Error eliminando paciente local')));
+                      }
+                    } else if (conn == ConnectivityResult.none) {
+                      // Do not allow deleting synced patients while offline
                       messenger.showSnackBar(const SnackBar(
-                          content: Text('Error al eliminar paciente')));
+                          content: Text(
+                              'No se puede eliminar paciente sincronizado sin conexión')));
+                    } else {
+                      // Online and patient is server-side -> call API
+                      final ok = await ApiService.eliminarPaciente(pid);
+                      if (!itemContext.mounted) return;
+                      if (ok) {
+                        messenger.showSnackBar(
+                            const SnackBar(content: Text('Paciente eliminado')));
+                        if (!mounted) return;
+                        setState(() {});
+                      } else {
+                        messenger.showSnackBar(const SnackBar(
+                            content: Text('Error al eliminar paciente')));
+                      }
                     }
                   }
                 },
@@ -1050,31 +1072,56 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
         if (ced.isNotEmpty) serverMapByCedula[ced] = s;
       }
 
-      // Load local pending patients and merge where server doesn't have them
-      final local = await LocalDb.getPending('patients');
+      // Load local patients (both synced and pending) and merge where server doesn't have them
+      final local = await LocalDb.getPatients(onlySynced: false);
       final out = <Paciente>[];
       out.addAll(serverList);
-
       for (final rec in local) {
         try {
-          final data = Map<String, dynamic>.from(rec['data'] ?? {});
+          final map = Map<String, dynamic>.from(rec.cast<String, dynamic>());
+          final data = Map<String, dynamic>.from(map['data'] ?? {});
           final ced = data['cedula']?.toString() ?? '';
-          // If server already has this cedula, skip to avoid duplicate
-          if (ced.isNotEmpty && serverMapByCedula.containsKey(ced)) continue;
+          final serverId = (map['serverId'] ?? '')?.toString() ?? '';
+          // If server already has this cedula or serverId, skip to avoid duplicate
+          if ((ced.isNotEmpty && serverMapByCedula.containsKey(ced)) ||
+              (serverId.isNotEmpty && serverList.any((s) => s.id == serverId))) {
+            continue;
+          }
 
           // create a Paciente object from local data but ensure id is localId so UI can detect
-          final localId = rec['localId']?.toString() ?? '';
+          final localId = map['localId']?.toString() ?? '';
           final pseudo = Map<String, dynamic>.from(data);
-          pseudo['id'] = localId; // use local id as id
+          pseudo['id'] = localId.isNotEmpty ? localId : (pseudo['id']?.toString() ?? localId);
           final p = Paciente.fromJson(pseudo);
-          out.insert(0, p); // put local pending on top
+          out.insert(0, p); // put local records on top
         } catch (_) {}
       }
 
       return out;
     } catch (e) {
       debugPrint('Load patients merge error: $e');
-      return await ApiService.obtenerPacientesPorClinica(view: viewToSend);
+      // If the remote call failed (likely offline), fallback to local DB so
+      // pending patients are still visible in the main list.
+      try {
+        final local = await LocalDb.getPatients(onlySynced: false);
+        final out = <Paciente>[];
+        for (final rec in local) {
+          try {
+            final map = Map<String, dynamic>.from(rec.cast<String, dynamic>());
+            final data = Map<String, dynamic>.from(map['data'] ?? {});
+            final localId = map['localId']?.toString() ?? '';
+            final pseudo = Map<String, dynamic>.from(data);
+            pseudo['id'] = localId.isNotEmpty
+                ? localId
+                : (pseudo['id']?.toString() ?? localId);
+            out.add(Paciente.fromJson(pseudo));
+          } catch (_) {}
+        }
+        return out;
+      } catch (e2) {
+        debugPrint('Fallback local load failed: $e2');
+        return [];
+      }
     }
   }
 

@@ -175,12 +175,28 @@ class LocalDb {
     final now = DateTime.now().toIso8601String();
 
     try {
-      // Try find existing by serverId
+      // 1) If server provided a client_local_id, try to match the local record
+      final clientLocalId = serverObj['client_local_id']?.toString() ??
+          serverObj['clientLocalId']?.toString();
+      if (clientLocalId != null && clientLocalId.isNotEmpty) {
+        final v = box.get(clientLocalId);
+        if (v is Map) {
+          final map = Map<String, dynamic>.from(v.cast<String, dynamic>());
+          map['data'] = serverObj;
+          map['syncStatus'] = 'synced';
+          map['serverId'] = serverId;
+          map['updatedAt'] = now;
+          await box.put(clientLocalId, map);
+          return;
+        }
+      }
+
+      // 2) Try to find by serverId (existing synced record)
       for (final key in box.keys) {
         final v = box.get(key);
         if (v is Map) {
           final map = Map<String, dynamic>.from(v.cast<String, dynamic>());
-          if ((map['serverId']?.toString() ?? '') == serverId) {
+          if ((map['serverId']?.toString() ?? '') == serverId && serverId.isNotEmpty) {
             map['data'] = serverObj;
             map['syncStatus'] = 'synced';
             map['updatedAt'] = now;
@@ -190,7 +206,31 @@ class LocalDb {
         }
       }
 
-      // Not found -> create new local record marked as synced
+      // 3) Try to find a local record with same cedula (common duplicate source)
+      try {
+        final ced = (serverObj['cedula'] ?? serverObj['dni'] ?? serverObj['ci'])?.toString() ?? '';
+        if (ced.isNotEmpty) {
+          for (final key in box.keys) {
+            final v = box.get(key);
+            if (v is Map) {
+              final map = Map<String, dynamic>.from(v.cast<String, dynamic>());
+              final data = Map<String, dynamic>.from(map['data'] ?? {});
+              final localCed = (data['cedula'] ?? data['dni'] ?? data['ci'])?.toString() ?? '';
+              if (localCed.isNotEmpty && localCed == ced) {
+                // Merge: prefer server data, but preserve localId
+                map['data'] = serverObj;
+                map['syncStatus'] = 'synced';
+                map['serverId'] = serverId;
+                map['updatedAt'] = now;
+                await box.put(key, map);
+                return;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 4) Not found -> create new local record marked as synced
       final id = _newId();
       final record = {
         'localId': id,
@@ -599,6 +639,24 @@ class LocalDb {
       map['updatedAt'] = DateTime.now().toIso8601String();
       await box.put(localId, map);
     }
+  }
+
+  /// Delete a local patient record by localId (only affects local DB).
+  /// Returns true if removed.
+  static Future<bool> deleteLocalPatient(String localId) async {
+    try {
+      final box = Hive.box(_patientsBox);
+      if (box.containsKey(localId)) {
+        await box.delete(localId);
+        try {
+          await _recomputePendingCounts();
+        } catch (_) {}
+        return true;
+      }
+    } catch (e) {
+      debugPrint('LocalDb.deleteLocalPatient error: $e');
+    }
+    return false;
   }
 
   // Mark a consulta local record as synced
