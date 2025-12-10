@@ -128,9 +128,15 @@ class SyncService {
             debugPrint('SyncService: pre-lookup error: $e');
           }
 
-            debugPrint('SyncService: creating patient localId=$localId payload=$data');
+          // Include a client-side id to help server detect duplicate creates
+          try {
+            data['client_local_id'] = localId;
+          } catch (_) {}
+          debugPrint(
+              'SyncService: creating patient localId=$localId payload=$data');
           final res = await api.crearPaciente(data);
-            debugPrint('SyncService: create patient result localId=$localId -> $res');
+          debugPrint(
+              'SyncService: create patient result localId=$localId -> $res');
           if (res['ok'] == true) {
             String serverId = '';
             Map<String, dynamic>? srvObj;
@@ -248,11 +254,77 @@ class SyncService {
         final data = Map<String, dynamic>.from(rec['data'] ?? {});
         final archivos = List<String>.from(rec['attachments'] ?? []);
         try {
-          // Prepare fields as strings for crearHistorial
+          // Resolve paciente reference: if the consulta references a local patient
+          // (localId UUID) try to find serverId by checking local patient record
+          // or by querying the API by cédula. This avoids creating duplicate
+          // patients on the server and links the consulta to the existing one.
+          String pacienteRef = (rec['pacienteId'] ??
+                  data['paciente_id'] ?? data['pacienteId'])
+              ?.toString() ?? '';
+
+          String resolvedPacienteServerId = '';
+          try {
+            if (pacienteRef.contains('-')) {
+              // localId reference -> check local DB for serverId
+              final localPatient = await LocalDb.getPatientById(pacienteRef);
+              if (localPatient != null) {
+                final srv = localPatient['serverId']?.toString() ?? '';
+                if (srv.isNotEmpty) {
+                  resolvedPacienteServerId = srv;
+                } else {
+                  // no serverId yet -> try to lookup by cedula on server
+                  final localData = Map<String, dynamic>.from(localPatient['data'] ?? {});
+                  final ced = (localData['cedula'] ?? localData['dni'] ?? localData['ci'])?.toString() ?? '';
+                  if (ced.isNotEmpty) {
+                    try {
+                      final lookup = await api.buscarPacientePorCedula(ced);
+                      if (lookup != null && lookup['ok'] == true && lookup['data'] != null) {
+                        final srvObj = Map<String, dynamic>.from(lookup['data']);
+                        final serverId = srvObj['id']?.toString() ?? '';
+                        if (serverId.isNotEmpty) {
+                          // update local patient as synced to avoid duplicates
+                          await LocalDb.markAsSynced(pacienteRef, serverId, srvObj);
+                          resolvedPacienteServerId = serverId;
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('SyncService: consulta pre-lookup error: $e');
+                    }
+                  }
+                }
+              }
+            } else if (pacienteRef.isEmpty) {
+              // No patient id provided in consulta, but maybe cedula present in data
+              final ced = (data['cedula'] ?? data['paciente_cedula'])?.toString() ?? '';
+              if (ced.isNotEmpty) {
+                try {
+                  final lookup = await api.buscarPacientePorCedula(ced);
+                  if (lookup != null && lookup['ok'] == true && lookup['data'] != null) {
+                    final srvObj = Map<String, dynamic>.from(lookup['data']);
+                    final serverId = srvObj['id']?.toString() ?? '';
+                    if (serverId.isNotEmpty) {
+                      resolvedPacienteServerId = serverId;
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('SyncService: consulta cedula lookup error: $e');
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('SyncService: error resolving paciente for consulta $localId -> $e');
+          }
+
+          // Prepare fields as strings for crearHistorial. If we resolved a server
+          // paciente id, ensure we set it in the payload so the consulta links
+          // to the correct server patient.
           final fields = <String, String>{};
           data.forEach((k, v) {
             if (v != null) fields[k.toString()] = v.toString();
           });
+          if (resolvedPacienteServerId.isNotEmpty) {
+            fields['paciente_id'] = resolvedPacienteServerId;
+          }
           debugPrint(
               'SyncService: creating consulta localId=$localId paciente=${data['paciente_id']} attachments=${archivos.length}');
           final ok = await api.crearHistorial(fields, archivos);
