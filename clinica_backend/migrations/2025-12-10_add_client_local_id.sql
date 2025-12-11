@@ -4,4 +4,4 @@ ALTER TABLE `pacientes`
   ADD COLUMN `client_local_id` VARCHAR(255) NULL;
 
 -- Add index to speed up lookups by client_local_id
-CREATE INDEX IF NOT EXISTS `idx_pacientes_client_local_id` ON `pacientes` (`client_local_id`);
+CREATE INDEX `idx_pacientes_client_local_id` ON `pacientes` (`client_local_id`);

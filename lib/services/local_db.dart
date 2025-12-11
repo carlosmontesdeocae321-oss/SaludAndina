@@ -401,7 +401,25 @@ class LocalDb {
                           ?.toString() ??
                       '';
               if (localPid.isEmpty) continue;
-              if (localPid != (pacienteId ?? '')) continue;
+              var matchesPaciente = false;
+              try {
+                // If localPid looks like a localId (uuid with dash), try to
+                // resolve the local patient's serverId and compare.
+                if (localPid.contains('-')) {
+                  final localPatient = await getPatientById(localPid);
+                  if (localPatient != null) {
+                    final localSrv =
+                        (localPatient['serverId']?.toString() ?? '');
+                    if (localSrv.isNotEmpty && localSrv == (pacienteId ?? '')) {
+                      matchesPaciente = true;
+                    }
+                  }
+                }
+              } catch (_) {}
+              // Fallback: direct compare (both strings are server ids or pre-resolved)
+              if (!matchesPaciente) {
+                if (localPid != (pacienteId ?? '')) continue;
+              }
               final localFecha = (data['fecha'] ?? '')?.toString() ?? '';
               final localMotivo =
                   (data['motivo'] ?? data['motivo_consulta'] ?? '')
@@ -428,6 +446,16 @@ class LocalDb {
       } catch (_) {}
 
       // 2) Not found -> create new local record marked as synced
+      // If server provided client_local_id but we didn't match it above,
+      // log for telemetry to help diagnose missing matches.
+      final clientLocalWarn = serverObj['client_local_id']?.toString() ??
+          serverObj['clientLocalId']?.toString() ??
+          '';
+      if (clientLocalWarn.isNotEmpty) {
+        debugPrint(
+            'LocalDb: server returned client_local_id but no local match found: client_local_id=$clientLocalWarn serverId=$serverId');
+      }
+
       final id = _newId();
       final record = {
         'localId': id,
@@ -483,6 +511,11 @@ class LocalDb {
         consulta['paciente_id'] = pacienteId;
       } catch (_) {}
     }
+    // Ensure client_local_id exists in the consulta payload so remote
+    // objects that later include it can be matched deterministically.
+    try {
+      consulta['client_local_id'] = consulta['client_local_id'] ?? id;
+    } catch (_) {}
     final record = {
       'localId': id,
       'serverId': consulta['id']?.toString(),

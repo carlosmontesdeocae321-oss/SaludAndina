@@ -67,6 +67,8 @@ async function crearHistorial(req, res) {
 
         // req.body contiene los campos de texto (multer los conserva)
         const payload = Object.assign({}, req.body);
+        // Preserve client_local_id if sent by client for deduplication
+        if (req.body.client_local_id) payload.client_local_id = req.body.client_local_id;
         // Normalizar nombres: si cliente usó 'motivo' o 'motivo_consulta'
         if (payload.motivo && !payload.motivo_consulta) payload.motivo_consulta = payload.motivo;
         // Asegurar campos numéricos/strings estén presentes; imagenes como array
@@ -75,8 +77,9 @@ async function crearHistorial(req, res) {
         console.log('🔔 crearHistorial - payload final para BD:', payload);
 
         const nuevoId = await historialModelo.crearHistorial(payload);
-        console.log('🔔 crearHistorial - insertId:', nuevoId);
-        res.status(201).json({ id: nuevoId });
+        console.log('🔔 crearHistorial - insertId:', nuevoId, 'client_local_id:', payload.client_local_id);
+        // Return created resource info to help client match pending records
+        res.status(201).json({ ok: true, data: { id: nuevoId, client_local_id: payload.client_local_id ?? null } });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -156,6 +159,17 @@ async function eliminarHistorial(req, res) {
     }
 }
 
+async function buscarPorClientLocalId(req, res) {
+    try {
+        const clientLocalId = req.params.id;
+        const registro = await historialModelo.obtenerHistorialPorClientLocalId(clientLocalId);
+        if (!registro) return res.status(404).json({ message: 'No encontrado' });
+        res.json({ ok: true, data: registro });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
 module.exports = {
     listarHistorial,
     listarHistorialPorPaciente,
@@ -163,4 +177,5 @@ module.exports = {
     crearHistorial,
     actualizarHistorial,
     eliminarHistorial
+    ,buscarPorClientLocalId
 };

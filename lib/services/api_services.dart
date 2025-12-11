@@ -7,6 +7,7 @@ import 'local_db.dart';
 import '../models/consulta.dart';
 import '../models/cita.dart';
 import '../models/clinica.dart';
+import 'sync_service_impl_new.dart';
 
 class ApiService {
   static Future<Map<String, dynamic>> registrarDoctorIndividual(
@@ -251,6 +252,18 @@ class ApiService {
     _log("📌 Cargando pacientes desde $endpoint");
     _log("📌 Headers enviados: $headers");
 
+    // If there are pending local patients, ensure we attempt to upload them
+    // before downloading the remote list. This prevents the download from
+    // creating new local records that duplicate the pending ones.
+    try {
+      final pending = await LocalDb.getPending('patients');
+      if (pending.isNotEmpty) {
+        try {
+          await SyncService.instance.onLogin();
+        } catch (_) {}
+      }
+    } catch (_) {}
+
     final res = await http.get(url, headers: headers);
 
     _log("📌 Respuesta (${res.statusCode}): ${res.body}");
@@ -259,6 +272,13 @@ class ApiService {
       final data = jsonDecode(res.body) as List<dynamic>;
       // Cache fetched patients locally so they are available offline
       try {
+        // Wait briefly for any ongoing sync to finish to reduce race
+        // conditions where pending locals are uploaded at the same time
+        // the app downloads the remote list and creates duplicate locals.
+        try {
+          await SyncService.instance
+              .waitForIdle(timeout: const Duration(seconds: 5));
+        } catch (_) {}
         // fire-and-forget cache (best-effort)
         LocalDb.saveOrUpdateRemotePatientsBatch(data);
       } catch (_) {}
@@ -433,6 +453,14 @@ class ApiService {
           '📌 obtenerConsultasPacienteRaw - status: ${res.statusCode} body: ${res.body}');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as List<dynamic>;
+        // Wait briefly for any ongoing sync to finish to reduce race
+        // conditions where pending locals are uploaded while the app
+        // downloads the remote list and creates duplicate locals.
+        try {
+          await SyncService.instance
+              .waitForIdle(timeout: const Duration(seconds: 5));
+        } catch (_) {}
+
         return List<Map<String, dynamic>>.from(
             data.map((e) => Map<String, dynamic>.from(e as Map)));
       }
@@ -489,11 +517,17 @@ class ApiService {
 
     if (streamed.statusCode == 200 || streamed.statusCode == 201) {
       lastErrorBody = null;
-      // Try parse response body as JSON object to capture created resource
+      // Try parse response body as JSON object to capture created resource.
+      // Prefer returning the inner `data` object when API returns { ok:true, data: {...} }.
       try {
         final parsed = jsonDecode(respBody);
         if (parsed is Map<String, dynamic>) {
-          lastCreatedHistorial = Map<String, dynamic>.from(parsed);
+          if (parsed.containsKey('data') &&
+              parsed['data'] is Map<String, dynamic>) {
+            lastCreatedHistorial = Map<String, dynamic>.from(parsed['data']);
+          } else {
+            lastCreatedHistorial = Map<String, dynamic>.from(parsed);
+          }
         } else {
           lastCreatedHistorial = null;
         }

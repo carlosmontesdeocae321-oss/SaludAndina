@@ -27,6 +27,7 @@ router.use(filtroClinica);
 
 router.get('/', historialControlador.listarHistorial);
 router.get('/paciente/:id', historialControlador.listarHistorialPorPaciente);
+router.get('/by_client_local_id/:id', historialControlador.buscarPorClientLocalId);
 router.get('/:id', historialControlador.verHistorial);
 // Aceptar múltiples imágenes en campo 'imagenes'
 router.post('/', upload.array('imagenes', 20), historialControlador.crearHistorial);

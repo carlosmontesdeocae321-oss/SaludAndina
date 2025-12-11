@@ -156,6 +156,17 @@ class SyncService {
     }
   }
 
+  /// Wait until sync is idle or until [timeout] expires.
+  /// Useful to coordinate remote-list fetches that could race with uploads.
+  Future<void> waitForIdle(
+      {Duration timeout = const Duration(seconds: 5)}) async {
+    final start = DateTime.now();
+    while (_syncInProgress) {
+      if (DateTime.now().difference(start) > timeout) return;
+      await Future.delayed(const Duration(milliseconds: 150));
+    }
+  }
+
   /// Sync pending local records: patients, consultas and citas.
   Future<void> syncPending() async {
     if (_syncInProgress) {

@@ -41,6 +41,7 @@ async function obtenerHistorialPorId(id, clinica_id) {
 // Crear registro de historial
 async function crearHistorial(historial) {
     const {
+        client_local_id,
         paciente_id,
         motivo_consulta,
         notas_html,
@@ -60,11 +61,13 @@ async function crearHistorial(historial) {
         imagenes
     } = historial;
 
+    // Persist client_local_id when provided to allow client deduplication
     const [result] = await pool.query(
         `INSERT INTO historial 
-         (paciente_id, motivo_consulta, notas_html, notas_html_full, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (client_local_id, paciente_id, motivo_consulta, notas_html, notas_html_full, peso, estatura, imc, presion, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, otros, diagnostico, tratamiento, receta, fecha, imagenes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
+            client_local_id ?? null,
             paciente_id,
             motivo_consulta ?? null,
             notas_html ?? null,
@@ -89,6 +92,8 @@ async function crearHistorial(historial) {
     try {
         const { saveDoc } = require('../servicios/firebaseService');
         await saveDoc('medical_history', id, sanitizeDoc({
+            id,
+            client_local_id: client_local_id ?? null,
             pacienteId: paciente_id ?? null,
             motivo_consulta: motivo_consulta ?? null,
             notas_html: notas_html ?? null,
@@ -111,6 +116,31 @@ async function crearHistorial(historial) {
         console.warn('Warning: failed to save historial to Firestore', e.message || e);
     }
     return id;
+}
+
+// Buscar historial por client_local_id (fallback to Firestore if SQL misses)
+async function obtenerHistorialPorClientLocalId(clientLocalId) {
+    if (!clientLocalId) return null;
+    try {
+        const [rows] = await pool.query(
+            `SELECT h.*, p.nombres, p.apellidos, p.doctor_id
+             FROM historial h
+             JOIN pacientes p ON h.paciente_id = p.id
+             WHERE h.client_local_id = ? LIMIT 1`,
+            [clientLocalId]
+        );
+        if (rows && rows.length) return rows[0];
+    } catch (e) {
+        // ignore and fallback to firestore
+    }
+    try {
+        const { findInCollectionByField } = require('../servicios/firebaseService');
+        const doc = await findInCollectionByField('medical_history', 'client_local_id', clientLocalId);
+        if (doc) return doc;
+    } catch (e) {
+        // ignore
+    }
+    return null;
 }
 
 // Actualizar registro de historial
