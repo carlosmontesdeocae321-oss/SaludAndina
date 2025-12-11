@@ -107,8 +107,22 @@ class ApiService {
   // Default points to the deployed backend for quick testing.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://saludandina.onrender.com',
+    defaultValue: 'https://saludandina-1.onrender.com',
   );
+
+  // Probar conectividad básica al backend (útil para diagnóstico desde la app)
+  // Devuelve un mapa con { ok: bool, status: int?, body: String?, error: String? }
+  static Future<Map<String, dynamic>> probeBackend(
+      {String path = '/health',
+      Duration timeout = const Duration(seconds: 8)}) async {
+    try {
+      final uri = Uri.parse('$baseUrl$path');
+      final res = await http.get(uri).timeout(timeout);
+      return {'ok': true, 'status': res.statusCode, 'body': res.body};
+    } catch (e) {
+      return {'ok': false, 'error': e.toString()};
+    }
+  }
 
   // Simple in-memory cache for profile lookups to avoid repeated network churn
   static final Map<int, Map<String, dynamic>> _profileCache = {};
@@ -477,6 +491,32 @@ class ApiService {
 
     if (res.statusCode == 200) {
       return Consulta.fromJson(jsonDecode(res.body));
+    }
+    return null;
+  }
+
+  /// Buscar historial por `client_local_id` (server-side lookup endpoint).
+  /// Devuelve el objeto creado por el servidor si lo encuentra, o `null`.
+  static Future<Map<String, dynamic>?> buscarHistorialPorClientLocalId(
+      String clientLocalId) async {
+    try {
+      final url =
+          Uri.parse('$baseUrl/api/historial/by_client_local_id/$clientLocalId');
+      final headers = await _getHeaders();
+      _log('📌 buscarHistorialPorClientLocalId - GET $url');
+      final res = await http.get(url, headers: headers);
+      _log(
+          '📌 buscarHistorialPorClientLocalId - status: ${res.statusCode} body: ${res.body}');
+      if (res.statusCode == 200) {
+        try {
+          final parsed = jsonDecode(res.body) as Map<String, dynamic>;
+          return {'ok': true, 'data': parsed};
+        } catch (_) {
+          return {'ok': true, 'data': jsonDecode(res.body)};
+        }
+      }
+    } catch (e) {
+      _log('❌ buscarHistorialPorClientLocalId - error: $e');
     }
     return null;
   }

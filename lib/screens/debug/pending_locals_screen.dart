@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/local_db.dart';
+import '../../services/sync_service_impl_new.dart';
+import '../../services/api_services.dart';
 
 class PendingLocalsScreen extends StatefulWidget {
   const PendingLocalsScreen({super.key});
@@ -11,6 +13,7 @@ class PendingLocalsScreen extends StatefulWidget {
 class _PendingLocalsScreenState extends State<PendingLocalsScreen> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
+  bool _syncing = false;
 
   @override
   void initState() {
@@ -38,7 +41,47 @@ class _PendingLocalsScreenState extends State<PendingLocalsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pendientes locales (debug)')),
+      appBar: AppBar(title: const Text('Pendientes locales (debug)'), actions: [
+        _syncing
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                    child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))))
+            : IconButton(
+                tooltip: 'Forzar sync',
+                icon: const Icon(Icons.sync),
+                onPressed: () async {
+                  await _forceSync();
+                },
+              ),
+        IconButton(
+          tooltip: 'Probar backend',
+          icon: const Icon(Icons.network_check),
+          onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.showSnackBar(
+                const SnackBar(content: Text('Probando backend...')));
+            try {
+              final res = await ApiService.probeBackend();
+              if (!mounted) return;
+              if (res['ok'] == true) {
+                messenger.showSnackBar(
+                    SnackBar(content: Text('Backend OK: ${res['status']}')));
+              } else {
+                messenger.showSnackBar(
+                    SnackBar(content: Text('Error probe: ${res['error']}')));
+              }
+            } catch (e) {
+              final messenger2 = ScaffoldMessenger.of(context);
+              messenger2.showSnackBar(
+                  SnackBar(content: Text('Error probe exception: $e')));
+            }
+          },
+        ),
+      ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -104,5 +147,25 @@ class _PendingLocalsScreenState extends State<PendingLocalsScreen> {
                     ),
             ),
     );
+  }
+
+  Future<void> _forceSync() async {
+    if (_syncing) return;
+    setState(() => _syncing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+        const SnackBar(content: Text('Iniciando sincronización...')));
+    try {
+      await SyncService.instance.syncPending();
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Sincronización finalizada')));
+      await _load();
+    } catch (e) {
+      debugPrint('Error forzando sync: $e');
+      messenger
+          .showSnackBar(SnackBar(content: Text('Error forzando sync: $e')));
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
   }
 }

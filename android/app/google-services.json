@@ -15,11 +15,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "722655679480-bkaem1il8nlpag92l3oaup1bntrcl0n6.apps.googleusercontent.com",
+          "client_id": "722655679480-rq3rof07s5th5gdl9b9n53or63ptdc5c.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.saludandina.com",
-            "certificate_hash": "d96883e844009d0b94e85d7c947949e42491eac8"
+            "certificate_hash": "738021f41a8b7a4641353fc3f696a95c745a1b5f"
           }
         },
         {
