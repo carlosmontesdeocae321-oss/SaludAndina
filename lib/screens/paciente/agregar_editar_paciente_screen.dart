@@ -335,7 +335,8 @@ class _AgregarEditarPacienteScreenState
       try {
         exito = await ApiService.editarPaciente(widget.paciente!.id, data)
             .timeout(const Duration(seconds: 12));
-        mensaje = exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
+        mensaje =
+            exito ? 'Paciente actualizado' : 'Error al actualizar paciente';
       } catch (e) {
         debugPrint('Error actualizando paciente remotamente: $e');
         messenger.showSnackBar(const SnackBar(

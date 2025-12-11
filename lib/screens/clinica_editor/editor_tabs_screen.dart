@@ -6,6 +6,9 @@ import '../../models/consulta.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import '../../services/connectivity_service.dart';
+import '../../services/sync_service.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 
@@ -264,7 +267,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
 
   String _extractTagContent(String html, String tag) {
     try {
-        final re = RegExp(
+      final re = RegExp(
           '<${RegExp.escape(tag)}[^>]*>([\\s\\S]*?)</${RegExp.escape(tag)}>',
           caseSensitive: false);
       final m = re.firstMatch(html);
@@ -279,12 +282,13 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     // Look for patterns like: <p> <strong>Label:</strong> value </p>
     try {
       final esc = RegExp.escape(label);
-        final patterns = <RegExp>[
-        RegExp('<p[^>]*>\\s*<strong>\\s*$esc\\s*:?\\s*<\\/strong>\\s*(.*?)<\\/p>',
-          caseSensitive: false),
+      final patterns = <RegExp>[
+        RegExp(
+            '<p[^>]*>\\s*<strong>\\s*$esc\\s*:?\\s*<\\/strong>\\s*(.*?)<\\/p>',
+            caseSensitive: false),
         RegExp('<strong>\\s*$esc\\s*:?\\s*<\\/strong>\\s*(.*?)<\\/p>',
-          caseSensitive: false),
-        ];
+            caseSensitive: false),
+      ];
       for (final re in patterns) {
         final m = re.firstMatch(html);
         if (m != null) return _stripHtml(m.group(1) ?? '');
@@ -298,7 +302,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
   String _extractAfterHeading(String html, String heading) {
     try {
       final esc = RegExp.escape(heading);
-        final re = RegExp('<h4[^>]*>\\s*$esc\\s*<\\/h4>([\\s\\S]*?)(?:<h4[^>]*>|\\z)',
+      final re = RegExp(
+          '<h4[^>]*>\\s*$esc\\s*<\\/h4>([\\s\\S]*?)(?:<h4[^>]*>|\\z)',
           caseSensitive: false);
       final m = re.firstMatch(html);
       if (m != null) {
@@ -536,7 +541,6 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
   }
 
   Future<void> _guardarConsultaLocal() async {
-    final messenger = ScaffoldMessenger.of(context);
     setState(() {});
     final now = DateTime.now();
 
@@ -587,22 +591,140 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       data['imagenes_eliminar'] = jsonEncode(_imagenesParaEliminar);
     }
 
-    bool ok = false;
-    if (widget.consulta != null) {
-      // editar
-      ok =
-          await ApiService.editarHistorial(widget.consulta!.id, data, archivos);
-    } else {
-      ok = await ApiService.crearHistorial(data, archivos);
-    }
+    // If offline, save locally and return immediately
+    try {
+      final online = ConnectivityService.isOnline.value;
+      if (!online) {
+        // If editing an existing consulta, update the local record instead
+        // of creating a new one to avoid duplicates.
+        String? existingLocalId = widget.consulta?.localId;
+        String? existingServerId = widget.consulta?.id;
+        final localId = await LocalDb.upsertConsultaLocal(data,
+            localId: existingLocalId,
+            serverId: existingServerId,
+            attachments: archivos);
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Consulta guardada localmente (pendiente)')));
+        final c = Consulta(
+          id: (existingServerId != null && existingServerId.isNotEmpty)
+              ? existingServerId
+              : localId,
+          localId: localId,
+          motivo: data['motivo_consulta'] ?? 'Consulta',
+          peso: 0,
+          estatura: 0,
+          imc: 0,
+          presion: data['presion'] ?? '',
+          frecuenciaCardiaca:
+              int.tryParse(data['frecuencia_cardiaca'] ?? '0') ?? 0,
+          frecuenciaRespiratoria:
+              int.tryParse(data['frecuencia_respiratoria'] ?? '0') ?? 0,
+          temperatura: double.tryParse(data['temperatura'] ?? '0') ?? 0.0,
+          diagnostico: data['diagnostico'] ?? '',
+          tratamiento: data['tratamiento'] ?? '',
+          receta: data['receta'] ?? '',
+          imagenes: [..._imagenesGuardadas, ...archivos],
+          notasHtml: data['notas_html'] ?? '',
+          notasHtmlFull: data['notas_html_full'] ?? '',
+          fecha: now,
+        );
+        if (!mounted) return;
+        Navigator.of(context).pop(c);
+        return;
+      }
 
-    if (!mounted) return;
+      // Online: attempt remote save. To avoid duplicates we create a local
+      // consulta first and include `client_local_id` in the request so the
+      // server can echo it and we can reconcile immediately.
+      bool ok = false;
+      String? createdLocalId;
+      if (widget.consulta != null) {
+        ok = await ApiService.editarHistorial(
+            widget.consulta!.id, data, archivos);
+      } else {
+        // create local record first
+        createdLocalId =
+            await LocalDb.saveConsultaLocal(data, attachments: archivos);
+        try {
+          await LocalDb.setConsultaSyncing(createdLocalId);
+        } catch (_) {}
+        data['client_local_id'] = createdLocalId;
+        ok = await ApiService.crearHistorial(data, archivos);
+      }
 
-    if (ok) {
-      messenger
-          .showSnackBar(const SnackBar(content: Text('Consulta guardada')));
-      final c = Consulta(
-        id: now.microsecondsSinceEpoch.toString(),
+      if (!mounted) return;
+
+      if (ok) {
+        if (mounted)
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Consulta guardada')));
+        // Refresh remote consultas cache for this patient so they're available offline
+        try {
+          final raw =
+              await ApiService.obtenerConsultasPacienteRaw(widget.pacienteId);
+          await LocalDb.saveOrUpdateRemoteConsultasBatch(raw);
+        } catch (_) {}
+
+        // If we created a local record, attempt to mark it as synced immediately
+        if (createdLocalId != null) {
+          try {
+            final created = ApiService.lastCreatedHistorial;
+            if (created != null &&
+                (created['client_local_id']?.toString() ?? '') ==
+                    createdLocalId) {
+              final srvId = created['id']?.toString() ?? '';
+              await LocalDb.markConsultaAsSynced(
+                  createdLocalId, srvId, created);
+            } else {
+              // Let the SyncService reconcile any remaining pending items
+              await SyncService.instance.syncPending();
+            }
+          } catch (e) {
+            debugPrint('Reconciliation error after crearHistorial: $e');
+          }
+        }
+
+        final c = Consulta(
+          id: createdLocalId ?? now.microsecondsSinceEpoch.toString(),
+          motivo: data['motivo_consulta'] ?? 'Consulta',
+          peso: 0,
+          estatura: 0,
+          imc: 0,
+          presion: data['presion'] ?? '',
+          frecuenciaCardiaca:
+              int.tryParse(data['frecuencia_cardiaca'] ?? '0') ?? 0,
+          frecuenciaRespiratoria:
+              int.tryParse(data['frecuencia_respiratoria'] ?? '0') ?? 0,
+          temperatura: double.tryParse(data['temperatura'] ?? '0') ?? 0.0,
+          diagnostico: data['diagnostico'] ?? '',
+          tratamiento: data['tratamiento'] ?? '',
+          receta: data['receta'] ?? '',
+          imagenes: [..._imagenesGuardadas, ...archivos],
+          notasHtml: data['notas_html'] ?? '',
+          notasHtmlFull: data['notas_html_full'] ?? '',
+          fecha: now,
+        );
+        Navigator.of(context).pop(c);
+        return;
+      }
+
+      // Remote call failed: fallback to local save or update
+      final err = ApiService.lastErrorBody;
+      final msg = (err == null || err.isEmpty)
+          ? 'Error al guardar la consulta (se guardará localmente)'
+          : 'Error al guardar (se guardará localmente): ${err.length > 300 ? '${err.substring(0, 300)}…' : err}';
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      final localId = await LocalDb.upsertConsultaLocal(data,
+          localId: widget.consulta?.localId,
+          serverId: widget.consulta?.id,
+          attachments: archivos);
+      final hasServer =
+          widget.consulta != null && widget.consulta!.id.isNotEmpty;
+      final cLocal = Consulta(
+        id: hasServer ? widget.consulta!.id : localId,
         motivo: data['motivo_consulta'] ?? 'Consulta',
         peso: 0,
         estatura: 0,
@@ -621,13 +743,13 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         notasHtmlFull: data['notas_html_full'] ?? '',
         fecha: now,
       );
-      Navigator.of(context).pop(c);
-    } else {
-      final err = ApiService.lastErrorBody;
-        final msg = (err == null || err.isEmpty)
-          ? 'Error al guardar la consulta'
-          : 'Error al guardar: ${err.length > 300 ? '${err.substring(0, 300)}…' : err}';
-      messenger.showSnackBar(SnackBar(content: Text(msg)));
+      if (!mounted) return;
+      Navigator.of(context).pop(cLocal);
+    } catch (e, st) {
+      debugPrint('Error saving consulta: $e\n$st');
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error guardando la consulta')));
     }
   }
 
@@ -1260,7 +1382,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
                           final chipBg = cs.secondary;
                           const chipFg = Colors.white;
                           return TextButton.icon(
-                            icon: const Icon(Icons.flash_on, size: 16, color: Colors.white),
+                            icon: const Icon(Icons.flash_on,
+                                size: 16, color: Colors.white),
                             label: Text(display,
                                 style: const TextStyle(
                                     fontSize: 13,

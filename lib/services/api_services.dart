@@ -118,6 +118,11 @@ class ApiService {
 
   // Last raw response body from create/edit calls (for UI debugging)
   static String? lastErrorBody;
+  // If the server returns the created historial object on POST /api/historial,
+  // store it here so callers (e.g. SyncService) can inspect it immediately
+  // and avoid an additional list/lookup call which may be eventually
+  // consistent. This is best-effort and cleared on failures.
+  static Map<String, dynamic>? lastCreatedHistorial;
 
   // Invalidate cached profile for a user id (use after updates)
   static void invalidateProfileCache(int usuarioId) {
@@ -260,7 +265,23 @@ class ApiService {
       return data.map((json) => Paciente.fromJson(json)).toList();
     }
 
-    _log("📌 Error al cargar pacientes: ${res.statusCode}");
+    _log(
+        "📌 Error al cargar pacientes: ${res.statusCode}, intentando cargar cache local");
+    // Fallback: return locally cached (synced) patients so the UI works offline
+    try {
+      final cached = await LocalDb.getPatients(onlySynced: true);
+      final out = <Paciente>[];
+      for (final rec in cached) {
+        try {
+          final data = Map<String, dynamic>.from(rec['data'] ?? {});
+          out.add(Paciente.fromJson(data));
+        } catch (_) {}
+      }
+      if (out.isNotEmpty) return out;
+    } catch (e) {
+      _log('📌 Error cargando cache local de pacientes: $e');
+    }
+
     return [];
   }
 
@@ -468,10 +489,22 @@ class ApiService {
 
     if (streamed.statusCode == 200 || streamed.statusCode == 201) {
       lastErrorBody = null;
+      // Try parse response body as JSON object to capture created resource
+      try {
+        final parsed = jsonDecode(respBody);
+        if (parsed is Map<String, dynamic>) {
+          lastCreatedHistorial = Map<String, dynamic>.from(parsed);
+        } else {
+          lastCreatedHistorial = null;
+        }
+      } catch (_) {
+        lastCreatedHistorial = null;
+      }
       return true;
     }
     // store body for UI debugging
     lastErrorBody = respBody;
+    lastCreatedHistorial = null;
     return false;
   }
 

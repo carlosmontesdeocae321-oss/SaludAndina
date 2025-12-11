@@ -36,6 +36,18 @@ class MockUploadReturnsFiles implements ApiClient {
           .toList()
     };
   }
+
+  @override
+  Future<bool> eliminarPaciente(String id) async => true;
+
+  @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return [];
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async => true;
 }
 
 class MockUploadAlwaysFails implements ApiClient {
@@ -63,6 +75,18 @@ class MockUploadAlwaysFails implements ApiClient {
       int uid, List<String> attachments) async {
     return {'ok': false, 'error': 'network'};
   }
+
+  @override
+  Future<bool> eliminarPaciente(String id) async => true;
+
+  @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return [];
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async => true;
 }
 
 class MockUploadFlaky implements ApiClient {
@@ -106,6 +130,18 @@ class MockUploadFlaky implements ApiClient {
           .toList()
     };
   }
+
+  @override
+  Future<bool> eliminarPaciente(String id) async => true;
+
+  @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return [];
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async => true;
 }
 
 void main() {

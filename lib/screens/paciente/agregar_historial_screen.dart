@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
+import '../../services/sync_service.dart';
 
 class AgregarHistorialScreen extends StatefulWidget {
   final String pacienteId;
@@ -128,17 +130,47 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
     // Preparar lista de rutas de archivos
     final archivos = _imagenes.map((x) => x.path).toList();
 
+    // Local-first: create local pending record and attempt remote create
+    final createdLocalId =
+        await LocalDb.saveConsultaLocal(data, attachments: archivos);
+    try {
+      await LocalDb.setConsultaSyncing(createdLocalId);
+    } catch (_) {}
+    try {
+      data['client_local_id'] = createdLocalId;
+    } catch (_) {}
+
     final ok = await ApiService.crearHistorial(data, archivos);
 
     if (!mounted) return;
     setState(() => _cargando = false);
 
     if (ok) {
+      try {
+        final created = ApiService.lastCreatedHistorial;
+        if (created != null &&
+            (created['client_local_id']?.toString() ?? '') == createdLocalId) {
+          final srvId = created['id']?.toString() ?? '';
+          await LocalDb.markConsultaAsSynced(createdLocalId, srvId, created);
+        } else {
+          // fallback: mark pending and let SyncService reconcile
+          await LocalDb.setConsultaPending(createdLocalId);
+          try {
+            await SyncService.instance.syncPending();
+          } catch (_) {}
+        }
+      } catch (e) {
+        debugPrint('Post-create reconciliation error: $e');
+        await LocalDb.setConsultaPending(createdLocalId);
+      }
+
       messenger.showSnackBar(
         const SnackBar(content: Text('Historial agregado correctamente')),
       );
       navigator.pop(true);
     } else {
+      // remote failed -> leave pending
+      await LocalDb.setConsultaPending(createdLocalId);
       messenger.showSnackBar(
         const SnackBar(content: Text('Error al guardar historial')),
       );

@@ -80,6 +80,14 @@ async function crearPaciente(paciente) {
     const placeholders = ['?','?','?','?','?','?'];
     const values = [nombres, apellidos, cedula, telefono, direccion, fecha_nacimiento];
 
+    // Support storing client_local_id in SQL for robust lookup
+    const clientLocalId = paciente && (paciente.client_local_id || paciente.clientLocalId) ? (paciente.client_local_id || paciente.clientLocalId) : null;
+    if (clientLocalId) {
+        columns.push('client_local_id');
+        placeholders.push('?');
+        values.push(clientLocalId);
+    }
+
     if (typeof clinica_id !== 'undefined' && clinica_id !== null) {
         columns.push('clinica_id');
         placeholders.push('?');
@@ -105,11 +113,61 @@ async function crearPaciente(paciente) {
                 clinicaId: clinica_id || null,
                 creado_en: null
             };
+            // If client provided a client_local_id, include it in Firestore payload
+            if (paciente && (paciente.client_local_id || paciente.clientLocalId)) {
+                payload.client_local_id = paciente.client_local_id || paciente.clientLocalId;
+            }
             await saveDoc('patients', id, payload);
         } catch (e) {
             console.warn('Warning: failed to save paciente to Firestore', e.message || e);
         }
         return id;
+}
+
+// Try to locate a paciente by a client-local id stored in Firestore (best-effort).
+async function obtenerPacientePorClientLocalId(clientLocalId) {
+    try {
+        // First try to find in SQL for better performance and reliability
+        try {
+            const [rows] = await pool.query('SELECT * FROM pacientes WHERE client_local_id = ? LIMIT 1', [clientLocalId]);
+            if (rows && rows.length > 0) {
+                const r = rows[0];
+                return {
+                    id: r.id,
+                    nombres: r.nombres,
+                    apellidos: r.apellidos,
+                    cedula: r.cedula,
+                    telefono: r.telefono,
+                    direccion: r.direccion,
+                    doctorId: r.doctor_id || null,
+                    clinicaId: r.clinica_id || null,
+                    client_local_id: r.client_local_id || null
+                };
+            }
+        } catch (sqlErr) {
+            console.warn('SQL lookup by client_local_id failed, falling back to Firestore:', sqlErr.message || sqlErr);
+        }
+
+        // Fallback to Firestore when SQL doesn't contain the mapping
+        const { findInCollectionByField } = require('../servicios/firebaseService');
+        const doc = await findInCollectionByField('patients', 'client_local_id', clientLocalId);
+        if (!doc) return null;
+        // Map Firestore doc fields to server-side patient schema expected by client
+        return {
+            id: doc.id,
+            nombres: doc.nombres,
+            apellidos: doc.apellidos,
+            cedula: doc.cedula,
+            telefono: doc.telefono,
+            direccion: doc.direccion,
+            doctorId: doc.doctorId || null,
+            clinicaId: doc.clinicaId || null,
+            client_local_id: doc.client_local_id || null
+        };
+    } catch (e) {
+        console.warn('obtenerPacientePorClientLocalId error:', e.message || e);
+        return null;
+    }
 }
 
 async function actualizarPaciente(id, paciente, clinica_id, doctor_id) {
@@ -207,4 +265,5 @@ module.exports = {
     obtenerPacientePorCedula,
     obtenerPacientePorCedulaGlobal,
     obtenerPacientesPorDoctor
+    , obtenerPacientePorClientLocalId
 };

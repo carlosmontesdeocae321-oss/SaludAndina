@@ -142,6 +142,21 @@ async function getDoc(collection, id) {
   return snap.data();
 }
 
+async function findInCollectionByField(collection, field, value) {
+  try {
+    const db = getFirestore();
+    const q = db.collection(collection).where(field, '==', value).limit(1);
+    const snap = await q.get();
+    if (snap.empty) return null;
+    const doc = snap.docs[0];
+    return Object.assign({ id: doc.id }, doc.data());
+  } catch (e) {
+    // If Firestore not initialized or other error, bubble up to caller
+    console.warn('firebaseService.findInCollectionByField error:', e.message || e);
+    return null;
+  }
+}
+
 async function deleteDoc(collection, id) {
   const db = getFirestore();
   const ref = db.collection(collection).doc(String(id));

@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/inicio_screen.dart';
@@ -14,6 +15,7 @@ import 'services/auth_servicios.dart';
 import 'firebase_options.dart';
 import 'services/local_db.dart';
 import 'services/connectivity_service.dart';
+import 'services/sync_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,15 @@ Future<void> main() async {
     await ConnectivityService.init();
   } catch (e) {
     debugPrint('Error inicializando ConnectivityService: $e');
+  }
+  // Ensure SyncService singleton is initialized early so it registers
+  // connectivity listeners and can auto-sync when connection is restored.
+  try {
+    // Accessing the instance constructs the singleton and starts listener.
+    // ignore: unused_result
+    SyncService.instance;
+  } catch (e) {
+    debugPrint('Error inicializando SyncService: $e');
   }
   final shouldInitFirebase =
       !kIsWeb && defaultTargetPlatform != TargetPlatform.windows;
@@ -100,7 +111,8 @@ class ClinicaApp extends StatelessWidget {
       home: const InicioScreen(),
       navigatorObservers: [routeObserver],
       // Añadir un logo centrado en el AppBar para usuarios autenticados
-      builder: (context, child) => child ?? const SizedBox.shrink(),
+      builder: (context, child) =>
+          SyncStatusOverlay(child: child ?? const SizedBox.shrink()),
       routes: {
         '/promociones': (context) => PromocionesScreen(),
         '/clinica_editor': (context) {
@@ -130,6 +142,104 @@ class ClinicaApp extends StatelessWidget {
         '/pagos_admin': (context) =>
             const PagosAdminScreen(baseUrl: AuthService.baseUrl),
       },
+    );
+  }
+}
+
+class SyncStatusOverlay extends StatefulWidget {
+  final Widget child;
+  const SyncStatusOverlay({super.key, required this.child});
+
+  @override
+  State<SyncStatusOverlay> createState() => _SyncStatusOverlayState();
+}
+
+class _SyncStatusOverlayState extends State<SyncStatusOverlay> {
+  late StreamSubscription<String> _sub;
+  String _status = 'idle';
+  String _prev = 'idle';
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = SyncService.instance.statusStream.listen((s) {
+      _prev = _status;
+      _status = s;
+      if (mounted) setState(() {});
+
+      // When sync finishes, show a SnackBar notification
+      if ((_prev == 'syncing' || _prev == 'starting') &&
+          (_status == 'done' || _status == 'idle')) {
+        try {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.showSnackBar(const SnackBar(
+            content: Text('Sincronización completada'),
+            duration: Duration(seconds: 3),
+          ));
+        } catch (_) {}
+      }
+
+      // On error show brief message
+      if (_status == 'error') {
+        try {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.showSnackBar(const SnackBar(
+            content: Text('Error durante la sincronización'),
+            duration: Duration(seconds: 4),
+            backgroundColor: Colors.redAccent,
+          ));
+        } catch (_) {}
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Show a slim banner at top when syncing
+    final isSyncing = _status == 'syncing' || _status == 'starting';
+    return Stack(
+      children: [
+        widget.child,
+        if (isSyncing)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Material(
+              elevation: 4,
+              color: Colors.blueAccent,
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.sync, color: Colors.white),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text('Sincronizando datos...',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      SizedBox(width: 12),
+                      SizedBox(
+                          width: 120,
+                          child: LinearProgressIndicator(color: Colors.white))
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

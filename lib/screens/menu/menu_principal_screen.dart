@@ -905,10 +905,40 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                             content: Text('Error eliminando paciente local')));
                       }
                     } else if (conn == ConnectivityResult.none) {
-                      // Do not allow deleting synced patients while offline
-                      messenger.showSnackBar(const SnackBar(
-                          content: Text(
-                              'No se puede eliminar paciente sincronizado sin conexión')));
+                      // Mark synced patient for deletion when offline (queue)
+                      try {
+                        // pid is the server id here
+                        final localRec = await LocalDb.getPatientById(pid);
+                        if (localRec != null) {
+                          final localId = localRec['localId']?.toString() ?? '';
+                          if (localId.isNotEmpty) {
+                            final marked =
+                                await LocalDb.markPatientForDelete(localId);
+                            if (marked) {
+                              messenger.showSnackBar(const SnackBar(
+                                  content: Text(
+                                      'Eliminación marcada (se procesará al reconectar)')));
+                              if (!mounted) return;
+                              setState(() {});
+                            } else {
+                              messenger.showSnackBar(const SnackBar(
+                                  content: Text(
+                                      'No se pudo marcar la eliminación')));
+                            }
+                          } else {
+                            messenger.showSnackBar(const SnackBar(
+                                content:
+                                    Text('No se encontró el registro local')));
+                          }
+                        } else {
+                          messenger.showSnackBar(const SnackBar(
+                              content:
+                                  Text('No se encontró el registro local')));
+                        }
+                      } catch (e) {
+                        messenger.showSnackBar(SnackBar(
+                            content: Text('Error al marcar eliminación: $e')));
+                      }
                     } else {
                       // Online and patient is server-side -> call API
                       final ok = await ApiService.eliminarPaciente(pid);

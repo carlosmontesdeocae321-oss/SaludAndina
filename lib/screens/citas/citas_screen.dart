@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/cita.dart';
 import '../../services/api_services.dart';
+import '../../services/local_db.dart';
 import '../../route_refresh_mixin.dart';
 
 class CitasScreen extends StatefulWidget {
@@ -35,10 +36,51 @@ class _CitasScreenState extends State<CitasScreen>
 
   Future<void> _cargar() async {
     setState(() => cargando = true);
-    final loaded = await ApiService.obtenerCitas();
-    citas = loaded;
-    if (kDebugMode) {
-      debugPrint('CitasScreen._cargar - loaded ${citas.length} citas');
+    try {
+      final loaded = await ApiService.obtenerCitas();
+      citas = loaded;
+      if (kDebugMode) {
+        debugPrint(
+            'CitasScreen._cargar - loaded ${citas.length} citas (remote)');
+      }
+    } catch (e) {
+      // Fallback: load local citas when offline or remote fails
+      if (kDebugMode)
+        debugPrint('CitasScreen._cargar - remote load failed: $e');
+      try {
+        final localList = await LocalDb.getAllCitas();
+        // Convert local map records into Cita model instances
+        citas = localList.map<Cita>((m) {
+          final data = Map<String, dynamic>.from(m['data'] ?? {});
+          // Ensure required fields exist with sensible defaults
+          final composite = <String, dynamic>{};
+          composite.addAll(data);
+          // if serverId exists, set id, else use localId prefixed
+          if ((m['serverId'] ?? '').toString().isNotEmpty) {
+            composite['id'] = m['serverId'].toString();
+          } else {
+            composite['id'] = 'local-${m['localId']?.toString() ?? ''}';
+          }
+          composite['localId'] = m['localId']?.toString();
+          composite['syncStatus'] = m['syncStatus']?.toString();
+          // normalize fecha/hora presence
+          if (composite['fecha'] == null)
+            composite['fecha'] = DateTime.now().toIso8601String();
+          if (composite['hora'] == null) composite['hora'] = '00:00:00';
+          // map paciente id
+          composite['paciente_id'] =
+              m['pacienteId'] ?? composite['paciente_id'];
+          return Cita.fromJson(composite);
+        }).toList();
+        if (kDebugMode) {
+          debugPrint(
+              'CitasScreen._cargar - loaded ${citas.length} citas (local)');
+        }
+      } catch (e2) {
+        if (kDebugMode)
+          debugPrint('CitasScreen._cargar - local load failed: $e2');
+        citas = [];
+      }
     }
     setState(() => cargando = false);
   }

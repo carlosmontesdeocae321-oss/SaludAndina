@@ -39,6 +39,18 @@ class MockApiClient implements ApiClient {
       int uid, List<String> attachments) async {
     return {'ok': true};
   }
+
+  @override
+  Future<bool> eliminarPaciente(String id) async => true;
+
+  @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return [];
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async => true;
 }
 
 // Mock that simulates crearPaciente failing with a message
@@ -64,6 +76,17 @@ class MockFailCreate implements ApiClient {
   Future<Map<String, dynamic>> subirDocumentosDoctor(
           int uid, List<String> attachments) async =>
       {'ok': true};
+  @override
+  Future<bool> eliminarPaciente(String id) async => true;
+
+  @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return [];
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async => true;
 }
 
 // Mock that simulates crearPaciente success but attachment upload fails
@@ -93,6 +116,18 @@ class MockFailUpload implements ApiClient {
       int uid, List<String> attachments) async {
     return {'ok': false, 'error': 'upload failed'};
   }
+
+  @override
+  Future<bool> eliminarPaciente(String id) async => true;
+
+  @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return [];
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async => true;
 }
 
 void main() {

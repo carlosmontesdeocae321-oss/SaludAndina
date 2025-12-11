@@ -6,7 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_services.dart';
 import '../services/auth_servicios.dart';
 import '../services/sync_service.dart';
-import '../services/sync_notifier.dart';
+// SyncNotifier not used directly in this widget anymore; sync status
+// is read from SyncService.statusStream.
 import '../services/local_db.dart';
 import '../screens/citas/citas_screen.dart';
 import '../screens/doctor/profile_screen.dart';
@@ -15,6 +16,7 @@ import '../screens/menu/menu_principal_screen.dart';
 import '../screens/inicio_screen.dart';
 import '../screens/doctor/doctor_list_screen.dart';
 import '../screens/admin/promociones_screen.dart';
+import '../screens/debug/pending_locals_screen.dart';
 // 'Solicitar pago' removed from drawer
 import '../screens/admin/pagos_admin_screen.dart';
 import '../screens/mis_compras_screen.dart';
@@ -174,7 +176,6 @@ class AppDrawer extends StatelessWidget {
                       ),
                     );
                   }
-
                   return Container(
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                     margin: const EdgeInsets.only(top: 18, bottom: 20),
@@ -250,6 +251,46 @@ class AppDrawer extends StatelessWidget {
                   );
                 },
               ),
+              // Show a syncing bar when the SyncService reports an active sync.
+              StreamBuilder<String>(
+                stream: SyncService.instance.statusStream,
+                builder: (ctx, sSnap) {
+                  final status = sSnap.data ?? 'idle';
+                  if (status == 'syncing' || status == 'starting') {
+                    return Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.blueAccent.withOpacity(0.16)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Sincronizando datos',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: primaryText,
+                                        fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 8),
+                                const LinearProgressIndicator(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(Icons.sync, color: primaryText),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               FutureBuilder<bool>(
                 future: _isLoggedIn(),
                 builder: (context, snap) {
@@ -313,45 +354,6 @@ class AppDrawer extends StatelessWidget {
                               },
                             ),
                             const SizedBox(height: 12),
-                            _drawerTile(
-                              context,
-                              icon: Icons.sync,
-                              label: 'Sincronizar',
-                              trailing: ValueListenableBuilder<int>(
-                                valueListenable: SyncNotifier.instance.count,
-                                builder: (ctx, cnt, _) {
-                                  if (cnt <= 0) return const SizedBox.shrink();
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.redAccent,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text('$cnt',
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold)),
-                                  );
-                                },
-                              ),
-                              action: (navigator) async {
-                                final messenger =
-                                    ScaffoldMessenger.of(navigator.context);
-                                messenger.showSnackBar(const SnackBar(
-                                    content:
-                                        Text('Iniciando sincronización...')));
-                                try {
-                                  await SyncService.instance.onLogin();
-                                  messenger.showSnackBar(const SnackBar(
-                                      content:
-                                          Text('Sincronización finalizada')));
-                                } catch (e) {
-                                  messenger.showSnackBar(
-                                      SnackBar(content: Text('Error: $e')));
-                                }
-                              },
-                            ),
                             _drawerTile(
                               context,
                               icon: Icons.logout,
@@ -425,24 +427,6 @@ class AppDrawer extends StatelessWidget {
                             context,
                             icon: Icons.people_alt_outlined,
                             label: 'Pacientes',
-                            trailing: ValueListenableBuilder<int>(
-                              valueListenable: LocalDb.pendingPatientsCount,
-                              builder: (ctx, cnt, _) {
-                                if (cnt <= 0) return const SizedBox.shrink();
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.redAccent,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text('$cnt',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold)),
-                                );
-                              },
-                            ),
                             action: (navigator) async {
                               navigator.push(
                                 MaterialPageRoute(
@@ -480,47 +464,18 @@ class AppDrawer extends StatelessWidget {
                               );
                             },
                           ),
+                          // Manual sync action removed: using automatic sync and
+                          // a visible syncing bar instead to avoid duplicate uploads.
                           _drawerTile(
                             context,
-                            icon: Icons.sync,
-                            label: 'Sincronizar',
-                            trailing: ValueListenableBuilder<int>(
-                              valueListenable: SyncNotifier.instance.count,
-                              builder: (ctx, cnt, _) {
-                                if (cnt <= 0) return const SizedBox.shrink();
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.redAccent,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text('$cnt',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold)),
-                                );
-                              },
-                            ),
+                            icon: Icons.list_alt,
+                            label: 'Ver pendientes (debug)',
                             action: (navigator) async {
-                              final messenger =
-                                  ScaffoldMessenger.of(navigator.context);
-                              messenger.showSnackBar(const SnackBar(
-                                  content:
-                                      Text('Iniciando sincronización...')));
-                              try {
-                                await SyncService.instance.onLogin();
-                                if (messenger.mounted) {
-                                  messenger.showSnackBar(const SnackBar(
-                                      content:
-                                          Text('Sincronización finalizada')));
-                                }
-                              } catch (e) {
-                                if (messenger.mounted) {
-                                  messenger.showSnackBar(
-                                      SnackBar(content: Text('Error: $e')));
-                                }
-                              }
+                              navigator.push(
+                                MaterialPageRoute(
+                                  builder: (_) => const PendingLocalsScreen(),
+                                ),
+                              );
                             },
                           ),
                           _drawerTile(

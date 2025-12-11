@@ -80,6 +80,12 @@ router.get('/cedula/:cedula/global', checkLookupRate, async (req, res) => {
     }
 });
 
+// Buscar paciente por client_local_id (público, con rate-limit)
+router.get('/by_client_local_id/:id', checkLookupRate, async (req, res) => {
+    const pacientesControlador = require('../controladores/pacientesControlador');
+    return pacientesControlador.buscarPorClientLocalId(req, res);
+});
+
 // Obtener pacientes por clínica
 router.get('/clinica/:clinica_id', async (req, res) => {
     try {

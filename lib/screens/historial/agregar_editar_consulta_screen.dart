@@ -8,6 +8,7 @@ import '../../models/paciente.dart';
 import '../../models/consulta.dart';
 import '../../services/api_services.dart';
 import '../../services/local_db.dart';
+import '../../services/sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AgregarEditarConsultaScreen extends StatefulWidget {
@@ -151,9 +152,25 @@ class _AgregarEditarConsultaScreenState
     // Decide online vs offline
     final conn = await (Connectivity().checkConnectivity());
     if (conn == ConnectivityResult.none) {
-      // Save locally as pending
+      // Save locally as pending. If editing, attempt to update the existing
+      // local record (use its localId when available) or preserve server id
+      // so the sync process can treat this as an update.
       try {
-        await LocalDb.saveConsultaLocal(data, attachments: nuevasPaths);
+        if (widget.consulta != null) {
+          final existing = widget.consulta!;
+          final key = existing.localId != null && existing.localId!.isNotEmpty
+              ? existing.localId!
+              : existing.id;
+          // If editing an already-synced (server) consulta, ensure we store
+          // the server id in the data so sync can detect it's an update.
+          if (!(key.contains('-')) && existing.id.isNotEmpty) {
+            data['id'] = existing.id;
+          }
+          await LocalDb.saveConsultaLocal(data,
+              localId: key, attachments: nuevasPaths);
+        } else {
+          await LocalDb.saveConsultaLocal(data, attachments: nuevasPaths);
+        }
         if (!mounted) return;
         setState(() => cargando = false);
         Navigator.pop(context, true);
@@ -174,9 +191,47 @@ class _AgregarEditarConsultaScreenState
     // When online, try remote with timeout and fallback to local on failure
     try {
       if (widget.consulta == null) {
+        // Local-first: create local pending record then attempt remote create
+        final createdLocalId =
+            await LocalDb.saveConsultaLocal(data, attachments: nuevasPaths);
+        try {
+          await LocalDb.setConsultaSyncing(createdLocalId);
+        } catch (_) {}
+        // include client_local_id so server can echo it
+        try {
+          data['client_local_id'] = createdLocalId;
+        } catch (_) {}
+
         final ok = await ApiService.crearHistorial(data, nuevasPaths)
             .timeout(const Duration(seconds: 12));
-        exito = ok;
+        if (ok) {
+          // try to reconcile immediately using ApiService.lastCreatedHistorial
+          try {
+            final created = ApiService.lastCreatedHistorial;
+            if (created != null &&
+                (created['client_local_id']?.toString() ?? '') ==
+                    createdLocalId) {
+              final srvId = created['id']?.toString() ?? '';
+              await LocalDb.markConsultaAsSynced(
+                  createdLocalId, srvId, created);
+              exito = true;
+            } else {
+              // Mark pending for later sync
+              await LocalDb.setConsultaPending(createdLocalId);
+              // Let SyncService reconcile
+              await SyncService.instance.syncPending();
+              exito = true;
+            }
+          } catch (e) {
+            debugPrint('Post-create reconciliation (agregar) error: $e');
+            await LocalDb.setConsultaPending(createdLocalId);
+            exito = true;
+          }
+        } else {
+          // remote failed -> set pending
+          await LocalDb.setConsultaPending(createdLocalId);
+          exito = false;
+        }
       } else {
         data['imagenes'] = jsonEncode(imagenesExistentes);
         final ok = await ApiService.editarHistorial(

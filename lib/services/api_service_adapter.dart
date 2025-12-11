@@ -14,6 +14,17 @@ class ApiServiceAdapter implements ApiClient {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> obtenerConsultasPacienteRaw(
+      String pacienteId) async {
+    return await ApiService.obtenerConsultasPacienteRaw(pacienteId);
+  }
+
+  @override
+  Future<bool> eliminarHistorial(String id) async {
+    return await ApiService.eliminarHistorial(id);
+  }
+
+  @override
   Future<bool> agendarCita(Map<String, dynamic> data) async {
     return await ApiService.agendarCita(data);
   }
@@ -21,6 +32,11 @@ class ApiServiceAdapter implements ApiClient {
   @override
   Future<Map<String, dynamic>?> buscarPacientePorCedula(String cedula) async {
     return await ApiService.buscarPacientePorCedula(cedula);
+  }
+
+  @override
+  Future<bool> eliminarPaciente(String id) async {
+    return await ApiService.eliminarPaciente(id);
   }
 
   @override

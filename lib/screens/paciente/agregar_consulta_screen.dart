@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_services.dart';
 import '../../services/local_db.dart';
+import '../../services/sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AgregarConsultaScreen extends StatefulWidget {
@@ -143,6 +144,92 @@ class _AgregarConsultaScreenState extends State<AgregarConsultaScreen> {
       }
     }
 
+    // If pacienteId is a local id (contains '-'), try to resolve server id
+    // before creating the historial. We prefer to link to an existing server
+    // paciente by serverId or by cedula. If we cannot resolve the paciente
+    // while online, fallback to saving the consulta locally to avoid sending
+    // an invalid paciente_id to the server.
+    try {
+      String pacienteRef = widget.pacienteId;
+      if (pacienteRef.contains('-')) {
+        String resolvedServerId = '';
+        try {
+          final localPatient = await LocalDb.getPatientById(pacienteRef);
+          if (localPatient != null) {
+            resolvedServerId = localPatient['serverId']?.toString() ?? '';
+            if (resolvedServerId.isEmpty) {
+              final localData = Map<String, dynamic>.from(
+                  localPatient['data'] ?? <String, dynamic>{});
+              final ced =
+                  (localData['cedula'] ?? localData['dni'] ?? localData['ci'])
+                          ?.toString() ??
+                      '';
+              if (ced.isNotEmpty) {
+                try {
+                  final lookup = await ApiService.buscarPacientePorCedula(ced);
+                  if (lookup != null &&
+                      lookup['ok'] == true &&
+                      lookup['data'] != null) {
+                    final srv = Map<String, dynamic>.from(lookup['data']);
+                    resolvedServerId = srv['id']?.toString() ?? '';
+                    if (resolvedServerId.isNotEmpty) {
+                      // mark local as synced to update serverId mapping
+                      await LocalDb.markAsSynced(
+                          pacienteRef, resolvedServerId, srv);
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Buscar paciente por cédula error: $e');
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Error resolviendo paciente local: $e');
+        }
+
+        // If still unresolved, try performing a quick sync and re-check
+        if (resolvedServerId.isEmpty) {
+          try {
+            await SyncService.instance.syncPending();
+            final refreshed = await LocalDb.getPatientById(pacienteRef);
+            resolvedServerId = refreshed?['serverId']?.toString() ?? '';
+          } catch (e) {
+            debugPrint('Sync attempt while creating consulta failed: $e');
+          }
+        }
+
+        if (resolvedServerId.isNotEmpty) {
+          data['paciente_id'] = resolvedServerId;
+        } else {
+          // Could not resolve server id: save consulta locally instead of
+          // sending invalid payload.
+          await LocalDb.saveConsultaLocal(data, attachments: paths);
+          if (!mounted) return;
+          setState(() => _cargando = false);
+          messenger.showSnackBar(const SnackBar(
+              content: Text(
+                  'Consulta guardada localmente (paciente no sincronizado)')));
+          navigator.pop(true);
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error resolving paciente before crearHistorial: $e');
+    }
+
+    // Create a local consulta first so we always have a local record we can
+    // update when the server responds. This prevents duplicates and allows
+    // immediate UI feedback while the network request completes.
+    String localId = await LocalDb.saveConsultaLocal(data, attachments: paths);
+    try {
+      // Mark as syncing to avoid concurrent uploads
+      await LocalDb.setConsultaSyncing(localId);
+    } catch (_) {}
+
+    // Include client_local_id so the server can echo it back and we can match
+    data['client_local_id'] = localId;
+
     final ok = await ApiService.crearHistorial(data, paths);
 
     if (!mounted) return;
@@ -150,23 +237,38 @@ class _AgregarConsultaScreenState extends State<AgregarConsultaScreen> {
     setState(() => _cargando = false);
 
     if (ok) {
+      // Try to immediately mark local consulta as synced using the server
+      // returned object (ApiService.lastCreatedHistorial). If not present,
+      // trigger a light sync to reconcile later.
+      try {
+        final created = ApiService.lastCreatedHistorial;
+        if (created != null &&
+            (created['client_local_id']?.toString() ?? '') == localId) {
+          final srvId = created['id']?.toString() ?? '';
+          await LocalDb.markConsultaAsSynced(localId, srvId, created);
+        } else {
+          // fall back to a quick sync pass so the SyncService can reconcile
+          await SyncService.instance.syncPending();
+        }
+      } catch (e) {
+        debugPrint('Post-create reconciliation error: $e');
+      }
+
       messenger
           .showSnackBar(const SnackBar(content: Text('Consulta guardada')));
       navigator.pop(true);
     } else {
-      // Fallback: save locally if remote create failed
+      // Remote call failed: leave consulta as pending and inform the user
       try {
-        await LocalDb.saveConsultaLocal(data, attachments: paths);
-        if (!mounted) return;
-        messenger.showSnackBar(const SnackBar(
-            content: Text('Consulta guardada localmente (pendiente)')));
-        navigator.pop(true);
-        return;
-      } catch (e) {
-        final lastErr = ApiService.lastErrorBody;
-        messenger.showSnackBar(
-            SnackBar(content: Text(lastErr ?? 'Error al guardar')));
-      }
+        await LocalDb.setConsultaPending(localId);
+      } catch (_) {}
+      final err = ApiService.lastErrorBody;
+      final msg = (err == null || err.isEmpty)
+          ? 'Error al guardar la consulta (se guardará localmente)'
+          : 'Error al guardar (se guardará localmente): ${err.length > 300 ? '${err.substring(0, 300)}…' : err}';
+      if (mounted) messenger.showSnackBar(SnackBar(content: Text(msg)));
+      navigator.pop(true);
+      return;
     }
   }
 

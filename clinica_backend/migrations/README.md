@@ -33,3 +33,12 @@ Notas de seguridad:
 - Haz backup de la base de datos antes de ejecutar migraciones en producción.
 
 Si necesitas que ejecute algo por ti, puedo generar un comando exacto con las credenciales que ya tienes en `config/db.js` (pero no puedo ejecutarlo por ti desde aquí).
+
+Migration añadida:
+- `2025-12-10_add_client_local_id.sql` -> Añade columna `client_local_id VARCHAR(255)` y un índice `idx_pacientes_client_local_id`.
+
+Para aplicar solo esta migración usando el script de migraciones (desde `clinica_backend`):
+
+```powershell
+node run_migrations.js
+```

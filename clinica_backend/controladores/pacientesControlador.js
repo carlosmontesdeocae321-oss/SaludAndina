@@ -114,7 +114,18 @@ async function crearPaciente(req, res) {
             pacienteData.clinica_id = clinicaId;
         }
         const nuevoId = await pacientesModelo.crearPaciente(pacienteData);
-        res.status(201).json({ id: nuevoId });
+        // Attempt to return the created resource body, echoing client_local_id
+        try {
+            const paciente = await pacientesModelo.obtenerPacientePorId(nuevoId, null);
+            const response = Object.assign({}, paciente || {});
+            // If the client sent client_local_id, echo it back so clients can match
+            if (req.body && (req.body.client_local_id || req.body.clientLocalId)) {
+                response.client_local_id = req.body.client_local_id || req.body.clientLocalId;
+            }
+            return res.status(201).json({ ok: true, data: response });
+        } catch (e) {
+            return res.status(201).json({ ok: true, data: { id: nuevoId, client_local_id: req.body.client_local_id || req.body.clientLocalId || null } });
+        }
         } catch (err) {
             // Manejar errores de límite de paciente de forma amigable
             if (err && (err.code === 'LIMIT_DOCTOR_PACIENTES' || err.message && err.message.includes('Límite de pacientes'))) {
@@ -122,6 +133,19 @@ async function crearPaciente(req, res) {
             }
             res.status(500).json({ message: err.message });
         }
+}
+
+async function buscarPorClientLocalId(req, res) {
+    try {
+        const clientLocalId = req.params.id;
+        if (!clientLocalId || clientLocalId.toString().trim() === '') return res.status(400).json({ message: 'client_local_id requerido' });
+        const paciente = await pacientesModelo.obtenerPacientePorClientLocalId(clientLocalId);
+        if (!paciente) return res.status(404).json({ message: 'Paciente no encontrado' });
+        res.json(paciente);
+    } catch (e) {
+        console.error('ERROR buscarPorClientLocalId', e);
+        res.status(500).json({ message: 'Error al buscar paciente por client_local_id' });
+    }
 }
 
 async function actualizarPaciente(req, res) {

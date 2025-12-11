@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../google_auth_service.dart';
 import 'api_services.dart';
+import 'sync_service_impl_new.dart';
 
 class AuthService {
   AuthService._();
@@ -221,6 +222,16 @@ class AuthService {
         await prefs.setString('authType', 'google');
       }
       await prefs.remove('clave');
+      try {
+        Future.microtask(() async {
+          try {
+            // Ensure local pending uploads are processed before fetching
+            // the remote list to avoid creating duplicate local records.
+            await SyncService.instance.onLogin();
+            await ApiService.obtenerPacientesPorClinica();
+          } catch (_) {}
+        });
+      } catch (_) {}
     }
   }
 
@@ -253,6 +264,15 @@ class AuthService {
     } else {
       await prefs.remove('clinicaId');
     }
+    try {
+      Future.microtask(() async {
+        try {
+          // Make sure pending local records are uploaded first on backend session login.
+          await SyncService.instance.onLogin();
+          await ApiService.obtenerPacientesPorClinica();
+        } catch (_) {}
+      });
+    } catch (_) {}
 
     await prefs.setBool('dueno', payload['dueno'] == true);
     await prefs.setString('authType', 'credentials');

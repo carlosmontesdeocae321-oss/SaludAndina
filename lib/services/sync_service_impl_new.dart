@@ -5,7 +5,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'local_db.dart';
 import 'api_client.dart';
 import 'api_service_adapter.dart';
+import 'api_services.dart';
 import 'sync_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Clean implementation of the SyncService (new file).
 class SyncService {
@@ -63,6 +65,81 @@ class SyncService {
     }
   }
 
+  /// Helper: verify that a server-side patient object matches the clinic
+  /// context of the local record or current user. Returns true when match
+  /// cannot be determined (conservative allow), or when clinic ids match.
+  Future<bool> _serverMatchesClinic(
+      Map<String, dynamic> srvObj, Map<String, dynamic>? localData) async {
+    try {
+      final srvClin =
+          (srvObj['clinicaId'] ?? srvObj['clinica_id'] ?? srvObj['clinica'])
+                  ?.toString() ??
+              '';
+      final localClin = (localData != null
+              ? (localData['clinicaId'] ??
+                      localData['clinica_id'] ??
+                      localData['clinica'])
+                  ?.toString()
+              : null) ??
+          '';
+
+      if (localClin.isNotEmpty && srvClin.isNotEmpty) {
+        return localClin == srvClin;
+      }
+
+      if (srvClin.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        final myClin =
+            prefs.getString('clinicaId') ?? prefs.getString('clinica_id') ?? '';
+        if (myClin.isNotEmpty) return myClin == srvClin;
+      }
+
+      // If no clinic information available, allow match (cannot disambiguate).
+      return true;
+    } catch (e) {
+      debugPrint('SyncService._serverMatchesClinic error: $e');
+      return true;
+    }
+  }
+
+  /// Helper: verify that a server-side patient object is owned/linked to the
+  /// same doctor or clinic as the local record. Priority: if localData
+  /// contains a `doctor_id`, prefer matching by doctor. Otherwise fall back
+  /// to clinic matching behavior.
+  Future<bool> _serverMatchesOwner(
+      Map<String, dynamic> srvObj, Map<String, dynamic>? localData) async {
+    try {
+      final localDoctor = (localData != null
+              ? (localData['doctor_id'] ??
+                      localData['doctorId'] ??
+                      localData['doctor'])
+                  ?.toString()
+              : null) ??
+          '';
+
+      if (localDoctor.isNotEmpty) {
+        // If local record targets a specific doctor, require the server
+        // record to be linked to the same doctor to be considered the same
+        // patient for duplicate avoidance.
+        final srvDoctor =
+            (srvObj['doctor_id'] ?? srvObj['doctorId'] ?? srvObj['doctor'])
+                    ?.toString() ??
+                '';
+        if (srvDoctor.isNotEmpty) return srvDoctor == localDoctor;
+        // If server object has no doctor linkage, treat as not matching the
+        // local doctor's patient (conservative: allow creation under the
+        // doctor's account).
+        return false;
+      }
+
+      // No doctor info in localData: fallback to clinic matching logic.
+      return await _serverMatchesClinic(srvObj, localData);
+    } catch (e) {
+      debugPrint('SyncService._serverMatchesOwner error: $e');
+      return true;
+    }
+  }
+
   Future<void> dispose() async {
     await _connSub?.cancel();
     await _statusController.close();
@@ -89,6 +166,36 @@ class SyncService {
     _syncInProgress = true;
     _statusController.add('syncing');
     try {
+      // --- PENDING DELETES (patients marked for deletion) ---
+      try {
+        final deletes = await LocalDb.getPendingDeletes();
+        for (final rec in deletes) {
+          final localId = rec['localId']?.toString() ?? '';
+          final serverId = rec['serverId']?.toString() ?? '';
+          try {
+            if (serverId.isNotEmpty) {
+              final ok = await api.eliminarPaciente(serverId);
+              if (ok) {
+                await LocalDb.deleteLocalPatient(localId);
+              } else {
+                // keep marked; optionally increment attempts or set error
+                await LocalDb.updateLocalError(
+                    localId, 'Delete failed on server');
+              }
+            } else {
+              // local-only record: just delete it
+              await LocalDb.deleteLocalPatient(localId);
+            }
+            SyncNotifier.instance.refresh();
+          } catch (e) {
+            debugPrint(
+                'SyncService: error deleting local patient $localId -> $e');
+          }
+        }
+      } catch (e) {
+        debugPrint('SyncService: error processing pending deletes: $e');
+      }
+
       // --- PATIENTS ---
       final pendingPatients = await LocalDb.getPending('patients');
       for (final rec in pendingPatients) {
@@ -118,9 +225,15 @@ class SyncService {
                 final srv = Map<String, dynamic>.from(lookup['data']);
                 final serverId = srv['id']?.toString() ?? '';
                 if (serverId.isNotEmpty) {
-                  await LocalDb.markAsSynced(localId, serverId, srv);
-                  SyncNotifier.instance.refresh();
-                  continue;
+                  final okMatch = await _serverMatchesOwner(srv, data);
+                  if (okMatch) {
+                    await LocalDb.markAsSynced(localId, serverId, srv);
+                    SyncNotifier.instance.refresh();
+                    continue;
+                  } else {
+                    debugPrint(
+                        'SyncService: found server paciente but owner/clinic mismatch, skipping');
+                  }
                 }
               }
             }
@@ -145,17 +258,42 @@ class SyncService {
               srvObj = Map<String, dynamic>.from(res['data']);
               serverId = srvObj['id']?.toString() ?? '';
             } else {
-              // fallback: try resolve by cedula
+              // fallback: try resolve by cedula with a small retry loop. Some
+              // backends may take a short moment to reflect the newly created
+              // resource in list endpoints; retrying reduces race-duplicates.
               try {
                 final ced = data['cedula']?.toString();
                 if (ced != null && ced.isNotEmpty) {
-                  final lookup = await api.buscarPacientePorCedula(ced);
-                  if (lookup != null &&
-                      lookup['ok'] == true &&
-                      lookup['data'] != null) {
-                    final srv = Map<String, dynamic>.from(lookup['data']);
-                    serverId = srv['id']?.toString() ?? '';
-                    srvObj = srv;
+                  const int attempts = 3;
+                  int attempt = 0;
+                  while (attempt < attempts && serverId.isEmpty) {
+                    try {
+                      final lookup = await api.buscarPacientePorCedula(ced);
+                      if (lookup != null &&
+                          lookup['ok'] == true &&
+                          lookup['data'] != null) {
+                        final srv = Map<String, dynamic>.from(lookup['data']);
+                        final okMatch = await _serverMatchesOwner(srv, data);
+                        if (okMatch) {
+                          serverId = srv['id']?.toString() ?? '';
+                          srvObj = srv;
+                          break;
+                        } else {
+                          debugPrint(
+                              'SyncService: fallback lookup found server paciente but owner/clinic mismatch, ignoring');
+                          break;
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint(
+                          'SyncService: error resolving serverId on attempt $attempt: $e');
+                    }
+
+                    if (serverId.isEmpty) {
+                      final delayMs = 500 * (1 << attempt);
+                      await Future.delayed(Duration(milliseconds: delayMs));
+                    }
+                    attempt += 1;
                   }
                 }
               } catch (e) {
@@ -247,6 +385,36 @@ class SyncService {
         }
       }
 
+      // --- PENDING CONSULTA DELETES ---
+      try {
+        final delCons = await LocalDb.getPendingConsultaDeletes();
+        for (final rec in delCons) {
+          final localId = rec['localId']?.toString() ?? '';
+          final serverId = rec['serverId']?.toString() ?? '';
+          try {
+            if (serverId.isNotEmpty) {
+              final ok = await ApiService.eliminarHistorial(serverId);
+              if (ok) {
+                await LocalDb.deleteLocalConsulta(localId);
+              } else {
+                await LocalDb.updateConsultaError(
+                    localId, 'Delete failed on server');
+              }
+            } else {
+              // local-only consulta: delete locally
+              await LocalDb.deleteLocalConsulta(localId);
+            }
+            SyncNotifier.instance.refresh();
+          } catch (e) {
+            debugPrint(
+                'SyncService: error deleting local consulta $localId -> $e');
+          }
+        }
+      } catch (e) {
+        debugPrint(
+            'SyncService: error processing pending consulta deletes: $e');
+      }
+
       // --- CONSULTAS ---
       final pendingConsultas = await LocalDb.getPending('consultas');
       for (final rec in pendingConsultas) {
@@ -258,9 +426,10 @@ class SyncService {
           // (localId UUID) try to find serverId by checking local patient record
           // or by querying the API by cédula. This avoids creating duplicate
           // patients on the server and links the consulta to the existing one.
-          String pacienteRef = (rec['pacienteId'] ??
-                  data['paciente_id'] ?? data['pacienteId'])
-              ?.toString() ?? '';
+          String pacienteRef =
+              (rec['pacienteId'] ?? data['paciente_id'] ?? data['pacienteId'])
+                      ?.toString() ??
+                  '';
 
           String resolvedPacienteServerId = '';
           try {
@@ -273,17 +442,30 @@ class SyncService {
                   resolvedPacienteServerId = srv;
                 } else {
                   // no serverId yet -> try to lookup by cedula on server
-                  final localData = Map<String, dynamic>.from(localPatient['data'] ?? {});
-                  final ced = (localData['cedula'] ?? localData['dni'] ?? localData['ci'])?.toString() ?? '';
+                  final localData =
+                      Map<String, dynamic>.from(localPatient['data'] ?? {});
+                  final ced = (localData['cedula'] ??
+                              localData['dni'] ??
+                              localData['ci'])
+                          ?.toString() ??
+                      '';
                   if (ced.isNotEmpty) {
                     try {
                       final lookup = await api.buscarPacientePorCedula(ced);
-                      if (lookup != null && lookup['ok'] == true && lookup['data'] != null) {
-                        final srvObj = Map<String, dynamic>.from(lookup['data']);
+                      if (lookup != null &&
+                          lookup['ok'] == true &&
+                          lookup['data'] != null) {
+                        final srvObj =
+                            Map<String, dynamic>.from(lookup['data']);
+                        final okMatch = await _serverMatchesOwner(
+                            srvObj,
+                            Map<String, dynamic>.from(
+                                localPatient['data'] ?? {}));
                         final serverId = srvObj['id']?.toString() ?? '';
-                        if (serverId.isNotEmpty) {
+                        if (serverId.isNotEmpty && okMatch) {
                           // update local patient as synced to avoid duplicates
-                          await LocalDb.markAsSynced(pacienteRef, serverId, srvObj);
+                          await LocalDb.markAsSynced(
+                              pacienteRef, serverId, srvObj);
                           resolvedPacienteServerId = serverId;
                         }
                       }
@@ -295,14 +477,18 @@ class SyncService {
               }
             } else if (pacienteRef.isEmpty) {
               // No patient id provided in consulta, but maybe cedula present in data
-              final ced = (data['cedula'] ?? data['paciente_cedula'])?.toString() ?? '';
+              final ced =
+                  (data['cedula'] ?? data['paciente_cedula'])?.toString() ?? '';
               if (ced.isNotEmpty) {
                 try {
                   final lookup = await api.buscarPacientePorCedula(ced);
-                  if (lookup != null && lookup['ok'] == true && lookup['data'] != null) {
+                  if (lookup != null &&
+                      lookup['ok'] == true &&
+                      lookup['data'] != null) {
                     final srvObj = Map<String, dynamic>.from(lookup['data']);
+                    final okMatch = await _serverMatchesClinic(srvObj, null);
                     final serverId = srvObj['id']?.toString() ?? '';
-                    if (serverId.isNotEmpty) {
+                    if (serverId.isNotEmpty && okMatch) {
                       resolvedPacienteServerId = serverId;
                     }
                   }
@@ -312,7 +498,8 @@ class SyncService {
               }
             }
           } catch (e) {
-            debugPrint('SyncService: error resolving paciente for consulta $localId -> $e');
+            debugPrint(
+                'SyncService: error resolving paciente for consulta $localId -> $e');
           }
 
           // Prepare fields as strings for crearHistorial. If we resolved a server
@@ -325,19 +512,173 @@ class SyncService {
           if (resolvedPacienteServerId.isNotEmpty) {
             fields['paciente_id'] = resolvedPacienteServerId;
           }
+          // Mark consulta as syncing to avoid concurrent duplicate creates/updates
+          await LocalDb.setConsultaSyncing(localId);
+
+          // If this local record already has a serverId, perform an update
+          // instead of creating a new historial to avoid duplicates.
+          final existingServerId = (rec['serverId']?.toString() ?? '');
+          if (existingServerId.isNotEmpty) {
+            debugPrint(
+                'SyncService: updating existing consulta serverId=$existingServerId localId=$localId');
+            final ok = await ApiService.editarHistorial(
+                existingServerId, fields, archivos);
+            if (ok == true) {
+              // Mark local record as synced; serverId remains the same.
+              await LocalDb.markConsultaAsSynced(
+                  localId, existingServerId, null);
+              SyncNotifier.instance.refresh();
+              continue;
+            } else {
+              await LocalDb.updateConsultaError(
+                  localId, 'Error updating historial');
+              SyncNotifier.instance.refresh();
+              continue;
+            }
+          }
+
           debugPrint(
               'SyncService: creating consulta localId=$localId paciente=${data['paciente_id']} attachments=${archivos.length}');
+
+          // Include client_local_id to help server detect duplicate creates
+          try {
+            fields['client_local_id'] = localId;
+          } catch (_) {}
+
           final ok = await api.crearHistorial(fields, archivos);
           debugPrint(
               'SyncService: create consulta result localId=$localId -> $ok');
+
           if (ok == true) {
-            await LocalDb.markConsultaAsSynced(localId, '', null);
-            // refresh badge after successful sync
-            SyncNotifier.instance.refresh();
+            // First, check if the ApiService stored the created object
+            // (some servers return the created resource body). Using the
+            // returned object allows an immediate exact match to the local
+            // record via `client_local_id` and avoids duplicate entries.
+            try {
+              Map<String, dynamic>? found;
+              // ApiService may have stored the parsed response in
+              // `ApiService.lastCreatedHistorial` (best-effort). Use it
+              // when available and matching.
+              try {
+                final srvObj = ApiService.lastCreatedHistorial;
+                if (srvObj != null) {
+                  final matchClient =
+                      (srvObj['client_local_id'] ?? srvObj['clientLocalId'])
+                              ?.toString() ??
+                          '';
+                  if (matchClient.isNotEmpty && matchClient == localId) {
+                    found = Map<String, dynamic>.from(srvObj);
+                  } else {
+                    // If server returned the object but didn't include
+                    // client_local_id, still prefer it if fecha/motivo match
+                    try {
+                      final remoteFecha =
+                          (srvObj['fecha'] ?? '')?.toString() ?? '';
+                      final remoteMotivo =
+                          (srvObj['motivo'] ?? srvObj['motivo_consulta'] ?? '')
+                                  ?.toString() ??
+                              '';
+                      final localFecha = fields['fecha']?.toString() ?? '';
+                      final localMotivo =
+                          (fields['motivo'] ?? fields['motivo_consulta'])
+                                  ?.toString() ??
+                              '';
+                      if (remoteFecha.isNotEmpty &&
+                          localFecha.isNotEmpty &&
+                          remoteMotivo.isNotEmpty &&
+                          remoteFecha == localFecha &&
+                          remoteMotivo == localMotivo) {
+                        found = Map<String, dynamic>.from(srvObj);
+                      }
+                    } catch (_) {}
+                  }
+                }
+              } catch (_) {}
+
+              // If not found via direct response, fall back to the existing
+              // lookup loop (list consultas and match by client_local_id or heuristics).
+              if (found == null) {
+                final pid = fields['paciente_id'] ?? '';
+                if (pid.isNotEmpty) {
+                  const int attempts = 3;
+                  int attempt = 0;
+                  while (attempt < attempts && found == null) {
+                    try {
+                      final raw = await api.obtenerConsultasPacienteRaw(pid);
+                      for (final item in raw) {
+                        try {
+                          if ((item['client_local_id']?.toString() ?? '') ==
+                              localId) {
+                            found = Map<String, dynamic>.from(item);
+                            break;
+                          }
+                        } catch (_) {}
+                      }
+                      // Fallback heuristic: match by fecha and motivo if client_local_id not present
+                      if (found == null) {
+                        for (final item in raw) {
+                          try {
+                            final remoteFecha =
+                                (item['fecha'] ?? '')?.toString() ?? '';
+                            final remoteMotivo = (item['motivo'] ??
+                                        item['motivo_consulta'] ??
+                                        '')
+                                    ?.toString() ??
+                                '';
+                            final localFecha =
+                                fields['fecha']?.toString() ?? '';
+                            final localMotivo =
+                                (fields['motivo'] ?? fields['motivo_consulta'])
+                                        ?.toString() ??
+                                    '';
+                            if (remoteFecha.isNotEmpty &&
+                                localFecha.isNotEmpty &&
+                                remoteMotivo.isNotEmpty) {
+                              if (remoteFecha == localFecha &&
+                                  remoteMotivo == localMotivo) {
+                                found = Map<String, dynamic>.from(item);
+                                break;
+                              }
+                            }
+                          } catch (_) {}
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint(
+                          'SyncService: consulta post-create lookup error on attempt $attempt: $e');
+                    }
+
+                    if (found == null) {
+                      final delayMs = 500 * (1 << attempt);
+                      await Future.delayed(Duration(milliseconds: delayMs));
+                    }
+                    attempt += 1;
+                  }
+                } else {
+                  debugPrint('SyncService: Missing paciente id after create');
+                }
+              }
+
+              if (found != null) {
+                final serverId = found['id']?.toString() ?? '';
+                await LocalDb.markConsultaAsSynced(localId, serverId, found);
+                SyncNotifier.instance.refresh();
+              } else {
+                debugPrint(
+                    'SyncService: could not resolve serverId for consulta $localId after immediate attempts; will retry later');
+                await LocalDb.setConsultaPending(localId);
+                await LocalDb.incrementAttempts('consultas', localId);
+                SyncNotifier.instance.refresh();
+              }
+            } catch (e) {
+              debugPrint('SyncService: consulta post-create resolve error: $e');
+              await LocalDb.updateConsultaError(
+                  localId, 'Error resolving created consulta: $e');
+              SyncNotifier.instance.refresh();
+            }
           } else {
             await LocalDb.updateConsultaError(
                 localId, 'Error creating historial');
-            // refresh badge on error
             SyncNotifier.instance.refresh();
           }
         } catch (e) {
@@ -374,6 +715,7 @@ class SyncService {
     } catch (e) {
       debugPrint('SyncService.syncPending error: $e');
     } finally {
+      _syncInProgress = false;
       _statusController.add('done');
       // ensure badge reflects final state
       SyncNotifier.instance.refresh();

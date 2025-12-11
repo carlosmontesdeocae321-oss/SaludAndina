@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/consulta.dart';
 import '../../services/api_services.dart';
 import '../../services/local_db.dart';
+import '../../services/connectivity_service.dart';
 import '../../route_refresh_mixin.dart';
 import '../../utils/formato_fecha.dart';
 // import '../historial/agregar_editar_consulta_screen.dart'; // antiguo editor (reemplazado)
@@ -34,21 +35,76 @@ class _ConsultasScreenState extends State<ConsultasScreen>
     try {
       List<Consulta> lista = [];
       final pid = widget.pacienteId;
-      // If pacienteId looks like a local id (uuid with '-') load local consultas
-      if (pid.contains('-')) {
-        final local = await LocalDb.getConsultasByPacienteId(pid);
-        for (final rec in local) {
-          try {
-            final data = Map<String, dynamic>.from(rec['data'] ?? {});
-            data['id'] =
-                rec['localId']?.toString() ?? data['id']?.toString() ?? '';
-            data['localId'] = rec['localId']?.toString();
-            data['syncStatus'] = rec['syncStatus']?.toString();
-            lista.add(Consulta.fromJson(data));
-          } catch (_) {}
+
+      // Load local records to be able to merge pending/local consultas
+      final local = await LocalDb.getConsultasByPacienteId(pid);
+      final localConverted = <Map<String, dynamic>>[];
+      for (final rec in local) {
+        try {
+          final data = Map<String, dynamic>.from(rec['data'] ?? {});
+          // Prefer the serverId as the canonical `id` for merging with remote
+          // results. If no serverId exists, fall back to localId so pending
+          // records remain identifiable in the UI.
+          data['id'] = (rec['serverId']?.toString() ??
+              rec['localId']?.toString() ??
+              data['id']?.toString() ??
+              '');
+          data['localId'] = rec['localId']?.toString();
+          data['syncStatus'] = rec['syncStatus']?.toString();
+          localConverted.add(data);
+        } catch (_) {}
+      }
+
+      final online = ConnectivityService.isOnline.value;
+
+      // If the pacienteId is a local id (contains '-') we only show local records
+      if (pid.contains('-') || !online) {
+        for (final data in localConverted) {
+          lista.add(Consulta.fromJson(data));
         }
       } else {
-        lista = await ApiService.obtenerConsultasPaciente(widget.pacienteId);
+        // online and paciente has server id -> try remote, but fall back to local on error
+        try {
+          lista = await ApiService.obtenerConsultasPaciente(pid);
+          // cache remote results for offline availability
+          try {
+            final raw = await ApiService.obtenerConsultasPacienteRaw(pid);
+            await LocalDb.saveOrUpdateRemoteConsultasBatch(raw);
+          } catch (_) {}
+
+          // Merge local pending consultas: avoid duplicates.
+          // If a local pending has a serverId that already exists in the
+          // remote list, replace the remote entry with the local pending
+          // version (so the UI shows the pending edits) instead of inserting
+          // a duplicate. Otherwise insert local pending records at the top.
+          final serverIds =
+              lista.map((c) => c.id).where((s) => s.isNotEmpty).toSet();
+          for (final data in localConverted) {
+            final localServerId = (data['id'] ?? '')?.toString() ?? '';
+            final syncStatus = data['syncStatus']?.toString() ?? '';
+            final localConsulta = Consulta.fromJson(data);
+            if (localServerId.isNotEmpty && serverIds.contains(localServerId)) {
+              // Replace remote entry with local pending version
+              final idx = lista.indexWhere((c) => c.id == localServerId);
+              if (idx != -1) {
+                lista[idx] = localConsulta;
+                continue;
+              }
+              // If not found (defensive), fallthrough to insert
+            }
+            // Insert pending or local-only records at the front
+            if (syncStatus == 'pending' ||
+                localServerId.isEmpty ||
+                !serverIds.contains(localServerId)) {
+              lista.insert(0, localConsulta);
+            }
+          }
+        } catch (e) {
+          // remote failed -> use local
+          for (final data in localConverted) {
+            lista.add(Consulta.fromJson(data));
+          }
+        }
       }
       if (!mounted) return;
       setState(() => consultas = lista);
@@ -330,10 +386,48 @@ class _ConsultasScreenState extends State<ConsultasScreen>
                                                                       'Eliminar')),
                                                             ],
                                                           ));
+
                                               if (confirm == true) {
-                                                final ok = await ApiService
-                                                    .eliminarHistorial(c.id);
-                                                if (ok) await _cargar();
+                                                // If this consulta is a local-only record (has localId)
+                                                // delete it locally immediately. If it is a server
+                                                // record and we're online, call the API and then
+                                                // remove/update local cache. If offline, mark for
+                                                // deletion so SyncService will remove it later.
+                                                final isLocal =
+                                                    (c.localId != null &&
+                                                            c.localId!
+                                                                .isNotEmpty) ||
+                                                        c.id.contains('-');
+                                                final online =
+                                                    ConnectivityService
+                                                        .isOnline.value;
+                                                if (isLocal) {
+                                                  final localId =
+                                                      c.localId ?? c.id;
+                                                  await LocalDb
+                                                      .deleteLocalConsulta(
+                                                          localId);
+                                                  await _cargar();
+                                                } else {
+                                                  if (online) {
+                                                    final ok = await ApiService
+                                                        .eliminarHistorial(
+                                                            c.id);
+                                                    if (ok) {
+                                                      // remove any cached local record with same serverId
+                                                      await LocalDb
+                                                          .deleteLocalConsulta(
+                                                              c.id);
+                                                      await _cargar();
+                                                    }
+                                                  } else {
+                                                    // mark for delete to be processed when online
+                                                    await LocalDb
+                                                        .markConsultaForDelete(
+                                                            c.id);
+                                                    await _cargar();
+                                                  }
+                                                }
                                               }
                                             },
                                           ),
