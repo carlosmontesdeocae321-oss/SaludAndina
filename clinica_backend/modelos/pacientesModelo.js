@@ -57,6 +57,19 @@ async function obtenerPacientePorCedulaGlobal(cedula) {
 }
 
 const { saveDoc, deleteDoc } = require('../servicios/firebaseService');
+const fs = require('fs');
+const path = require('path');
+
+function _appendLog(line) {
+    try {
+        const logsDir = path.join(__dirname, '..', 'logs');
+        if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+        const file = path.join(logsDir, 'client_local_id.log');
+        fs.appendFileSync(file, line + '\n');
+    } catch (e) {
+        console.warn('Failed to write client_local_id log:', e && e.message ? e.message : e);
+    }
+}
 
 async function crearPaciente(paciente) {
     const { nombres, apellidos, cedula, telefono, direccion, fecha_nacimiento, clinica_id, doctor_id } = paciente;
@@ -102,6 +115,11 @@ async function crearPaciente(paciente) {
     const sql = `INSERT INTO pacientes (${columns.join(',')}) VALUES (${placeholders.join(',')})`;
         const [result] = await pool.query(sql, values);
         const id = result.insertId;
+        // Telemetry: log mapping between client_local_id and created server id
+        try {
+            const logLine = JSON.stringify({ ts: new Date().toISOString(), id: id, client_local_id: clientLocalId || null });
+            _appendLog(logLine);
+        } catch (_) {}
         try {
             const payload = {
                 nombres: nombres,
