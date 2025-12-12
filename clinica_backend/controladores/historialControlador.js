@@ -113,8 +113,21 @@ async function crearHistorial(req, res) {
                 // Inserted the key successfully — proceed to create the historial record
                 const payload = {
                     paciente_id: pacienteIdCheck,
+                    motivo_consulta: req.body.motivo_consulta || req.body.motivo || null,
                     fecha: fechaCheck,
                     notas_html: notasCheck,
+                    notas_html_full: req.body.notas_html_full || null,
+                    peso: req.body.peso || null,
+                    estatura: req.body.estatura || null,
+                    imc: req.body.imc || null,
+                    presion: req.body.presion || null,
+                    frecuencia_cardiaca: req.body.frecuencia_cardiaca || req.body.frecuenciaCardiaca || null,
+                    frecuencia_respiratoria: req.body.frecuencia_respiratoria || req.body.frecuenciaRespiratoria || null,
+                    temperatura: req.body.temperatura || null,
+                    otros: req.body.otros || null,
+                    diagnostico: req.body.diagnostico || null,
+                    tratamiento: req.body.tratamiento || null,
+                    receta: req.body.receta || null,
                     imagenes: _collectImagenes(req)
                 };
                 const nuevoId = await historialModelo.crearHistorial(payload);
@@ -153,8 +166,21 @@ async function crearHistorial(req, res) {
         // No idempotency key provided — create normally
         const payload = {
             paciente_id: pacienteIdCheck,
+            motivo_consulta: req.body.motivo_consulta || req.body.motivo || null,
             fecha: fechaCheck,
             notas_html: notasCheck,
+            notas_html_full: req.body.notas_html_full || null,
+            peso: req.body.peso || null,
+            estatura: req.body.estatura || null,
+            imc: req.body.imc || null,
+            presion: req.body.presion || null,
+            frecuencia_cardiaca: req.body.frecuencia_cardiaca || req.body.frecuenciaCardiaca || null,
+            frecuencia_respiratoria: req.body.frecuencia_respiratoria || req.body.frecuenciaRespiratoria || null,
+            temperatura: req.body.temperatura || null,
+            otros: req.body.otros || null,
+            diagnostico: req.body.diagnostico || null,
+            tratamiento: req.body.tratamiento || null,
+            receta: req.body.receta || null,
             imagenes: _collectImagenes(req)
         };
         const nuevoId = await historialModelo.crearHistorial(payload);
