@@ -14,7 +14,11 @@ router.post('/vincular-doctor', auth, async (req, res) => {
   }
   try {
     // Solo el dueño de la clínica (dueno) o la cuenta tipo 'clinica' asociada pueden vincular doctores a su clínica
-    if (!req.user || (!(req.user.dueno === true) && req.user.rol !== 'clinica') || req.user.clinica_id !== Number(clinica_id)) {
+    // Normalizar valores: en BD `dueno` puede venir como 1/0 o true/false; clinica_id también puede ser string/number.
+    const isOwner = req.user && (req.user.dueno === true || Number(req.user.dueno) === 1);
+    const userClinicaId = req.user ? Number(req.user.clinica_id) : null;
+    const targetClinicaId = Number(clinica_id);
+    if (!req.user || ((!isOwner) && req.user.rol !== 'clinica') || userClinicaId !== targetClinicaId) {
       return res.status(403).json({ error: 'Solo el dueño de la clínica puede vincular doctores' });
     }
     // Usar transacción para evitar estados parciales
