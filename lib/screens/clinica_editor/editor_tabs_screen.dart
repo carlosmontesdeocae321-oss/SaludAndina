@@ -678,9 +678,31 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = Theme.of(context);
+    final localTheme = baseTheme.copyWith(
+      inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
+        labelStyle: baseTheme.textTheme.bodyMedium?.copyWith(
+          color: baseTheme.colorScheme.onSurfaceVariant,
+        ),
+        hintStyle: baseTheme.textTheme.bodyMedium?.copyWith(
+          color: baseTheme.colorScheme.onSurfaceVariant,
+        ),
+        filled: true,
+        fillColor: baseTheme.colorScheme.surface.withOpacity(0.02),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: BorderSide(color: baseTheme.colorScheme.onSurface.withOpacity(0.08)),
+        ),
+      ),
+      textTheme: baseTheme.textTheme.apply(bodyColor: baseTheme.colorScheme.onSurface, displayColor: baseTheme.colorScheme.onSurface),
+    );
+
     return DefaultTabController(
       length: 6,
-      child: Scaffold(
+      child: Theme(
+        data: localTheme,
+        child: Scaffold(
         appBar: AppBar(
           title: const Text('Consulta'),
           actions: [
