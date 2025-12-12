@@ -510,9 +510,11 @@ class _HistorialScreenState extends State<HistorialScreen>
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: DefaultTextStyle.merge(
+          style: TextStyle(color: theme.colorScheme.onSurface),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Force default text color inside the card to the theme's onSurface
             DefaultTextStyle.merge(
               style: TextStyle(color: theme.colorScheme.onSurface),
