@@ -61,14 +61,24 @@ class _AgregarEditarPacienteScreenState
 
   // Quick HTTP check to verify real internet access (not just network link)
   Future<bool> _checkInternetAvailability() async {
-    try {
-      final resp = await http
-          .get(Uri.parse('https://clients3.google.com/generate_204'))
-          .timeout(const Duration(seconds: 3));
-      return resp.statusCode == 204 || resp.statusCode == 200;
-    } catch (_) {
-      return false;
+    // Try two endpoints sequentially with a slightly longer timeout to
+    // reduce false negatives on slow or captive networks.
+    final endpoints = [
+      'https://clients3.google.com/generate_204',
+      '${ApiService.baseUrl.replaceAll(RegExp(r'\/$'), '')}/health'
+    ];
+    for (final url in endpoints) {
+      try {
+        final resp =
+            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
+        debugPrint('connectivity check $url -> ${resp.statusCode}');
+        if (resp.statusCode == 204 || resp.statusCode == 200) return true;
+      } catch (e) {
+        debugPrint('connectivity check failed for $url: $e');
+        // try next endpoint
+      }
     }
+    return false;
   }
 
   @override
@@ -286,6 +296,27 @@ class _AgregarEditarPacienteScreenState
             .timeout(const Duration(seconds: 12));
         exito = resp['ok'] == true;
         mensaje = resp['message'] ?? '';
+        // If server returned an explicit failure (ok == false), fallback to local save
+        if (exito == false) {
+          try {
+            await LocalDb.savePatient(data);
+            messenger.showSnackBar(const SnackBar(
+                content: Text(
+                    'Paciente guardado localmente (pendiente de sincronización)')));
+            if (!mounted) return;
+            setState(() => cargando = false);
+            navigator.pop(true);
+            return;
+          } catch (e2) {
+            debugPrint(
+                'Error guardando paciente localmente tras fallo remoto: $e2');
+            messenger.showSnackBar(const SnackBar(
+                content: Text('Error guardando paciente localmente')));
+            if (!mounted) return;
+            setState(() => cargando = false);
+            return;
+          }
+        }
       } catch (e) {
         debugPrint('Error creando paciente remotamente: $e');
         // Fallback: save locally as pending

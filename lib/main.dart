@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/inicio_screen.dart';
@@ -40,14 +42,49 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Error inicializando SyncService: $e');
   }
+
+  // Register global error handlers that persist logs to a file so we can
+  // retrieve them from the device without adb. Useful for remote debugging.
+  Future<void> _appendLog(String msg) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final f = File('${dir.path}/clinica_logs.txt');
+      final ts = DateTime.now().toIso8601String();
+      await f.writeAsString('$ts $msg\n', mode: FileMode.append, flush: true);
+    } catch (e) {
+      debugPrint('No se pudo escribir log a archivo: $e');
+    }
+  }
+
+  FlutterError.onError = (details) async {
+    FlutterError.presentError(details);
+    await _appendLog(
+        'FlutterError: ${details.exceptionAsString()} \n${details.stack}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    _appendLog('UncaughtError: $error \n$stack');
+    return true;
+  };
   final shouldInitFirebase =
       !kIsWeb && defaultTargetPlatform != TargetPlatform.windows;
 
   if (shouldInitFirebase) {
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      // Avoid duplicate initialization which can happen in certain
+      // hot-restart or platform plugin registration scenarios.
+      try {
+        if (Firebase.apps.isEmpty) {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } else {
+          debugPrint(
+              'Firebase ya estaba inicializado; omitiendo initializeApp()');
+        }
+      } catch (e) {
+        debugPrint('Error comprobando Firebase.apps o inicializando: $e');
+      }
     } catch (e) {
       debugPrint('Error inicializando Firebase en main(): $e');
     }

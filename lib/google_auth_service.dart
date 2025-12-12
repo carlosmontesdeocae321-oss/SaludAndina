@@ -60,6 +60,17 @@ class GoogleAuthService {
       return FirebaseAuth.instance.signInWithCredential(credential);
     } on MissingPluginException {
       throw UnsupportedError('google_sign_in_plugin_missing');
+    } on PlatformException catch (pe) {
+      // Common plugin/platform errors from GoogleSignIn show as PlatformException
+      debugPrint(
+          'PlatformException during GoogleSignIn - code: ${pe.code}, message: ${pe.message}, details: ${pe.details}');
+      // Special-case the 12500 / sign_in_failed which often maps to OAuth config (SHA-1 / client id)
+      if ((pe.message ?? '').contains('12500') ||
+          pe.code.contains('sign_in_failed')) {
+        debugPrint(
+            'Google Sign-In error 12500 detected: verifica SHA-1 en Firebase Console, google-services.json y el client ID en Google Cloud Console.');
+      }
+      rethrow;
     } catch (e) {
       debugPrint('Error Google Sign-In: $e');
       rethrow;

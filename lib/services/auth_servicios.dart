@@ -100,7 +100,18 @@ class AuthService {
               'El inicio de sesión con Google no está disponible.';
       }
     } catch (e) {
-      lastGoogleSignInError = 'Ocurrió un problema con Google: $e';
+      // Provide more actionable error message for the common 12500 case
+      try {
+        final s = e.toString();
+        if (s.contains('12500') || s.contains('sign_in_failed')) {
+          lastGoogleSignInError =
+              'Error Google Sign-In (12500): revisa SHA-1 en Firebase Console, el archivo google-services.json y el client ID en Google Cloud Console.';
+        } else {
+          lastGoogleSignInError = 'Ocurrió un problema con Google: $e';
+        }
+      } catch (_) {
+        lastGoogleSignInError = 'Ocurrió un problema con Google: $e';
+      }
     }
     return null;
   }

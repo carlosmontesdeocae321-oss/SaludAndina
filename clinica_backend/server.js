@@ -8,6 +8,30 @@ const path = require('path');
 app.use(cors());
 app.use(express.json()); // Para recibir JSON en body
 
+// Optional verbose request/response logging for local debugging
+if (process.env.DEV_VERBOSE === 'true') {
+    app.use((req, res, next) => {
+        try {
+            console.log(`[DEV_VERBOSE] ${req.method} ${req.path} - headers:`, Object.keys(req.headers));
+            if (req.body) {
+                try { console.log('[DEV_VERBOSE] body:', JSON.stringify(req.body)); } catch (e) { console.log('[DEV_VERBOSE] body (non-serializable)'); }
+            }
+        } catch (e) {}
+
+        // Wrap res.send to log status and body size
+        const originalSend = res.send.bind(res);
+        res.send = function (body) {
+            try {
+                const len = body ? (typeof body === 'string' ? Buffer.byteLength(body) : JSON.stringify(body).length) : 0;
+                console.log(`[DEV_VERBOSE] Response ${req.method} ${req.path} -> status=${res.statusCode} len=${len}`);
+            } catch (e) {}
+            return originalSend(body);
+        };
+
+        next();
+    });
+}
+
 // Servir archivos estáticos subidos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Servir páginas públicas del backend (paneles simples)

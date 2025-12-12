@@ -140,7 +140,13 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
       data['client_local_id'] = createdLocalId;
     } catch (_) {}
 
-    final ok = await ApiService.crearHistorial(data, archivos);
+    bool ok = false;
+    try {
+      ok = await ApiService.crearHistorial(data, archivos);
+    } catch (e) {
+      debugPrint('Error calling crearHistorial: $e');
+      ok = false;
+    }
 
     if (!mounted) return;
     setState(() => _cargando = false);
@@ -154,10 +160,27 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
           await LocalDb.markConsultaAsSynced(createdLocalId, srvId, created);
         } else {
           // fallback: mark pending and let SyncService reconcile
-          await LocalDb.setConsultaPending(createdLocalId);
+          // Try server lookup by client_local_id as a best-effort reconciliation
           try {
-            await SyncService.instance.syncPending();
-          } catch (_) {}
+            final found = await ApiService.buscarHistorialPorClientLocalId(
+                createdLocalId);
+            if (found != null && found['ok'] == true && found['data'] != null) {
+              final srv = Map<String, dynamic>.from(found['data']);
+              final srvId = srv['id']?.toString() ?? '';
+              await LocalDb.markConsultaAsSynced(createdLocalId, srvId, srv);
+            } else {
+              await LocalDb.setConsultaPending(createdLocalId);
+              try {
+                await SyncService.instance.syncPending();
+              } catch (_) {}
+            }
+          } catch (e) {
+            // If lookup or sync fail, keep as pending and retry later
+            await LocalDb.setConsultaPending(createdLocalId);
+            try {
+              await SyncService.instance.syncPending();
+            } catch (_) {}
+          }
         }
       } catch (e) {
         debugPrint('Post-create reconciliation error: $e');
@@ -169,11 +192,15 @@ class _AgregarHistorialScreenState extends State<AgregarHistorialScreen>
       );
       navigator.pop(true);
     } else {
-      // remote failed -> leave pending
+      // remote failed -> leave pending and inform user that it was saved locally
       await LocalDb.setConsultaPending(createdLocalId);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Error al guardar historial')),
+        const SnackBar(
+            content: Text(
+                'Historial guardado localmente (pendiente de sincronización)')),
       );
+      // Close the screen so user returns to the patient view with the pending item
+      navigator.pop(true);
     }
   }
 

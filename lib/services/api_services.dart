@@ -23,17 +23,33 @@ class ApiService {
         // No se asocia a una clínica, es individual
       }),
     );
+    // Store last raw body for debugging UI
+    try {
+      lastErrorBody = res.body;
+    } catch (_) {
+      lastErrorBody = null;
+    }
+
     if (res.statusCode == 201) {
       return {'ok': true};
     } else {
+      // Return detailed error info to aid debugging from Windows client
       try {
         final data = jsonDecode(res.body);
+        final msg = data['error'] ?? data['message'] ?? jsonEncode(data);
         return {
           'ok': false,
-          'error': data['error'] ?? data['message'] ?? 'Error desconocido'
+          'status': res.statusCode,
+          'error': msg,
+          'body': res.body,
         };
       } catch (e) {
-        return {'ok': false, 'error': 'Error desconocido'};
+        return {
+          'ok': false,
+          'status': res.statusCode,
+          'error': 'Error desconocido',
+          'body': res.body,
+        };
       }
     }
   }

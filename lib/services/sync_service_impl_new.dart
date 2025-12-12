@@ -8,6 +8,7 @@ import 'api_service_adapter.dart';
 import 'api_services.dart';
 import 'sync_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'connectivity_service.dart';
 
 /// Clean implementation of the SyncService (new file).
 class SyncService {
@@ -36,6 +37,27 @@ class SyncService {
 
   SyncService._() {
     _startConnectivityListener();
+    // Also subscribe to the app-level ConnectivityService which performs
+    // an additional reachability check (HTTP 204) — this reduces false
+    // positives where the platform reports network but there's no internet.
+    try {
+      ConnectivityService.isOnline.addListener(() async {
+        try {
+          final online = ConnectivityService.isOnline.value;
+          if (online) {
+            debugPrint(
+                'SyncService: ConnectivityService reports online — triggering syncPending()');
+            await syncPending();
+          } else {
+            debugPrint('SyncService: ConnectivityService reports offline');
+          }
+        } catch (e) {
+          debugPrint('SyncService: error in ConnectivityService listener: $e');
+        }
+      });
+    } catch (e) {
+      debugPrint('SyncService: failed to subscribe to ConnectivityService: $e');
+    }
     // Seed the notifier asynchronously so the drawer badge has an initial value.
     // Fire-and-forget is acceptable here; errors are swallowed inside refresh().
     SyncNotifier.instance.refresh();

@@ -16,7 +16,7 @@ import '../screens/menu/menu_principal_screen.dart';
 import '../screens/inicio_screen.dart';
 import '../screens/doctor/doctor_list_screen.dart';
 import '../screens/admin/promociones_screen.dart';
-import '../screens/debug/pending_locals_screen.dart';
+// Debug pending-locals screen removed for rollback to stable behavior
 // 'Solicitar pago' removed from drawer
 import '../screens/admin/pagos_admin_screen.dart';
 import '../screens/mis_compras_screen.dart';
@@ -466,18 +466,7 @@ class AppDrawer extends StatelessWidget {
                           ),
                           // Manual sync action removed: using automatic sync and
                           // a visible syncing bar instead to avoid duplicate uploads.
-                          _drawerTile(
-                            context,
-                            icon: Icons.list_alt,
-                            label: 'Ver pendientes (debug)',
-                            action: (navigator) async {
-                              navigator.push(
-                                MaterialPageRoute(
-                                  builder: (_) => const PendingLocalsScreen(),
-                                ),
-                              );
-                            },
-                          ),
+                          // 'Ver pendientes' debug option removed in rollback
                           _drawerTile(
                             context,
                             icon: Icons.logout,
