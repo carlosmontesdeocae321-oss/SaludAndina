@@ -69,15 +69,8 @@ async function crearHistorial(req, res) {
             }
         }
 
-        if (pacienteIdCheck && fechaCheck && notasCheck) {
-            const [rowsDup] = await pool.query(
-                'SELECT id FROM historial WHERE paciente_id = ? AND fecha = ? AND notas_html = ? AND creado_en >= (NOW() - INTERVAL 10 SECOND) LIMIT 1',
-                [pacienteIdCheck, fechaCheck, notasCheck]
-            );
-            if (rowsDup && rowsDup.length > 0) {
-                return res.status(409).json({ message: 'Registro duplicado detectado (reciente), operación ignorada', id: rowsDup[0].id });
-            }
-        }
+        // NOTE: removed time-window duplicate check because production DB does not have `creado_en` column.
+        // Rely on idempotency key reservation below to prevent duplicates across retries/instances.
 
         // Idempotency: attempt to reserve idempotency key atomically
         const idempotencyKey = (req.headers['idempotency-key'] || req.headers['Idempotency-Key'] || '').toString();
