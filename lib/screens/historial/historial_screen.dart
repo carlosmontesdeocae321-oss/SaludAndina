@@ -513,7 +513,10 @@ class _HistorialScreenState extends State<HistorialScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
+            // Force default text color inside the card to the theme's onSurface
+            DefaultTextStyle.merge(
+              style: TextStyle(color: theme.colorScheme.onSurface),
+              child: Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
               decoration: BoxDecoration(
@@ -568,9 +571,11 @@ class _HistorialScreenState extends State<HistorialScreen>
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: DefaultTextStyle.merge(
+                style: TextStyle(color: theme.colorScheme.onSurface),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   _buildDetailBlock(
                     theme: theme,
                     icon: Icons.chat_bubble_outline,
