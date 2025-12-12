@@ -79,41 +79,61 @@ async function crearHistorial(req, res) {
             }
         }
 
-        // Check idempotency header first (if present) to return previous result
+        // Idempotency: attempt to reserve idempotency key atomically
         const idempotencyKey = (req.headers['idempotency-key'] || req.headers['Idempotency-Key'] || '').toString();
         if (idempotencyKey) {
             try {
-                const idempotencyModel = require('../modelos/idempotencyModelo');
-                const existing = await idempotencyModel.getByKey(idempotencyKey);
-                if (existing && existing.resource_id) {
-                    return res.status(200).json({ id: existing.resource_id, idempotency: true });
+                // Try to insert the idempotency key (resource_id NULL). If it already exists, we'll detect it.
+                await pool.query('INSERT INTO idempotency_keys (idempotency_key, resource_type, resource_id) VALUES (?, ?, NULL)', [idempotencyKey, 'historial']);
+                // Inserted the key successfully — proceed to create the historial record
+                const payload = {
+                    paciente_id: pacienteIdCheck,
+                    fecha: fechaCheck,
+                    notas_html: notasCheck,
+                    imagenes: req.body.imagenes || []
+                };
+                const nuevoId = await historialModelo.crearHistorial(payload);
+                console.log('🔔 crearHistorial - insertId:', nuevoId);
+                try {
+                    await pool.query('UPDATE idempotency_keys SET resource_id = ? WHERE idempotency_key = ?', [nuevoId, idempotencyKey]);
+                } catch (e) {
+                    console.warn('Warning: failed to update idempotency key after insert', e && e.message ? e.message : e);
                 }
+                return res.status(201).json({ id: nuevoId });
             } catch (e) {
-                console.warn('Warning: idempotency lookup failed', e && e.message ? e.message : e);
+                // Duplicate key means another process reserved or completed this operation.
+                if (e && (e.code === 'ER_DUP_ENTRY' || e.errno === 1062)) {
+                    // Poll a few times to see if the resource_id was set by the other process
+                    const idempotencyModel = require('../modelos/idempotencyModelo');
+                    for (let i = 0; i < 8; i++) {
+                        try {
+                            const existing = await idempotencyModel.getByKey(idempotencyKey);
+                            if (existing && existing.resource_id) {
+                                return res.status(200).json({ id: existing.resource_id, idempotency: true });
+                            }
+                        } catch (ee) {
+                            // ignore and retry
+                        }
+                        // small sleep
+                        await new Promise((r) => setTimeout(r, 200));
+                    }
+                    // Still no resource_id — return 409 to indicate in-progress/duplicate
+                    return res.status(409).json({ message: 'Idempotency key already in use; operation in progress or failed. Intente de nuevo.' });
+                }
+                // Other errors: rethrow
+                throw e;
             }
         }
 
-        // Build payload from body (minimal: do not process uploads here)
+        // No idempotency key provided — create normally
         const payload = {
             paciente_id: pacienteIdCheck,
             fecha: fechaCheck,
             notas_html: notasCheck,
             imagenes: req.body.imagenes || []
         };
-
         const nuevoId = await historialModelo.crearHistorial(payload);
-        console.log('🔔 crearHistorial - insertId:', nuevoId);
-
-        // If an idempotency key was provided, persist the mapping
-        if (idempotencyKey) {
-            try {
-                const idempotencyModel = require('../modelos/idempotencyModelo');
-                await idempotencyModel.createKey(idempotencyKey, 'historial', nuevoId);
-            } catch (e) {
-                console.warn('Warning: failed to persist idempotency key', e && e.message ? e.message : e);
-            }
-        }
-
+        console.log('🔔 crearHistorial - insertId (no idempotency key):', nuevoId);
         return res.status(201).json({ id: nuevoId });
     } catch (err) {
         res.status(500).json({ message: err.message });
