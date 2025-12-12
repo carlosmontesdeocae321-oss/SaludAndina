@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import '../models/paciente.dart';
 import '../models/consulta.dart';
 import '../models/cita.dart';
@@ -305,6 +306,12 @@ class ApiService {
       Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/api/pacientes');
     final headers = await _getHeaders(jsonType: true);
+    // Attach an Idempotency-Key to avoid duplicate creations from retries/offline sync
+    try {
+      final id = const Uuid().v4();
+      headers['Idempotency-Key'] = id;
+      _log('📌 crearPaciente - Idempotency-Key: $id');
+    } catch (_) {}
     try {
       final body = jsonEncode(data);
       _log('📤 crearPaciente - POST $url');
@@ -409,6 +416,12 @@ class ApiService {
     final url = Uri.parse('$baseUrl/api/historial');
     final request = http.MultipartRequest('POST', url);
     final headers = await _getHeaders();
+    // Generate and attach an Idempotency-Key so server-side idempotency can work
+    try {
+      final id = const Uuid().v4();
+      headers['Idempotency-Key'] = id;
+      _log('📤 crearHistorial - Idempotency-Key: $id');
+    } catch (_) {}
     request.headers.addAll(headers);
 
     // Depuración: imprimir lo que vamos a enviar
@@ -545,6 +558,12 @@ class ApiService {
   static Future<bool> agendarCita(Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/api/citas');
     final headers = await _getHeaders(jsonType: true);
+    // Add Idempotency-Key to protect against duplicate POST retries
+    try {
+      final id = const Uuid().v4();
+      headers['Idempotency-Key'] = id;
+      _log('📌 agendarCita - Idempotency-Key: $id');
+    } catch (_) {}
 
     _log('📌 agendarCita - POST $url');
     _log('📌 Headers: $headers');
@@ -636,6 +655,11 @@ class ApiService {
       if (imagePath != null && imagePath.isNotEmpty) {
         final request = http.MultipartRequest('POST', url);
         final headers = await _getHeaders();
+        try {
+          final id = const Uuid().v4();
+          headers['Idempotency-Key'] = id;
+          _log('📌 enviarDatosCompra (multipart) - Idempotency-Key: $id');
+        } catch (_) {}
         request.headers.addAll(headers);
         data.forEach((k, v) {
           if (v != null) request.fields[k] = v.toString();

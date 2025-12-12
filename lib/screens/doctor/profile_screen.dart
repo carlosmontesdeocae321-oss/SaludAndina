@@ -1040,41 +1040,100 @@ class _PerfilDoctorScreenState extends State<PerfilDoctorScreen>
             perfil?['avatar'] ?? perfil?['avatar_url'] ?? perfil?['imagen'],
             pickedImagePath);
         return AlertDialog(
+          backgroundColor: const Color(0xFF0B1626),
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          contentTextStyle: const TextStyle(color: Colors.white70),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: const Text('Editar perfil'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                    controller: nombreCtrl,
-                    decoration: const InputDecoration(labelText: 'Nombre')),
+                  controller: nombreCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                ),
                 TextField(
-                    controller: apellidoCtrl,
-                    decoration: const InputDecoration(labelText: 'Apellido')),
+                  controller: apellidoCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Apellido',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                ),
                 TextField(
-                    controller: espCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Especialidad')),
+                  controller: espCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Especialidad',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                ),
                 TextField(
-                    controller: direccionCtrl,
-                    decoration: const InputDecoration(labelText: 'Dirección')),
+                  controller: direccionCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                ),
                 TextField(
-                    controller: telefonoCtrl,
-                    decoration: const InputDecoration(labelText: 'Teléfono')),
+                  controller: telefonoCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Teléfono',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                ),
                 TextField(
-                    controller: emailCtrl,
-                    decoration: const InputDecoration(labelText: 'Email')),
+                  controller: emailCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                ),
                 TextField(
-                    controller: bioCtrl,
-                    decoration: const InputDecoration(labelText: 'Biografía'),
-                    maxLines: 3),
+                  controller: bioCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Biografía',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Color(0x0FFFFFFF),
+                  ),
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 8),
                 CheckboxListTile(
-                    value: uploadImage,
-                    onChanged: (v) => setS(() => uploadImage = v ?? true),
-                    title: const Text('Intentar subir la imagen al servidor'),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true),
+                  value: uploadImage,
+                  onChanged: (v) => setS(() => uploadImage = v ?? true),
+                  title: const Text('Intentar subir la imagen al servidor',
+                      style: TextStyle(color: Colors.white)),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
                 const SizedBox(height: 6),
                 Row(children: [
                   if (avatarProv != null)
@@ -1157,7 +1216,8 @@ class _PerfilDoctorScreenState extends State<PerfilDoctorScreen>
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(c, false),
-                child: const Text('Cancelar')),
+                child: const Text('Cancelar',
+                    style: TextStyle(color: Colors.white70))),
             ElevatedButton(
                 onPressed: () => Navigator.pop(c, true),
                 child: const Text('Guardar')),

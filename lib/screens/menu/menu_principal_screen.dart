@@ -859,12 +859,25 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen>
                   final confirm = await showDialog<bool>(
                     context: itemContext,
                     builder: (dialogCtx) => AlertDialog(
+                      backgroundColor: const Color(0xFF0B1626),
+                      titleTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      contentTextStyle: const TextStyle(
+                        color: Colors.white70,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       title: const Text('Eliminar paciente'),
                       content: Text(
                           '¿Seguro que deseas eliminar a ${p.nombres} ${p.apellidos}?'),
                       actions: [
                         TextButton(
-                            child: const Text('Cancelar'),
+                            child: const Text('Cancelar',
+                                style: TextStyle(color: Colors.white70)),
                             onPressed: () => Navigator.pop(dialogCtx, false)),
                         TextButton(
                             child: const Text('Eliminar',

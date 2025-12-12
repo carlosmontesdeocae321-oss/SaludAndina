@@ -72,6 +72,38 @@ async function crearHistorial(req, res) {
         // NOTE: removed time-window duplicate check because production DB does not have `creado_en` column.
         // Rely on idempotency key reservation below to prevent duplicates across retries/instances.
 
+        // Helper: collect imagenes from uploaded files and from body
+        function _collectImagenes(req) {
+            const imgs = [];
+            try {
+                if (Array.isArray(req.files) && req.files.length > 0) {
+                    for (const f of req.files) {
+                        // Store paths with a leading slash so client can prepend baseUrl
+                        imgs.push('/uploads/historial/' + (f.filename || f.originalname));
+                    }
+                }
+            } catch (e) {
+                // ignore
+            }
+            try {
+                const bodyImgs = req.body && req.body.imagenes ? req.body.imagenes : null;
+                if (bodyImgs) {
+                    if (Array.isArray(bodyImgs)) {
+                        for (const b of bodyImgs) if (b) imgs.push(b);
+                    } else if (typeof bodyImgs === 'string' && bodyImgs.trim() !== '') {
+                        try {
+                            const parsed = JSON.parse(bodyImgs);
+                            if (Array.isArray(parsed)) parsed.forEach(p => p && imgs.push(p));
+                        } catch (e) {
+                            imgs.push(bodyImgs);
+                        }
+                    }
+                }
+            } catch (e) {}
+            // unique
+            return Array.from(new Set(imgs));
+        }
+
         // Idempotency: attempt to reserve idempotency key atomically
         const idempotencyKey = (req.headers['idempotency-key'] || req.headers['Idempotency-Key'] || '').toString();
         if (idempotencyKey) {
@@ -83,7 +115,7 @@ async function crearHistorial(req, res) {
                     paciente_id: pacienteIdCheck,
                     fecha: fechaCheck,
                     notas_html: notasCheck,
-                    imagenes: req.body.imagenes || []
+                    imagenes: _collectImagenes(req)
                 };
                 const nuevoId = await historialModelo.crearHistorial(payload);
                 console.log('🔔 crearHistorial - insertId:', nuevoId);
@@ -123,7 +155,7 @@ async function crearHistorial(req, res) {
             paciente_id: pacienteIdCheck,
             fecha: fechaCheck,
             notas_html: notasCheck,
-            imagenes: req.body.imagenes || []
+            imagenes: _collectImagenes(req)
         };
         const nuevoId = await historialModelo.crearHistorial(payload);
         console.log('🔔 crearHistorial - insertId (no idempotency key):', nuevoId);
@@ -138,6 +170,23 @@ async function crearHistorial(req, res) {
 async function actualizarHistorial(req, res) {
     try {
         const body = req.body || {};
+        // Merge uploaded files into body.imagenes so the model receives them
+        try {
+            if (!body.imagenes) body.imagenes = [];
+            if (Array.isArray(req.files) && req.files.length > 0) {
+                for (const f of req.files) {
+                    body.imagenes.push('/uploads/historial/' + (f.filename || f.originalname));
+                }
+            }
+            // If body.imagenes is a JSON string, try to parse
+            if (typeof body.imagenes === 'string') {
+                try {
+                    body.imagenes = JSON.parse(body.imagenes);
+                } catch (e) {}
+            }
+            // Ensure unique
+            if (Array.isArray(body.imagenes)) body.imagenes = Array.from(new Set(body.imagenes));
+        } catch (e) {}
         const doctor_id = req.user && req.user.rol === 'doctor' ? req.user.id : null;
         const filas = await historialModelo.actualizarHistorial(req.params.id, body, req.clinica_id, doctor_id);
         if (filas === 0) return res.status(404).json({ message: 'Registro no encontrado o sin permiso' });

@@ -52,6 +52,24 @@ class ClinicaApp extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 2,
         ),
+        // Ensure dialogs and input fields have readable styles by default
+        // Use `dialogTheme` (widely supported) instead of `alertDialogTheme`
+        // which may not be available on older SDK versions for desktop.
+        dialogTheme: DialogTheme(
+          backgroundColor: const Color(0xFF0B1626),
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          contentTextStyle: const TextStyle(color: Colors.white70),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          labelStyle: TextStyle(color: Colors.white70),
+          filled: true,
+          fillColor: Color(0x0FFFFFFF),
+        ),
         colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.teal)
             .copyWith(secondary: const Color(0xFF06B6D4)),
       ),
