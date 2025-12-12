@@ -1,4 +1,5 @@
 const historialModelo = require('../modelos/historialModelo');
+const crypto = require('crypto');
 
 async function listarHistorial(req, res) {
     try {
@@ -48,6 +49,19 @@ async function crearHistorial(req, res) {
         const pacienteIdCheck = req.body && req.body.paciente_id ? Number(req.body.paciente_id) : null;
         const fechaCheck = req.body && req.body.fecha ? req.body.fecha : null;
         const notasCheck = req.body && req.body.notas_html ? req.body.notas_html : null;
+
+        // Instrumentación: loguear Idempotency-Key, headers y fingerprint para diagnóstico
+        try {
+            const idempotencyHeader = (req.headers['idempotency-key'] || req.headers['Idempotency-Key'] || '').toString();
+            const nowIso = new Date().toISOString();
+            const headerSnippet = Object.keys(req.headers || {}).slice(0,10).reduce((acc,k)=>{ acc[k]=req.headers[k]; return acc; },{});
+            const fingerprintSource = JSON.stringify({ paciente_id: pacienteIdCheck, fecha: fechaCheck, notas_html: notasCheck });
+            const fingerprint = crypto.createHash('sha256').update(fingerprintSource || '').digest('hex');
+            console.log(`🔍 idempotency-log time=${nowIso} key=${idempotencyHeader} paciente=${pacienteIdCheck} fingerprint=${fingerprint}`);
+            console.log('🔍 idempotency-log headers:', headerSnippet);
+        } catch (e) {
+            console.warn('Warning: failed to compute idempotency fingerprint', e && e.message ? e.message : e);
+        }
         let lockName = null;
         let lockAcquired = false;
         try {
