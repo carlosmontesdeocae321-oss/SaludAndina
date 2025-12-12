@@ -40,6 +40,41 @@ async function verHistorial(req, res) {
 
 async function crearHistorial(req, res) {
     try {
+        // Prevent accidental duplicate inserts from retries/clients sending twice
+        // Check for a very recent identical historial (same paciente_id, fecha and notas_html)
+        // within the last 10 seconds and return a 409 if found.
+        // Use a db lock to avoid race between parallel requests creating the same record
+        const pool = require('../config/db');
+        const pacienteIdCheck = req.body && req.body.paciente_id ? Number(req.body.paciente_id) : null;
+        const fechaCheck = req.body && req.body.fecha ? req.body.fecha : null;
+        const notasCheck = req.body && req.body.notas_html ? req.body.notas_html : null;
+        let lockName = null;
+        let lockAcquired = false;
+        try {
+            if (pacienteIdCheck) {
+                lockName = `historial_create_${pacienteIdCheck}`.slice(0, 60);
+                const [lkRows] = await pool.query('SELECT GET_LOCK(?, 5) as lk', [lockName]);
+                if (lkRows && lkRows[0] && (lkRows[0].lk === 1 || lkRows[0].lk === '1')) {
+                    lockAcquired = true;
+                }
+            }
+
+            if (pacienteIdCheck && fechaCheck && notasCheck) {
+                const [rowsDup] = await pool.query(
+                    'SELECT id FROM historial WHERE paciente_id = ? AND fecha = ? AND notas_html = ? AND creado_en >= (NOW() - INTERVAL 10 SECOND) LIMIT 1',
+                    [pacienteIdCheck, fechaCheck, notasCheck]
+                );
+                if (rowsDup && rowsDup.length > 0) {
+                    // Release lock if we acquired it
+                    try { if (lockAcquired) await pool.query('SELECT RELEASE_LOCK(?) as rl', [lockName]); } catch (e) {}
+                    return res.status(409).json({ message: 'Registro duplicado detectado (reciente), operación ignorada', id: rowsDup[0].id });
+                }
+            }
+        } catch (e) {
+            // If lock/duplicate check fails, log and continue to normal processing
+            console.warn('Warning: duplicate-check/lock failed', e && e.message ? e.message : e);
+        }
+
         // Depuración: imprimir body y files
         console.log('🔔 crearHistorial - req.body:', req.body);
         console.log('🔔 crearHistorial - files:', (req.files || []).length);
@@ -52,41 +87,45 @@ async function crearHistorial(req, res) {
         const { uploadFile: uploadToFirebase } = require('../servicios/firebaseService');
         for (const f of files) {
             try {
-                if (useFirebase) {
-                    const dest = `clinica/historial/${Date.now()}_${f.originalname}`;
-                    const r = await uploadToFirebase(f.path, dest);
-                    imagenes.push(r.publicUrl);
-                } else {
-                    const r = await uploadToCloudinary(f.path, { folder: 'clinica/historial' });
-                    imagenes.push(r.secure_url);
+                if (pacienteIdCheck) {
+                    lockName = `historial_create_${pacienteIdCheck}`.slice(0, 60);
+                    const [lkRows] = await pool.query('SELECT GET_LOCK(?, 5) as lk', [lockName]);
+                    if (lkRows && lkRows[0] && (lkRows[0].lk === 1 || lkRows[0].lk === '1')) {
+                        lockAcquired = true;
+                    }
+                }
+
+                // Check idempotency header first (if present) to return previous result
+                const idempotencyKey = (req.headers['idempotency-key'] || req.headers['Idempotency-Key'] || '').toString();
+                if (idempotencyKey) {
+                    try {
+                        const idempotencyModel = require('../modelos/idempotencyModelo');
+                        const existing = await idempotencyModel.getByKey(idempotencyKey);
+                        if (existing && existing.resource_id) {
+                            // Return the same resource id as previously created
+                            try { if (lockAcquired) await pool.query('SELECT RELEASE_LOCK(?) as rl', [lockName]); } catch (e) {}
+                            return res.status(200).json({ id: existing.resource_id, idempotency: true });
+                        }
+                    } catch (e) {
+                        console.warn('Warning: idempotency lookup failed', e && e.message ? e.message : e);
+                    }
+                }
+
+                if (pacienteIdCheck && fechaCheck && notasCheck) {
+                    const [rowsDup] = await pool.query(
+                        'SELECT id FROM historial WHERE paciente_id = ? AND fecha = ? AND notas_html = ? AND creado_en >= (NOW() - INTERVAL 10 SECOND) LIMIT 1',
+                        [pacienteIdCheck, fechaCheck, notasCheck]
+                    );
+                    if (rowsDup && rowsDup.length > 0) {
+                        // Release lock if we acquired it
+                        try { if (lockAcquired) await pool.query('SELECT RELEASE_LOCK(?) as rl', [lockName]); } catch (e) {}
+                        return res.status(409).json({ message: 'Registro duplicado detectado (reciente), operación ignorada', id: rowsDup[0].id });
+                    }
                 }
             } catch (e) {
-                console.error('Error subiendo imagen historial', e);
+                // If lock/duplicate check fails, log and continue to normal processing
+                console.warn('Warning: duplicate-check/lock failed', e && e.message ? e.message : e);
             }
-        }
-
-        // req.body contiene los campos de texto (multer los conserva)
-        const payload = Object.assign({}, req.body);
-        // Normalizar nombres: si cliente usó 'motivo' o 'motivo_consulta'
-        if (payload.motivo && !payload.motivo_consulta) payload.motivo_consulta = payload.motivo;
-        // Asegurar campos numéricos/strings estén presentes; imagenes como array
-        payload.imagenes = imagenes;
-
-        console.log('🔔 crearHistorial - payload final para BD:', payload);
-
-        const nuevoId = await historialModelo.crearHistorial(payload);
-        console.log('🔔 crearHistorial - insertId:', nuevoId);
-        res.status(201).json({ id: nuevoId });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-async function actualizarHistorial(req, res) {
-    try {
-        console.log('🔔 actualizarHistorial - req.body:', req.body);
-        console.log('🔔 actualizarHistorial - files:', (req.files || []).length);
-
         const files = req.files || [];
         const imagenesNuevas = [];
         const useFirebase2 = process.env.USE_FIREBASE_STORAGE === 'true';
@@ -98,25 +137,25 @@ async function actualizarHistorial(req, res) {
                     const dest = `clinica/historial/${Date.now()}_${f.originalname}`;
                     const r = await uploadToFirebase2(f.path, dest);
                     imagenesNuevas.push(r.publicUrl);
-                } else {
-                    const r = await uploadToCloudinary2(f.path, { folder: 'clinica/historial' });
-                    imagenesNuevas.push(r.secure_url);
+                try {
+                    const nuevoId = await historialModelo.crearHistorial(payload);
+                    console.log('🔔 crearHistorial - insertId:', nuevoId);
+
+                    // If an idempotency key was provided, persist the mapping
+                    const idempotencyKey2 = (req.headers['idempotency-key'] || req.headers['Idempotency-Key'] || '').toString();
+                    if (idempotencyKey2) {
+                        try {
+                            const idempotencyModel = require('../modelos/idempotencyModelo');
+                            await idempotencyModel.createKey(idempotencyKey2, 'historial', nuevoId);
+                        } catch (e) {
+                            console.warn('Warning: failed to persist idempotency key', e && e.message ? e.message : e);
+                        }
+                    }
+
+                    res.status(201).json({ id: nuevoId });
+                } finally {
+                    try { if (lockAcquired) await pool.query('SELECT RELEASE_LOCK(?) as rl', [lockName]); } catch (e) {}
                 }
-            } catch (e) {
-                console.error('Error subiendo imagen historial', e);
-            }
-        }
-
-        const body = Object.assign({}, req.body);
-        if (body.motivo && !body.motivo_consulta) body.motivo_consulta = body.motivo;
-
-        // Si el cliente envió imagenes existentes en body.imagenes (JSON), concatenarlas
-        let imagenesExistentes = [];
-        if (body.imagenes) {
-            try {
-                imagenesExistentes = typeof body.imagenes === 'string' ? JSON.parse(body.imagenes) : body.imagenes;
-            } catch (e) {
-                imagenesExistentes = [];
             }
         }
         // Si el cliente indicó imágenes para eliminar, filtrarlas de las existentes
