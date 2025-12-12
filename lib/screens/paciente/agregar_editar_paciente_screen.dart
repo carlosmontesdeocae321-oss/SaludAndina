@@ -305,6 +305,12 @@ class _AgregarEditarPacienteScreenState
             ? 'Individual (doctor ID: ${widget.doctorId})'
             : 'Destino desconocido');
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fieldTextColor = isDark ? Colors.white : Colors.black87;
+    final fieldLabelColor = isDark ? Colors.white70 : Colors.black54;
+    final fieldHintColor = isDark ? Colors.white54 : Colors.black45;
+    final fieldFillColor = isDark ? const Color(0xFF0B1626) : Colors.white;
+
     return Scaffold(
       appBar: AppBar(title: Text(titulo)),
       body: cargando
@@ -331,39 +337,79 @@ class _AgregarEditarPacienteScreenState
                     ),
                     TextFormField(
                       controller: _nombresController,
-                      decoration: const InputDecoration(labelText: "Nombres"),
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
+                        labelText: "Nombres",
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
+                      ),
                       validator: (v) =>
                           v == null || v.isEmpty ? "Ingresa nombres" : null,
                     ),
                     TextFormField(
                       controller: _apellidosController,
-                      decoration: const InputDecoration(labelText: "Apellidos"),
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
+                        labelText: "Apellidos",
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
+                      ),
                       validator: (v) =>
                           v == null || v.isEmpty ? "Ingresa apellidos" : null,
                     ),
                     TextFormField(
                       controller: _cedulaController,
-                      decoration: const InputDecoration(labelText: "Cédula"),
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
+                        labelText: "Cédula",
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
+                      ),
                       validator: (v) =>
                           v == null || v.isEmpty ? "Ingresa cédula" : null,
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _telefonoController,
+                      style: TextStyle(color: fieldTextColor),
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: "Teléfono"),
+                      decoration: InputDecoration(
+                        labelText: "Teléfono",
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _direccionController,
-                      decoration: const InputDecoration(labelText: "Dirección"),
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
+                        labelText: "Dirección",
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _fechaNacimientoController,
                       readOnly: true,
-                      decoration: const InputDecoration(
-                          labelText: "Fecha de nacimiento (YYYY-MM-DD)"),
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
+                          labelText: "Fecha de nacimiento (YYYY-MM-DD)",
+                          labelStyle: TextStyle(color: fieldLabelColor),
+                          hintStyle: TextStyle(color: fieldHintColor),
+                          filled: true,
+                          fillColor: fieldFillColor),
                       onTap: _pickFecha,
                       validator: (v) {
                         if (v == null || v.isEmpty) {

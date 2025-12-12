@@ -83,6 +83,12 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fieldTextColor = isDark ? Colors.white : Colors.black87;
+    final fieldLabelColor = isDark ? Colors.white70 : Colors.black54;
+    final fieldHintColor = isDark ? Colors.white54 : Colors.black45;
+    final fieldFillColor = isDark ? const Color(0xFF0B1626) : Colors.white;
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Agendar cita - ${widget.paciente.nombres}"),
@@ -97,8 +103,13 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
                   children: [
                     TextFormField(
                       controller: _motivoController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
                         labelText: "Motivo de la cita",
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
                       ),
                       validator: (v) =>
                           v == null || v.isEmpty ? "Ingresa el motivo" : null,

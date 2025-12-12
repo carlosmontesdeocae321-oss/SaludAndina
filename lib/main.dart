@@ -63,7 +63,8 @@ class ClinicaApp extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           contentTextStyle: const TextStyle(color: Colors.white70),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         inputDecorationTheme: const InputDecorationTheme(
           labelStyle: TextStyle(color: Colors.white70),

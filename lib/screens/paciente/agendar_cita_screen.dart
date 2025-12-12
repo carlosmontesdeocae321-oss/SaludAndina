@@ -86,6 +86,12 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fieldTextColor = isDark ? Colors.white : Colors.black87;
+    final fieldLabelColor = isDark ? Colors.white70 : Colors.black54;
+    final fieldHintColor = isDark ? Colors.white54 : Colors.black45;
+    final fieldFillColor = isDark ? const Color(0xFF0B1626) : Colors.white;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Agendar cita')),
       body: _loading
@@ -100,9 +106,15 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
                     TextFormField(
                       controller: _fechaCtrl,
                       readOnly: true,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
                         labelText: 'Fecha (YYYY-MM-DD)',
-                        suffixIcon: Icon(Icons.calendar_today),
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        suffixIcon:
+                            Icon(Icons.calendar_today, color: fieldLabelColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
                       ),
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Seleccione fecha' : null,
@@ -112,9 +124,15 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
                     TextFormField(
                       controller: _horaCtrl,
                       readOnly: true,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
                         labelText: 'Hora (HH:MM:SS)',
-                        suffixIcon: Icon(Icons.access_time),
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        suffixIcon:
+                            Icon(Icons.access_time, color: fieldLabelColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
                       ),
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Seleccione hora' : null,
@@ -123,7 +141,14 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _motivoCtrl,
-                      decoration: const InputDecoration(labelText: 'Motivo'),
+                      style: TextStyle(color: fieldTextColor),
+                      decoration: InputDecoration(
+                        labelText: 'Motivo',
+                        labelStyle: TextStyle(color: fieldLabelColor),
+                        hintStyle: TextStyle(color: fieldHintColor),
+                        filled: true,
+                        fillColor: fieldFillColor,
+                      ),
                       maxLines: 3,
                     ),
                     const SizedBox(height: 20),

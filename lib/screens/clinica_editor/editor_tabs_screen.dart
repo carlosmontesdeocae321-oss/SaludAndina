@@ -323,8 +323,7 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
     // fallback: search for '<strong>Label:</strong>' pattern
     try {
       final esc = RegExp.escape(label);
-      final re2 = RegExp(
-          '<strong>\s*${esc}\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
+      final re2 = RegExp('<strong>\s*${esc}\s*:?\s*<\\/strong>\s*(.*?)<\\/p>',
           caseSensitive: false);
       final m2 = re2.firstMatch(html);
       if (m2 != null) return _stripHtml(m2.group(1) ?? '');
@@ -665,7 +664,8 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       final err = ApiService.lastErrorBody;
       final msg = (err == null || err.isEmpty)
           ? 'Error al guardar la consulta'
-          : 'Error al guardar: ' + (err.length > 300 ? err.substring(0, 300) + '…' : err);
+          : 'Error al guardar: ' +
+              (err.length > 300 ? err.substring(0, 300) + '…' : err);
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -689,13 +689,17 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
         ),
         filled: true,
         fillColor: baseTheme.colorScheme.surface.withOpacity(0.02),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
-          borderSide: BorderSide(color: baseTheme.colorScheme.onSurface.withOpacity(0.08)),
+          borderSide: BorderSide(
+              color: baseTheme.colorScheme.onSurface.withOpacity(0.08)),
         ),
       ),
-      textTheme: baseTheme.textTheme.apply(bodyColor: baseTheme.colorScheme.onSurface, displayColor: baseTheme.colorScheme.onSurface),
+      textTheme: baseTheme.textTheme.apply(
+          bodyColor: baseTheme.colorScheme.onSurface,
+          displayColor: baseTheme.colorScheme.onSurface),
     );
 
     return DefaultTabController(
@@ -703,588 +707,624 @@ class _EditorTabsScreenState extends State<EditorTabsScreen> {
       child: Theme(
         data: localTheme,
         child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Consulta'),
-          actions: [
-            IconButton(
-                onPressed: autoFillDemo, icon: const Icon(Icons.auto_fix_high))
-          ],
-          bottom: const TabBar(isScrollable: true, tabs: [
-            Tab(text: 'Paciente'),
-            Tab(text: 'Historia'),
-            Tab(text: 'Signos'),
-            Tab(text: 'Examen'),
-            Tab(text: 'Labs/Dx'),
-            Tab(text: 'Indicaciones'),
+          appBar: AppBar(
+            title: const Text('Consulta'),
+            actions: [
+              IconButton(
+                  onPressed: autoFillDemo,
+                  icon: const Icon(Icons.auto_fix_high))
+            ],
+            bottom: const TabBar(isScrollable: true, tabs: [
+              Tab(text: 'Paciente'),
+              Tab(text: 'Historia'),
+              Tab(text: 'Signos'),
+              Tab(text: 'Examen'),
+              Tab(text: 'Labs/Dx'),
+              Tab(text: 'Indicaciones'),
+            ]),
+          ),
+          body: TabBarView(children: [
+            // Paciente
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: sexoCtrl.text,
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'FEMENINO', child: Text('Femenino')),
+                            DropdownMenuItem(
+                                value: 'MASCULINO', child: Text('Masculino')),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => sexoCtrl.text = v ?? ''),
+                          decoration: const InputDecoration(labelText: 'Sexo'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: edadCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Edad'),
+                              keyboardType: TextInputType.number)),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: diaCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'Día estancia'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: areaCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Área'))),
+                    ])
+                  ]),
+            ),
+
+            // Historia
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Historia',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                        controller: appCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                            labelText: 'Personales (APP)')),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                        controller: apfCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                            labelText: 'Familiares (APF)')),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                        controller: alergiasCtrl,
+                        maxLines: 1,
+                        decoration:
+                            const InputDecoration(labelText: 'Alergias')),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: tiempoCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'Tiempo de evolución'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: evolucionCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'Cuadro clínico'))),
+                    ])
+                  ]),
+            ),
+
+            // Signos
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Signos Vitales',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: svTaCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'TA (mmHg)'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: svFcCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'FC (lpm)'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: svFrCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'FR (rpm)'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: svTempCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'Temp (°C)'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: svSatCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'SatO2 (%)'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: svGliCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: 'Glicemia (mg/dL)'))),
+                    ])
+                  ]),
+            ),
+
+            // Examen
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Examen físico',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Row(children: [
+                            TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    examenCtrl.text =
+                                        examMacros.values.join('\n');
+                                    // fill detailed fields from macros if available
+                                    pielCtrl.text = examMacros['PIEL'] ?? '';
+                                    cabezaCtrl.text =
+                                        examMacros['CABEZA'] ?? '';
+                                    ojosCtrl.text = examMacros['OJOS'] ?? '';
+                                    narizCtrl.text = examMacros['NARIZ'] ?? '';
+                                    bocaCtrl.text = examMacros['BOCA'] ?? '';
+                                    oidosCtrl.text = examMacros['OIDOS'] ?? '';
+                                    orofaringeCtrl.text =
+                                        examMacros['OROFARINGE'] ?? '';
+                                    cuelloCtrl.text =
+                                        examMacros['CUELLO'] ?? '';
+                                    toraxCtrl.text = examMacros['TÓRAX'] ??
+                                        examMacros['TÓRAX'] ??
+                                        examMacros['TÓRAX'] ??
+                                        '';
+                                    camposPulmCtrl.text =
+                                        examMacros['CAMPOS_PULMONARES'] ??
+                                            examMacros['CAMPOS_PULM'] ??
+                                            examMacros['CAMPOS_PULM'] ??
+                                            '';
+                                    ruidosCardCtrl.text =
+                                        examMacros['RUIDOS_CARDIACOS'] ??
+                                            examMacros['RUIDOS_CARD'] ??
+                                            '';
+                                    abdomenCtrl.text =
+                                        examMacros['ABDOMEN'] ?? '';
+                                    extremidadesCtrl.text =
+                                        examMacros['EXTREMIDADES'] ?? '';
+                                    neuroCtrl.text = examMacros['NEURO'] ?? '';
+                                  });
+                                },
+                                child: const Text('Todo Normal'))
+                          ]),
+                        ]),
+                    MacroBar(
+                        macros: examMacros,
+                        onInsert: (t) => insertTextAtSelection(examenCtrl, t)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: examenCtrl,
+                        maxLines: null,
+                        minLines: 3,
+                        keyboardType: TextInputType.multiline,
+                        decoration: const InputDecoration(
+                            labelText: 'Hallazgos (texto libre)')),
+                    const SizedBox(height: 10),
+                    // Detailed fields
+                    TextFormField(
+                        controller: pielCtrl,
+                        decoration: const InputDecoration(labelText: 'Piel')),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: cabezaCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Cabeza'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: ojosCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Ojos'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: narizCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Nariz'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: bocaCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Boca'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: oidosCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Oídos'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: orofaringeCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'Orofaringe'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: cuelloCtrl,
+                        decoration: const InputDecoration(labelText: 'Cuello')),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: toraxCtrl,
+                        decoration: const InputDecoration(labelText: 'Tórax')),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: camposPulmCtrl,
+                        decoration: const InputDecoration(
+                            labelText: 'Campos pulmonares')),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                          child: TextFormField(
+                              controller: ruidosCardCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: 'Ruidos cardíacos'))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: TextFormField(
+                              controller: abdomenCtrl,
+                              decoration:
+                                  const InputDecoration(labelText: 'Abdomen'))),
+                    ]),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: extremidadesCtrl,
+                        decoration:
+                            const InputDecoration(labelText: 'Extremidades')),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: neuroCtrl,
+                        decoration: const InputDecoration(
+                            labelText: 'Sistema neurológico')),
+                  ]),
+            ),
+
+            // Labs/Dx
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Labs / Dx / Plan',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    MacroBar(
+                        macros: labMacros,
+                        onInsert: (t) => insertTextAtSelection(labsCtrl, t)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: labsCtrl,
+                        maxLines: null,
+                        minLines: 3,
+                        keyboardType: TextInputType.multiline,
+                        decoration: const InputDecoration(
+                            labelText: 'Laboratorio / Imagen')),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      ElevatedButton.icon(
+                        onPressed: _pickImages,
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Seleccionar imágenes'),
+                      ),
+                      const SizedBox(width: 12),
+                      if (_imagenesGuardadas.isNotEmpty)
+                        Text('${_imagenesGuardadas.length} imágenes guardadas'),
+                      if (_imagenes.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Text(
+                              '${_imagenes.length} imágenes seleccionadas'),
+                        )
+                    ]),
+                    const SizedBox(height: 8),
+                    // Show already saved images with option to mark for deletion
+                    if (_imagenesGuardadas.isNotEmpty)
+                      SizedBox(
+                        height: 100,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _imagenesGuardadas.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (ctx, i) {
+                            final raw = _imagenesGuardadas[i];
+                            String display = raw;
+                            if (display.startsWith('/')) {
+                              display = ApiService.baseUrl + display;
+                            }
+                            return Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: display.startsWith('http')
+                                      ? Image.network(display,
+                                          width: 120,
+                                          height: 100,
+                                          fit: BoxFit.cover)
+                                      : Image.file(File(raw),
+                                          width: 120,
+                                          height: 100,
+                                          fit: BoxFit.cover),
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      // mark for deletion
+                                      setState(() {
+                                        _imagenesGuardadas.removeAt(i);
+                                        _imagenesParaEliminar.add(raw);
+                                      });
+                                    },
+                                    child: Container(
+                                      color: Colors.black54,
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(Icons.delete_outline,
+                                          color: Colors.redAccent, size: 18),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    if (_imagenes.isNotEmpty)
+                      SizedBox(
+                        height: 100,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _imagenes.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (ctx, i) {
+                            final f = _imagenes[i];
+                            return Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(File(f.path),
+                                      width: 120,
+                                      height: 100,
+                                      fit: BoxFit.cover),
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _imagenes.removeAt(i)),
+                                    child: Container(
+                                      color: Colors.black54,
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(Icons.close,
+                                          color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: analisisCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                            labelText: 'Análisis clínico')),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: dxCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                            labelText: 'Diagnósticos presuntivos')),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                        controller: planCtrl,
+                        maxLines: null,
+                        minLines: 2,
+                        decoration:
+                            const InputDecoration(labelText: 'Plan de manejo')),
+                  ]),
+            ),
+
+            // Indicaciones
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Indicaciones',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Wrap(spacing: 8, children: [
+                            TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    medidasCtrl.text =
+                                        'MONITORIZACIÓN CONTINUA. CONTROL DE SIGNOS VITALES. DIETA NPO.';
+                                    hidratacionCtrl.text =
+                                        'CLORURO DE SODIO 0.9% 1000 ML PASAR IV 64 ML/HORA';
+                                    medicacionCtrl.text =
+                                        'OMEPRAZOL 40MG IV CADA 24 HORAS. PARACETAMOL 1 GR PRN.';
+                                  });
+                                },
+                                child: const Text('Estándar')),
+                            TextButton(
+                                onPressed: () {
+                                  // Copy combined Indicaciones to clipboard
+                                  final parts = <String>[];
+                                  if (medidasCtrl.text.trim().isNotEmpty) {
+                                    parts.add(
+                                        'MEDIDAS GENERALES:\n${medidasCtrl.text.trim()}');
+                                  }
+                                  if (hidratacionCtrl.text.trim().isNotEmpty) {
+                                    parts.add(
+                                        'HIDRATACIÓN / NUTRICIÓN:\n${hidratacionCtrl.text.trim()}');
+                                  }
+                                  if (medicacionCtrl.text.trim().isNotEmpty) {
+                                    parts.add(
+                                        'MEDICACIÓN:\n${medicacionCtrl.text.trim()}');
+                                  }
+                                  final combined = parts.join('\n\n');
+                                  Clipboard.setData(
+                                      ClipboardData(text: combined));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Indicaciones copiadas al portapapeles')));
+                                },
+                                child: const Text('Copiar Indicaciones')),
+                          ]),
+                        ]),
+                    const SizedBox(height: 8),
+                    // Terapias quick buttons (compact, insert into medicacion or hidratacion)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: indiMacros.keys.map((k) {
+                        final labelMap = {
+                          'HIDRA_1000': 'Hidratación 1000ml',
+                          'K_REP': 'Reposición K+',
+                          'DOLOR': 'Bomba Dolor',
+                          'ANTICONV': 'Anticonvulsivante',
+                          'SEDACION': 'Sedación',
+                          'ANALGESIA': 'Analgesia',
+                          'VASO': 'Vasopresor'
+                        };
+                        final display = labelMap[k] ?? k;
+                        final macroText = indiMacros[k] ?? '';
+                        return OutlinedButton.icon(
+                          icon: const Icon(Icons.flash_on,
+                              size: 16, color: Color(0xFFF59F00)),
+                          label: Text(display,
+                              style: const TextStyle(fontSize: 13)),
+                          onPressed: () {
+                            // HIDRA_1000 goes to hidratacion, others to medicacion
+                            if (k == 'HIDRA_1000') {
+                              insertTextAtSelection(hidratacionCtrl, macroText);
+                            } else {
+                              insertTextAtSelection(medicacionCtrl, macroText);
+                            }
+                            // ensure UI updates
+                            setState(() {});
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    // Medidas generales with clear button
+                    Row(children: [
+                      Expanded(
+                        child: TextFormField(
+                            controller: medidasCtrl,
+                            maxLines: null,
+                            minLines: 3,
+                            decoration: const InputDecoration(
+                                labelText: 'Medidas generales')),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent),
+                        tooltip: 'Limpiar medidas',
+                        onPressed: () => setState(() => medidasCtrl.clear()),
+                      )
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: TextFormField(
+                            controller: hidratacionCtrl,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                                labelText: 'Hidratación / Nutrición')),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent),
+                        tooltip: 'Limpiar hidratación',
+                        onPressed: () =>
+                            setState(() => hidratacionCtrl.clear()),
+                      )
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: TextFormField(
+                            controller: medicacionCtrl,
+                            maxLines: null,
+                            minLines: 3,
+                            decoration:
+                                const InputDecoration(labelText: 'Medicación')),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent),
+                        tooltip: 'Limpiar medicación',
+                        onPressed: () => setState(() => medicacionCtrl.clear()),
+                      )
+                    ]),
+                  ]),
+            ),
+          ]),
+          floatingActionButton: Row(mainAxisSize: MainAxisSize.min, children: [
+            FloatingActionButton.extended(
+                heroTag: 'preview_fab',
+                onPressed: () => openPreview(),
+                icon: const Icon(Icons.remove_red_eye),
+                label: const Text('Vista previa')),
+            const SizedBox(width: 8),
+            FloatingActionButton.extended(
+                heroTag: 'save_fab',
+                onPressed: _guardarConsultaLocal,
+                icon: const Icon(Icons.save),
+                label: const Text('Guardar')),
           ]),
         ),
-        body: TabBarView(children: [
-          // Paciente
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: sexoCtrl.text,
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'FEMENINO', child: Text('Femenino')),
-                      DropdownMenuItem(
-                          value: 'MASCULINO', child: Text('Masculino')),
-                    ],
-                    onChanged: (v) => setState(() => sexoCtrl.text = v ?? ''),
-                    decoration: const InputDecoration(labelText: 'Sexo'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: edadCtrl,
-                        decoration: const InputDecoration(labelText: 'Edad'),
-                        keyboardType: TextInputType.number)),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: diaCtrl,
-                        decoration:
-                            const InputDecoration(labelText: 'Día estancia'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: areaCtrl,
-                        decoration: const InputDecoration(labelText: 'Área'))),
-              ])
-            ]),
-          ),
-
-          // Historia
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Historia',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              TextFormField(
-                  controller: appCtrl,
-                  maxLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'Personales (APP)')),
-              const SizedBox(height: 6),
-              TextFormField(
-                  controller: apfCtrl,
-                  maxLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'Familiares (APF)')),
-              const SizedBox(height: 6),
-              TextFormField(
-                  controller: alergiasCtrl,
-                  maxLines: 1,
-                  decoration: const InputDecoration(labelText: 'Alergias')),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: tiempoCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Tiempo de evolución'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: evolucionCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Cuadro clínico'))),
-              ])
-            ]),
-          ),
-
-          // Signos
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Signos Vitales',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: svTaCtrl,
-                        decoration:
-                            const InputDecoration(labelText: 'TA (mmHg)'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: svFcCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(labelText: 'FC (lpm)'))),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: svFrCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(labelText: 'FR (rpm)'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: svTempCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(labelText: 'Temp (°C)'))),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: svSatCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(labelText: 'SatO2 (%)'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: svGliCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            labelText: 'Glicemia (mg/dL)'))),
-              ])
-            ]),
-          ),
-
-          // Examen
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Examen físico',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Row(children: [
-                  TextButton(
-                      onPressed: () {
-                        setState(() {
-                          examenCtrl.text = examMacros.values.join('\n');
-                          // fill detailed fields from macros if available
-                          pielCtrl.text = examMacros['PIEL'] ?? '';
-                          cabezaCtrl.text = examMacros['CABEZA'] ?? '';
-                          ojosCtrl.text = examMacros['OJOS'] ?? '';
-                          narizCtrl.text = examMacros['NARIZ'] ?? '';
-                          bocaCtrl.text = examMacros['BOCA'] ?? '';
-                          oidosCtrl.text = examMacros['OIDOS'] ?? '';
-                          orofaringeCtrl.text = examMacros['OROFARINGE'] ?? '';
-                          cuelloCtrl.text = examMacros['CUELLO'] ?? '';
-                          toraxCtrl.text = examMacros['TÓRAX'] ??
-                              examMacros['TÓRAX'] ??
-                              examMacros['TÓRAX'] ??
-                              '';
-                          camposPulmCtrl.text =
-                              examMacros['CAMPOS_PULMONARES'] ??
-                                  examMacros['CAMPOS_PULM'] ??
-                                  examMacros['CAMPOS_PULM'] ??
-                                  '';
-                          ruidosCardCtrl.text =
-                              examMacros['RUIDOS_CARDIACOS'] ??
-                                  examMacros['RUIDOS_CARD'] ??
-                                  '';
-                          abdomenCtrl.text = examMacros['ABDOMEN'] ?? '';
-                          extremidadesCtrl.text =
-                              examMacros['EXTREMIDADES'] ?? '';
-                          neuroCtrl.text = examMacros['NEURO'] ?? '';
-                        });
-                      },
-                      child: const Text('Todo Normal'))
-                ]),
-              ]),
-              MacroBar(
-                  macros: examMacros,
-                  onInsert: (t) => insertTextAtSelection(examenCtrl, t)),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: examenCtrl,
-                  maxLines: null,
-                  minLines: 3,
-                  keyboardType: TextInputType.multiline,
-                  decoration: const InputDecoration(
-                      labelText: 'Hallazgos (texto libre)')),
-              const SizedBox(height: 10),
-              // Detailed fields
-              TextFormField(
-                  controller: pielCtrl,
-                  decoration: const InputDecoration(labelText: 'Piel')),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: cabezaCtrl,
-                        decoration:
-                            const InputDecoration(labelText: 'Cabeza'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: ojosCtrl,
-                        decoration: const InputDecoration(labelText: 'Ojos'))),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: narizCtrl,
-                        decoration: const InputDecoration(labelText: 'Nariz'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: bocaCtrl,
-                        decoration: const InputDecoration(labelText: 'Boca'))),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: oidosCtrl,
-                        decoration: const InputDecoration(labelText: 'Oídos'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: orofaringeCtrl,
-                        decoration:
-                            const InputDecoration(labelText: 'Orofaringe'))),
-              ]),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: cuelloCtrl,
-                  decoration: const InputDecoration(labelText: 'Cuello')),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: toraxCtrl,
-                  decoration: const InputDecoration(labelText: 'Tórax')),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: camposPulmCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Campos pulmonares')),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: ruidosCardCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Ruidos cardíacos'))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: TextFormField(
-                        controller: abdomenCtrl,
-                        decoration:
-                            const InputDecoration(labelText: 'Abdomen'))),
-              ]),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: extremidadesCtrl,
-                  decoration: const InputDecoration(labelText: 'Extremidades')),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: neuroCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Sistema neurológico')),
-            ]),
-          ),
-
-          // Labs/Dx
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Labs / Dx / Plan',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              MacroBar(
-                  macros: labMacros,
-                  onInsert: (t) => insertTextAtSelection(labsCtrl, t)),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: labsCtrl,
-                  maxLines: null,
-                  minLines: 3,
-                  keyboardType: TextInputType.multiline,
-                  decoration:
-                      const InputDecoration(labelText: 'Laboratorio / Imagen')),
-              const SizedBox(height: 8),
-              Row(children: [
-                ElevatedButton.icon(
-                  onPressed: _pickImages,
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Seleccionar imágenes'),
-                ),
-                const SizedBox(width: 12),
-                if (_imagenesGuardadas.isNotEmpty)
-                  Text('${_imagenesGuardadas.length} imágenes guardadas'),
-                if (_imagenes.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text('${_imagenes.length} imágenes seleccionadas'),
-                  )
-              ]),
-              const SizedBox(height: 8),
-              // Show already saved images with option to mark for deletion
-              if (_imagenesGuardadas.isNotEmpty)
-                SizedBox(
-                  height: 100,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _imagenesGuardadas.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (ctx, i) {
-                      final raw = _imagenesGuardadas[i];
-                      String display = raw;
-                      if (display.startsWith('/')) {
-                        display = ApiService.baseUrl + display;
-                      }
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: display.startsWith('http')
-                                ? Image.network(display,
-                                    width: 120, height: 100, fit: BoxFit.cover)
-                                : Image.file(File(raw),
-                                    width: 120, height: 100, fit: BoxFit.cover),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: GestureDetector(
-                              onTap: () {
-                                // mark for deletion
-                                setState(() {
-                                  _imagenesGuardadas.removeAt(i);
-                                  _imagenesParaEliminar.add(raw);
-                                });
-                              },
-                              child: Container(
-                                color: Colors.black54,
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(Icons.delete_outline,
-                                    color: Colors.redAccent, size: 18),
-                              ),
-                            ),
-                          )
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              if (_imagenes.isNotEmpty)
-                SizedBox(
-                  height: 100,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _imagenes.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (ctx, i) {
-                      final f = _imagenes[i];
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(File(f.path),
-                                width: 120, height: 100, fit: BoxFit.cover),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  setState(() => _imagenes.removeAt(i)),
-                              child: Container(
-                                color: Colors.black54,
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(Icons.close,
-                                    color: Colors.white, size: 16),
-                              ),
-                            ),
-                          )
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: analisisCtrl,
-                  maxLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'Análisis clínico')),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: dxCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                      labelText: 'Diagnósticos presuntivos')),
-              const SizedBox(height: 8),
-              TextFormField(
-                  controller: planCtrl,
-                  maxLines: null,
-                  minLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'Plan de manejo')),
-            ]),
-          ),
-
-          // Indicaciones
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Indicaciones',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Wrap(spacing: 8, children: [
-                  TextButton(
-                      onPressed: () {
-                        setState(() {
-                          medidasCtrl.text =
-                              'MONITORIZACIÓN CONTINUA. CONTROL DE SIGNOS VITALES. DIETA NPO.';
-                          hidratacionCtrl.text =
-                              'CLORURO DE SODIO 0.9% 1000 ML PASAR IV 64 ML/HORA';
-                          medicacionCtrl.text =
-                              'OMEPRAZOL 40MG IV CADA 24 HORAS. PARACETAMOL 1 GR PRN.';
-                        });
-                      },
-                      child: const Text('Estándar')),
-                  TextButton(
-                      onPressed: () {
-                        // Copy combined Indicaciones to clipboard
-                        final parts = <String>[];
-                        if (medidasCtrl.text.trim().isNotEmpty) {
-                          parts.add(
-                              'MEDIDAS GENERALES:\n${medidasCtrl.text.trim()}');
-                        }
-                        if (hidratacionCtrl.text.trim().isNotEmpty) {
-                          parts.add(
-                              'HIDRATACIÓN / NUTRICIÓN:\n${hidratacionCtrl.text.trim()}');
-                        }
-                        if (medicacionCtrl.text.trim().isNotEmpty) {
-                          parts.add(
-                              'MEDICACIÓN:\n${medicacionCtrl.text.trim()}');
-                        }
-                        final combined = parts.join('\n\n');
-                        Clipboard.setData(ClipboardData(text: combined));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Indicaciones copiadas al portapapeles')));
-                      },
-                      child: const Text('Copiar Indicaciones')),
-                ]),
-              ]),
-              const SizedBox(height: 8),
-              // Terapias quick buttons (compact, insert into medicacion or hidratacion)
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: indiMacros.keys.map((k) {
-                  final labelMap = {
-                    'HIDRA_1000': 'Hidratación 1000ml',
-                    'K_REP': 'Reposición K+',
-                    'DOLOR': 'Bomba Dolor',
-                    'ANTICONV': 'Anticonvulsivante',
-                    'SEDACION': 'Sedación',
-                    'ANALGESIA': 'Analgesia',
-                    'VASO': 'Vasopresor'
-                  };
-                  final display = labelMap[k] ?? k;
-                  final macroText = indiMacros[k] ?? '';
-                  return OutlinedButton.icon(
-                    icon: const Icon(Icons.flash_on,
-                        size: 16, color: Color(0xFFF59F00)),
-                    label: Text(display, style: const TextStyle(fontSize: 13)),
-                    onPressed: () {
-                      // HIDRA_1000 goes to hidratacion, others to medicacion
-                      if (k == 'HIDRA_1000') {
-                        insertTextAtSelection(hidratacionCtrl, macroText);
-                      } else {
-                        insertTextAtSelection(medicacionCtrl, macroText);
-                      }
-                      // ensure UI updates
-                      setState(() {});
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 8),
-              // Medidas generales with clear button
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
-                      controller: medidasCtrl,
-                      maxLines: null,
-                      minLines: 3,
-                      decoration: const InputDecoration(
-                          labelText: 'Medidas generales')),
-                ),
-                IconButton(
-                  icon:
-                      const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  tooltip: 'Limpiar medidas',
-                  onPressed: () => setState(() => medidasCtrl.clear()),
-                )
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
-                      controller: hidratacionCtrl,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                          labelText: 'Hidratación / Nutrición')),
-                ),
-                IconButton(
-                  icon:
-                      const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  tooltip: 'Limpiar hidratación',
-                  onPressed: () => setState(() => hidratacionCtrl.clear()),
-                )
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
-                      controller: medicacionCtrl,
-                      maxLines: null,
-                      minLines: 3,
-                      decoration:
-                          const InputDecoration(labelText: 'Medicación')),
-                ),
-                IconButton(
-                  icon:
-                      const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  tooltip: 'Limpiar medicación',
-                  onPressed: () => setState(() => medicacionCtrl.clear()),
-                )
-              ]),
-            ]),
-          ),
-        ]),
-        floatingActionButton: Row(mainAxisSize: MainAxisSize.min, children: [
-          FloatingActionButton.extended(
-              heroTag: 'preview_fab',
-              onPressed: () => openPreview(),
-              icon: const Icon(Icons.remove_red_eye),
-              label: const Text('Vista previa')),
-          const SizedBox(width: 8),
-          FloatingActionButton.extended(
-              heroTag: 'save_fab',
-              onPressed: _guardarConsultaLocal,
-              icon: const Icon(Icons.save),
-              label: const Text('Guardar')),
-        ]),
       ),
     );
   }

@@ -515,138 +515,141 @@ class _HistorialScreenState extends State<HistorialScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // Force default text color inside the card to the theme's onSurface
-            DefaultTextStyle.merge(
-              style: TextStyle(color: theme.colorScheme.onSurface),
-              child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-              decoration: BoxDecoration(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-                gradient: LinearGradient(
-                  colors: [
-                    accent.withOpacity(0.18),
-                    accent.withOpacity(0.06),
-                  ],
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: theme.colorScheme.primary,
-                    child: Text(
-                      initials,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
+              // Force default text color inside the card to the theme's onSurface
+              DefaultTextStyle.merge(
+                style: TextStyle(color: theme.colorScheme.onSurface),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(24)),
+                    gradient: LinearGradient(
+                      colors: [
+                        accent.withOpacity(0.18),
+                        accent.withOpacity(0.06),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayName,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: theme.colorScheme.primary,
+                        child: Text(
+                          initials,
                           style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: theme.colorScheme.onSurface,
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: headerBadges,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildOrderBadge(theme, orderLabel),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                child: DefaultTextStyle.merge(
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailBlock(
+                        theme: theme,
+                        icon: Icons.chat_bubble_outline,
+                        title: 'Motivo de consulta',
+                        value: consulta.motivo,
+                        emptyMessage: 'No especificado',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDetailBlock(
+                        theme: theme,
+                        icon: Icons.assignment_outlined,
+                        title: 'Diagnóstico',
+                        value: consulta.diagnostico,
+                        emptyMessage: 'Sin diagnóstico registrado',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDetailBlock(
+                        theme: theme,
+                        icon: Icons.medical_services_outlined,
+                        title: 'Plan de tratamiento',
+                        value: consulta.tratamiento,
+                        emptyMessage: 'Sin tratamiento indicado',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDetailBlock(
+                        theme: theme,
+                        icon: Icons.receipt_long_outlined,
+                        title: 'Receta',
+                        value: consulta.receta,
+                        emptyMessage: 'Sin receta registrada',
+                      ),
+                      if (metricChips.isNotEmpty) ...[
+                        const SizedBox(height: 18),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: headerBadges,
+                          children: metricChips,
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildOrderBadge(theme, orderLabel),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: DefaultTextStyle.merge(
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                  _buildDetailBlock(
-                    theme: theme,
-                    icon: Icons.chat_bubble_outline,
-                    title: 'Motivo de consulta',
-                    value: consulta.motivo,
-                    emptyMessage: 'No especificado',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailBlock(
-                    theme: theme,
-                    icon: Icons.assignment_outlined,
-                    title: 'Diagnóstico',
-                    value: consulta.diagnostico,
-                    emptyMessage: 'Sin diagnóstico registrado',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailBlock(
-                    theme: theme,
-                    icon: Icons.medical_services_outlined,
-                    title: 'Plan de tratamiento',
-                    value: consulta.tratamiento,
-                    emptyMessage: 'Sin tratamiento indicado',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailBlock(
-                    theme: theme,
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Receta',
-                    value: consulta.receta,
-                    emptyMessage: 'Sin receta registrada',
-                  ),
-                  if (metricChips.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: metricChips,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () => irEditarConsulta(consulta),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Editar'),
+                      const SizedBox(height: 20),
+                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => irEditarConsulta(consulta),
+                              icon: const Icon(Icons.edit_outlined, size: 18),
+                              label: const Text('Editar'),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => eliminarConsulta(consulta),
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                              label: const Text('Eliminar'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: theme.colorScheme.error,
+                              ),
+                            ),
+                          ],
                         ),
-                        TextButton.icon(
-                          onPressed: () => eliminarConsulta(consulta),
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: const Text('Eliminar'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: theme.colorScheme.error,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

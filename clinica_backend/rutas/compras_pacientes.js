@@ -3,6 +3,8 @@ const router = express.Router();
 const comprasPacientesModelo = require('../modelos/comprasPacientesModelo');
 const comprasPacientesIndividualModelo = require('../modelos/comprasPacientesIndividualModelo');
 const { auth } = require('../middlewares/auth');
+const pool = require('../config/db');
+const { sendFCMToTopic } = require('../servicios/firebaseService');
 
 // Comprar paciente extra
 router.post('/comprar', auth, async (req, res) => {
@@ -25,6 +27,16 @@ router.post('/comprar', auth, async (req, res) => {
     if (doctorId) {
       // Registrar compra para doctor individual
       const id = await comprasPacientesIndividualModelo.comprarPacienteExtraIndividual({ doctor_id: doctorId, monto: req.body.monto || 1.0 });
+      // Create a pagos record so admins can review/verify the purchase
+      try {
+        await pool.query('INSERT INTO pagos (user_id, producto_id, monto, imagen_url, estado) VALUES (?, ?, ?, ?, ?)', [req.user ? req.user.id : null, null, req.body.monto || 1.0, null, 'pending']);
+        // Notify admins
+        try {
+          await sendFCMToTopic('admins', { notification: { title: 'Nueva compra de cupo', body: `Compra de cupo registrada (doctor ${req.user ? req.user.id : 'unknown'})` }, data: { type: 'compra_paciente', compraId: String(id) } });
+        } catch (e) { /* ignore notification errors */ }
+      } catch (e) {
+        console.warn('Warning: failed to create pagos record for doctor purchase', e.message || e);
+      }
       return res.status(201).json({ id });
     }
 
@@ -46,6 +58,16 @@ router.post('/comprar', auth, async (req, res) => {
       }
     }
     const id = await comprasPacientesModelo.comprarPacienteExtra(req.body);
+    // Also register a pagos record so admins can validate the payment if needed
+    try {
+      const [result] = await pool.query('INSERT INTO pagos (user_id, producto_id, monto, imagen_url, estado) VALUES (?, ?, ?, ?, ?)', [req.user ? req.user.id : null, null, req.body.monto || 1.0, null, 'pending']);
+      // Notify admins via FCM topic
+      try {
+        await sendFCMToTopic('admins', { notification: { title: 'Nueva compra de cupo', body: `Compra registrada para clínica ${clinica_id}` }, data: { type: 'compra_paciente', compraId: String(id), pagoId: String(result.insertId) } });
+      } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.warn('Warning: failed to create pagos record for clinic purchase', e.message || e);
+    }
     res.status(201).json({ id });
   } catch (err) {
     res.status(500).json({ error: 'Error al comprar paciente extra' });
