@@ -85,12 +85,35 @@ router.get('/', auth, async (req, res) => {
     if (user.rol === 'admin') {
       if (estado) {
         [rows] = await pool.query(
-          `SELECT p.id, p.user_id, p.producto_id, COALESCE(p.monto, cp.monto) AS monto, p.imagen_url, p.estado, p.creado_en, cp.titulo AS producto_titulo FROM pagos p LEFT JOIN compras_promociones cp ON p.producto_id = cp.id WHERE p.estado = ? ORDER BY p.creado_en DESC`,
+          `SELECT p.id, p.user_id, p.producto_id,
+             COALESCE(p.monto,
+               (SELECT monto FROM compras_pacientes WHERE id = p.producto_id LIMIT 1),
+               (SELECT monto FROM compras_promociones WHERE id = p.producto_id LIMIT 1)
+             ) AS monto,
+             p.imagen_url, p.estado, p.creado_en,
+             COALESCE(
+               (SELECT titulo FROM compras_promociones WHERE id = p.producto_id LIMIT 1),
+               (SELECT 'Cupo para paciente' FROM compras_pacientes WHERE id = p.producto_id LIMIT 1)
+             ) AS producto_titulo
+           FROM pagos p
+           WHERE p.estado = ?
+           ORDER BY p.creado_en DESC`,
           [estado]
         );
       } else {
         [rows] = await pool.query(
-          `SELECT p.id, p.user_id, p.producto_id, COALESCE(p.monto, cp.monto) AS monto, p.imagen_url, p.estado, p.creado_en, cp.titulo AS producto_titulo FROM pagos p LEFT JOIN compras_promociones cp ON p.producto_id = cp.id ORDER BY p.creado_en DESC`
+          `SELECT p.id, p.user_id, p.producto_id,
+             COALESCE(p.monto,
+               (SELECT monto FROM compras_pacientes WHERE id = p.producto_id LIMIT 1),
+               (SELECT monto FROM compras_promociones WHERE id = p.producto_id LIMIT 1)
+             ) AS monto,
+             p.imagen_url, p.estado, p.creado_en,
+             COALESCE(
+               (SELECT titulo FROM compras_promociones WHERE id = p.producto_id LIMIT 1),
+               (SELECT 'Cupo para paciente' FROM compras_pacientes WHERE id = p.producto_id LIMIT 1)
+             ) AS producto_titulo
+           FROM pagos p
+           ORDER BY p.creado_en DESC`
         );
       }
     } else if (user.clinica_id && (user.dueno || user.rol === 'clinica')) {
@@ -98,12 +121,42 @@ router.get('/', auth, async (req, res) => {
       const clinicaId = user.clinica_id;
       if (estado) {
         [rows] = await pool.query(
-          `SELECT p.id, p.user_id, p.producto_id, COALESCE(p.monto, cp.monto) AS monto, p.imagen_url, p.estado, p.creado_en, cp.titulo AS producto_titulo FROM pagos p LEFT JOIN compras_promociones cp ON p.producto_id = cp.id WHERE p.estado = ? AND (cp.clinica_id = ? OR p.user_id = ?) ORDER BY p.creado_en DESC`,
+          `SELECT p.id, p.user_id, p.producto_id,
+             COALESCE(p.monto,
+               (SELECT monto FROM compras_pacientes WHERE id = p.producto_id LIMIT 1),
+               (SELECT monto FROM compras_promociones WHERE id = p.producto_id LIMIT 1)
+             ) AS monto,
+             p.imagen_url, p.estado, p.creado_en,
+             COALESCE(
+               (SELECT titulo FROM compras_promociones WHERE id = p.producto_id LIMIT 1),
+               (SELECT 'Cupo para paciente' FROM compras_pacientes WHERE id = p.producto_id LIMIT 1)
+             ) AS producto_titulo
+           FROM pagos p
+           WHERE p.estado = ? AND (
+             (SELECT clinica_id FROM compras_promociones WHERE id = p.producto_id LIMIT 1) = ?
+             OR p.user_id = ?
+           )
+           ORDER BY p.creado_en DESC`,
           [estado, clinicaId, user.id]
         );
       } else {
         [rows] = await pool.query(
-          `SELECT p.id, p.user_id, p.producto_id, COALESCE(p.monto, cp.monto) AS monto, p.imagen_url, p.estado, p.creado_en, cp.titulo AS producto_titulo FROM pagos p LEFT JOIN compras_promociones cp ON p.producto_id = cp.id WHERE (cp.clinica_id = ? OR p.user_id = ?) ORDER BY p.creado_en DESC`,
+          `SELECT p.id, p.user_id, p.producto_id,
+             COALESCE(p.monto,
+               (SELECT monto FROM compras_pacientes WHERE id = p.producto_id LIMIT 1),
+               (SELECT monto FROM compras_promociones WHERE id = p.producto_id LIMIT 1)
+             ) AS monto,
+             p.imagen_url, p.estado, p.creado_en,
+             COALESCE(
+               (SELECT titulo FROM compras_promociones WHERE id = p.producto_id LIMIT 1),
+               (SELECT 'Cupo para paciente' FROM compras_pacientes WHERE id = p.producto_id LIMIT 1)
+             ) AS producto_titulo
+           FROM pagos p
+           WHERE (
+             (SELECT clinica_id FROM compras_promociones WHERE id = p.producto_id LIMIT 1) = ?
+             OR p.user_id = ?
+           )
+           ORDER BY p.creado_en DESC`,
           [clinicaId, user.id]
         );
       }

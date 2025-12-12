@@ -29,10 +29,11 @@ router.post('/comprar', auth, async (req, res) => {
       const id = await comprasPacientesIndividualModelo.comprarPacienteExtraIndividual({ doctor_id: doctorId, monto: req.body.monto || 1.0 });
       // Create a pagos record so admins can review/verify the purchase
       try {
-        await pool.query('INSERT INTO pagos (user_id, producto_id, monto, imagen_url, estado) VALUES (?, ?, ?, ?, ?)', [req.user ? req.user.id : null, null, req.body.monto || 1.0, null, 'pending']);
+        // Save producto_id pointing to the created compra so admin UI can show what was bought
+        await pool.query('INSERT INTO pagos (user_id, producto_id, monto, imagen_url, estado) VALUES (?, ?, ?, ?, ?)', [req.user ? req.user.id : null, id, req.body.monto || 1.0, null, 'pending']);
         // Notify admins
         try {
-          await sendFCMToTopic('admins', { notification: { title: 'Nueva compra de cupo', body: `Compra de cupo registrada (doctor ${req.user ? req.user.id : 'unknown'})` }, data: { type: 'compra_paciente', compraId: String(id) } });
+          await sendFCMToTopic('admins', { notification: { title: 'Nueva compra de cupo', body: `Compra de cupo registrada (doctor ${req.user ? req.user.id : 'unknown'})` }, data: { type: 'compra_paciente', compraId: String(id), pagoProductoId: String(id) } });
         } catch (e) { /* ignore notification errors */ }
       } catch (e) {
         console.warn('Warning: failed to create pagos record for doctor purchase', e.message || e);
@@ -60,7 +61,8 @@ router.post('/comprar', auth, async (req, res) => {
     const id = await comprasPacientesModelo.comprarPacienteExtra(req.body);
     // Also register a pagos record so admins can validate the payment if needed
     try {
-      const [result] = await pool.query('INSERT INTO pagos (user_id, producto_id, monto, imagen_url, estado) VALUES (?, ?, ?, ?, ?)', [req.user ? req.user.id : null, null, req.body.monto || 1.0, null, 'pending']);
+      // Link producto_id to the compra id so listing shows a clear product description
+      const [result] = await pool.query('INSERT INTO pagos (user_id, producto_id, monto, imagen_url, estado) VALUES (?, ?, ?, ?, ?)', [req.user ? req.user.id : null, id, req.body.monto || 1.0, null, 'pending']);
       // Notify admins via FCM topic
       try {
         await sendFCMToTopic('admins', { notification: { title: 'Nueva compra de cupo', body: `Compra registrada para clínica ${clinica_id}` }, data: { type: 'compra_paciente', compraId: String(id), pagoId: String(result.insertId) } });
