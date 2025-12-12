@@ -549,6 +549,7 @@ class _HistorialScreenState extends State<HistorialScreen>
                           displayName,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -686,6 +687,7 @@ class _HistorialScreenState extends State<HistorialScreen>
             label,
             style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ],
