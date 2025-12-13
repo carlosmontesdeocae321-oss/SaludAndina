@@ -27,6 +27,7 @@ const comprasPacientesRutas = require('./rutas/compras_pacientes');
 const comprasDoctoresRutas = require('./rutas/compras_doctores');
 const doctorProfilesRutas = require('./rutas/doctor_profiles');
 const pagosRutas = require('./rutas/pagos');
+const debugRutas = require('./rutas/debug');
 
 // Montar rutas
 app.use('/api/pacientes', pacientesRutas);
@@ -43,6 +44,7 @@ app.use('/api/compras_pacientes', comprasPacientesRutas);
 app.use('/api/compras_doctores', comprasDoctoresRutas);
 app.use('/api/doctor_profiles', doctorProfilesRutas);
 app.use('/api/pagos', pagosRutas);
+app.use('/api/debug', debugRutas);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
