@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SaludAndina — Plataforma Clínica Omnicanal</title>
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" href="/images/saludandina_logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root{--primary:#2563eb;--primary-2:#1e40af;--accent:#f97316;--dark:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--bg:#f8fafc;--card:#ffffff;--surface:#e2e8f0;--shadow:0 24px 60px rgba(15,23,42,0.08);}
@@ -48,7 +51,7 @@
     .hero-illustration-content{position:relative;z-index:1;display:grid;gap:16px}
     .hero-illustration h3{font-size:1rem;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
     .hero-illustration p{font-size:.98rem;opacity:.9}
-    .hero-shot{position:relative;z-index:1;border-radius:20px;overflow:hidden;box-shadow:0 22px 60px rgba(3,7,18,0.45);border:1px solid rgba(255,255,255,0.12)}
+    .hero-shot{position:relative;z-index:1;border-radius:20px;overflow:hidden;box-shadow:0 22px 60px rgba(3,7,18,0.45);border:1px solid rgba(255,255,255,0.12);height:360px}
     .hero-shot img{display:block;width:100%;height:100%;object-fit:cover}
 
     .download-section{padding:80px 0;background:var(--card)}
@@ -78,7 +81,7 @@
     .preview-pills span{padding:6px 12px;border-radius:999px;background:white;border:1px solid rgba(37,99,235,0.2);color:var(--primary-2);font-weight:600;font-size:.85rem}
     .preview-grid{display:grid;gap:18px}
     .preview-card{background:white;border-radius:22px;box-shadow:var(--shadow);border:1px solid rgba(37,99,235,0.12);overflow:hidden;display:grid}
-    .preview-card img{width:100%;height:220px;object-fit:cover}
+    .preview-card img{width:100%;height:160px;object-fit:cover}
     .preview-card .copy{padding:22px;display:grid;gap:10px}
     .preview-card strong{color:var(--primary-2)}
     .preview-card p{color:var(--muted);font-size:.96rem}
@@ -110,7 +113,7 @@
 
     .gallery{width:92%;max-width:1140px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
     .thumb{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:0 16px 40px rgba(2,6,23,0.12);cursor:pointer;position:relative;border:1px solid rgba(15,23,42,0.08)}
-    .thumb img{width:100%;height:100%;display:block;object-fit:cover;aspect-ratio:4/6;transition:transform .28s ease}
+    .thumb img{width:100%;height:auto;display:block;object-fit:cover;aspect-ratio:4/6;max-height:260px;transition:transform .28s ease}
     .thumb:hover img{transform:scale(1.03)}
     .thumb .label{position:absolute;left:10px;bottom:10px;background:rgba(15,23,42,0.65);color:white;padding:6px 12px;border-radius:12px;font-size:.85rem}
 
@@ -191,6 +194,7 @@
     </button>
     <div class="navlinks" id="nav-links">
       <a href="#descargas">Descargas</a>
+      <a href="/clinic_editor.html">Simulador</a>
       <a href="#features">Funciones</a>
       <a href="#modules">Módulos</a>
       <a href="#workflow">Flujo</a>
@@ -218,6 +222,7 @@
       <div class="actions">
         <a class="btn btn-primary" href="#descargas">Descargar app</a>
         <a class="btn btn-secondary" href="#screens">Ver pantallas</a>
+        <a id="btn-simulador" class="btn btn-primary" href="/clinic_editor.html" style="margin-left:8px;border-radius:12px">Simulador de consultas</a>
       </div>
     </div>
     <div class="hero-illustration" aria-hidden="true">
@@ -475,6 +480,7 @@
     <a href="#integrations">Integraciones</a>
     <a href="#screens">Galería</a>
     <a href="#contact">Contacto</a>
+    <a href="/clinic_editor.html">Simulador de consultas</a>
   </div>
   SaludAndina · © 2025 — Plataforma clínica moderna para LATAM · Creado por Carlos Montesdeoca Domaxivar
 </footer>

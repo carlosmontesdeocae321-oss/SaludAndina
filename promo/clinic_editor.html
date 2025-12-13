@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor Clínico Vertical v7</title>
+    <!-- Favicon: use .ico if present, otherwise PNG fallback -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/images/saludandina_logo.png">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --bg-app: #f0f2f5;
+            --bg-paper: #fffff8;
+            --text-paper: #1a1a1a;
+        }
+        
+        body { 
+            background-color: var(--bg-app); 
+            height: 100vh; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        /* --- LAYOUT --- */
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: row;
+        }
+
+        /* Panel Izquierdo */
+        .editor-panel {
+            width: 45%;
+            height: 100%;
+            overflow-y: auto;
+            background: white;
+            border-right: 1px solid #dee2e6;
+            padding-bottom: 80px;
+            z-index: 10;
+        }
+
+        /* Panel Derecho */
+        .preview-panel {
+            width: 55%;
+            height: 100%;
+            overflow-y: auto;
+            background: #525659; 
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Hoja Virtual */
+        .paper-sheet {
+            background-color: var(--bg-paper);
+            width: 100%;
+            max-width: 210mm; 
+            min-height: 297mm; 
+            padding: 15mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-family: 'Arial', sans-serif; /* La fuente se copiará */
+            font-size: 12px; 
+            line-height: 1.4;
+            color: var(--text-paper);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; 
+            position: relative;
+            padding-right: 96px; /* make room for visible logo on the right in screen */
+        }
+
+        /* --- COMPONENTES UI --- */
+        .section-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .section-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #495057;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .form-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+
+        .btn-clear {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 0.7rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            padding: 0 4px;
+        }
+        
+        .btn-clear:hover { opacity: 1; color: #bb2d3b; }
+
+        .form-control {
+            font-size: 0.9rem;
+            border: 1px solid #ced4da;
+        }
+        
+        .form-control:focus {
+            box-shadow: none;
+            border-color: var(--primary-color);
+            background-color: #fbfdff;
+        }
+
+        /* Auto-grow para textareas */
+        textarea.form-control {
+            resize: none; /* Quitar manija de resize manual */
+            overflow-y: hidden; /* Ocultar scrollbar */
+            min-height: 60px;
+        }
+
+        /* Botones Macro */
+        .macro-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 8px;
+            background: #fcfcfc;
+            border-bottom: 1px solid #eee;
+        }
+
+        .btn-tag {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background-color: white;
+            border: 1px solid #dce0e5;
+            color: #555;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .btn-tag:hover {
+            background-color: #e7f1ff;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .btn-tag-indi { border-left: 3px solid #fd7e14; }
+        .btn-tag i { color: #f59f00; margin-right: 4px; font-size: 0.6rem; }
+        .btn-tag.btn-tag-lab { border-left: 3px solid #20c997; }
+
+        /* --- PREVIEW STYLES --- */
+        .preview-block {
+            position: relative;
+            padding: 10px;
+            border: 1px dashed transparent;
+            transition: border 0.3s;
+        }
+        
+        .preview-block:hover {
+            border-color: #ccc;
+            background-color: rgba(0,0,0,0.01);
+        }
+
+        .btn-copy-section {
+            position: absolute;
+            top: -10px;
+            right: 0;
+            font-size: 0.7rem;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .preview-block:hover .btn-copy-section { opacity: 1; }
+
+        .paper-section-title {
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 11px;
+            border-bottom: 1px solid #ccc;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            color: #000;
+        }
+
+        .paper-text {
+            white-space: pre-wrap;
+            text-align: justify;
+            font-size: 11px;
+        }
+
+        .paper-text strong {
+            font-weight: 800; /* Asegura negrita fuerte */
+        }
+
+        .action-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        @media print {
+            body { overflow: visible; background: white; height: auto; }
+            /* hide UI chrome on printouts */
+            header.appbar, .editor-panel, .action-bar, .btn-copy-section { display: none !important; }
+            .preview-panel { width: 100%; padding: 0; background: white; display: block; overflow: visible; }
+            .paper-sheet { box-shadow: none; margin: 0; padding: 0; width: 100%; max-width: none; display: block; }
+            /* show large logo at top-left in printed PDF (tighter) */
+            #printLogo{ display:block !important; position:absolute; left:10mm; top:6mm; height:20mm; width:auto; }
+            /* reduce top whitespace and reserve bottom space for footer */
+            .paper-sheet { padding-top:18mm; padding-left:12mm; padding-right:12mm; padding-bottom:40mm; }
+            .preview-block { border: none; padding: 0; margin-bottom: 2cm; }
+            /* denser page margins */
+            @page { margin: 10mm; size: A4; }
+        }
+    
+    /* Appbar styles (adapted from index) */
+    header.appbar{background:rgba(248,250,252,0.94);box-shadow:0 3px 12px rgba(15,23,42,0.06);position:sticky;top:0;z-index:120}
+    header.appbar nav{width:100%;max-width:1200px;margin:0 auto;padding:10px 4%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .appbar .logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--primary-color);text-decoration:none;margin-right:auto;margin-left:0}
+    .appbar .logo img{height:36px;width:auto;border-radius:8px;display:block}
+    .appbar .navlinks{display:flex;align-items:center;gap:12px;margin-left:auto}
+    .appbar .navlinks a{color:var(--text-paper);text-decoration:none;font-weight:700;padding:6px 8px}
+
+    /* screen / normal view: show logo at top-right of the paper sheet */
+    #printLogo{ display:block; position:absolute; right:18px; top:18px; height:56px; width:auto; }
+    /* Doctor label style (screen) - placed at bottom-right inside the sheet to avoid covering content */
+    #view-doctor{ position:absolute; right:20px; bottom:18px; font-family: 'Georgia', 'Times New Roman', serif; font-size:12px; color:#475569; font-weight:600; text-align:right; opacity:0.9; pointer-events:none; }
+    #view-doctor .doc-name{ display:inline-block; font-style:italic; margin-left:6px; color:#344154; letter-spacing:0.4px; }
+
+    @media print {
+        /* hide on-print visual doctor label (we use a proper footer instead) */
+        #view-doctor{ display:none !important; }
+    }
+
+    /* print-only footer element (appears on every printed page) */
+    #print-footer{ display:none; }
+
+    @media print {
+        /* Right-aligned footer signature on every page */
+        #print-footer{ display:block !important; position:fixed !important; right:18mm; bottom:12mm; left:auto; text-align:right; font-family: 'Georgia', 'Times New Roman', serif; font-size:11pt; color:#102535; font-weight:700; z-index:9999; border-top:1px solid rgba(16,37,53,0.08); padding-top:6px; }
+        #print-footer .doc-name{ font-style:italic; color:#07182a; margin-left:6px; }
+    }
+    </style>
+</head>
+<body>
+
+<header class="appbar">
+    <nav>
+        <a class="logo" href="/index.html">
+            <img src="/images/saludandina_logo.png" alt="SaludAndina" />
+            <span>SaludAndina</span>
+        </a>
+        <div class="navlinks">
+            <a href="/index.html">Inicio</a>
+            <a href="/clinic_editor.html">Simulador</a>
+            <a href="/index.html#descargas">Descargas</a>
+        </div>
+    </nav>
+</header>
+
+<div class="main-container">
+
+    <!-- PANEL IZQUIERDO: EDITOR -->
+    <div class="editor-panel custom-scrollbar">
+        <div class="p-3 sticky-top bg-white border-bottom shadow-sm" style="display:flex;align-items:center;gap:12px">
+            <img src="/images/saludandina_logo.png" alt="SaludAndina" style="height:44px;width:auto;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.08)">
+            <h5 class="m-0 text-primary fw-bold" style="margin-left:6px"><i class="fas fa-laptop-medical me-2"></i>SaludAndina</h5>
+        </div>
+
+        <div class="p-3">
+            <form id="clinicalForm">
+                
+                <!-- 1. DATOS DEL PACIENTE -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <span><i class="fas fa-user me-2"></i>Paciente</span>
+                    </div>
+                    <div class="p-3">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label">Sexo</label>
+                                <select class="form-select form-select-sm" id="sexo">
+                                    <option value="FEMENINO">Femenino</option>
+                                    <option value="MASCULINO">Masculino</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-label-row">
+                                    <label class="form-label">Edad</label>
+                                    <button type="button" class="btn-clear" onclick="clearField('edad')"><i class="fas fa-trash"></i></button>
+                                </div>
+                                <input type="number" class="form-control form-control-sm" id="edad" placeholder="Años">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                             <div class="col-6">
+                                <div class="form-label-row">
+                                    <label class="form-label">Día Estancia</label>
+                                    <button type="button" class="btn-clear" onclick="clearField('diaEstancia')"><i class="fas fa-trash"></i></button>
+                                </div>
+                                <input type="number" class="form-control form-control-sm" id="diaEstancia" placeholder="#" oninput="calcularOrdinal()">
+                                <input type="hidden" id="diaOrdinalTexto">
+                            </div>
+                            <div class="col-6">
+                                <div class="form-label-row">
+                                    <label class="form-label">Área</label>
+                                    <button type="button" class="btn-clear" onclick="clearField('area')"><i class="fas fa-trash"></i></button>
+                                </div>
+                                <input type="text" class="form-control form-control-sm" id="area" placeholder="Ej. Urgencias">
+                            </div>
+                        </div>
+                        <div class="mt-1 text-center">
+                             <span class="badge bg-light text-dark border" id="badgeOrdinal">Día: -</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. ANTECEDENTES Y EVOLUCIÓN -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <span>Historia</span>
+                    </div>
+                    <div class="p-3">
+                        <div class="mb-3">
+                            <div class="form-label-row">
+                                <label class="form-label">Personales (APP)</label>
+                                <button type="button" class="btn-clear" onclick="clearField('appInput')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="appInput" placeholder="Si vacío -> NIEGA..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-label-row">
+                                <label class="form-label">Familiares (APF)</label>
+                                <button type="button" class="btn-clear" onclick="clearField('apfInput')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="apfInput" placeholder="Si vacío -> NIEGA..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-label-row">
+                                <label class="form-label">Alergias</label>
+                                <button type="button" class="btn-clear" onclick="clearField('alergiasInput')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="alergiasInput" rows="1" placeholder="Si vacío -> NIEGA..."></textarea>
+                        </div>
+                        <hr class="my-2">
+                        <!-- Nuevo campo de Tiempo de Evolución -->
+                        <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Tiempo de Evolución</label>
+                                <button type="button" class="btn-clear" onclick="clearField('tiempoEvolucion')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <input type="text" class="form-control mb-2" id="tiempoEvolucion" placeholder="Ej. 2 Días, 12 horas...">
+                        </div>
+                        <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Cuadro Clínico (Síntomas/Signos)</label>
+                                <button type="button" class="btn-clear" onclick="clearField('evolucion')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="evolucion" rows="4" placeholder="Dolor abdominal, fiebre..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. SIGNOS VITALES -->
+                <div class="section-card border-info">
+                    <div class="section-header bg-info bg-opacity-10 text-dark">
+                        <span>Signos Vitales</span>
+                    </div>
+                    <div class="p-3">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label">TA (mmHg)</label>
+                                <input type="text" class="form-control form-control-sm" id="sv_ta" placeholder="120/80">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">FC (lpm)</label>
+                                <input type="number" class="form-control form-control-sm" id="sv_fc" placeholder="80">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label">FR (rpm)</label>
+                                <input type="number" class="form-control form-control-sm" id="sv_fr" placeholder="18">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Temp (°C)</label>
+                                <input type="number" class="form-control form-control-sm" id="sv_temp" placeholder="36.5" step="0.1">
+                            </div>
+                        </div>
+                         <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label">SatO2 (%)</label>
+                                <input type="number" class="form-control form-control-sm" id="sv_sat" placeholder="98">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Glicemia (mg/dL)</label>
+                                <input type="number" class="form-control form-control-sm" id="sv_gli" placeholder="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. EXAMEN FÍSICO -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <span>Examen Físico</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem;" onclick="macroExamenFisicoCompleto()">
+                            <i class="fas fa-check-double me-1"></i> Todo Normal
+                        </button>
+                    </div>
+                    <div class="macro-toolbar">
+                        <button type="button" class="btn-tag" onclick="addExamen('PIEL')"><i class="fas fa-bolt"></i>Piel</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('CABEZA')"><i class="fas fa-bolt"></i>Cabeza</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('OJOS')"><i class="fas fa-bolt"></i>Ojos</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('NARIZ')"><i class="fas fa-bolt"></i>Nariz</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('BOCA')"><i class="fas fa-bolt"></i>Boca</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('OIDOS')"><i class="fas fa-bolt"></i>Oídos</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('ORO')"><i class="fas fa-bolt"></i>Orofaringe</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('CUELLO')"><i class="fas fa-bolt"></i>Cuello</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('TORAX')"><i class="fas fa-bolt"></i>Tórax</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('PULMON')"><i class="fas fa-bolt"></i>Pulmones</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('CORAZON')"><i class="fas fa-bolt"></i>Corazón</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('ABDOMEN')"><i class="fas fa-bolt"></i>Abdomen</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('EXTREM')"><i class="fas fa-bolt"></i>Extremidades</button>
+                        <button type="button" class="btn-tag" onclick="addExamen('NEURO')"><i class="fas fa-bolt"></i>Neuro</button>
+                    </div>
+                    <div class="p-3">
+                        <div class="form-label-row">
+                            <label class="form-label">Hallazgos</label>
+                            <button type="button" class="btn-clear" onclick="clearField('examenFisico')"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <textarea class="form-control" id="examenFisico" rows="8"></textarea>
+                    </div>
+                </div>
+
+                <!-- 5. DX Y LABS -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <span>Dx y Labs</span>
+                    </div>
+                    <div class="macro-toolbar bg-light">
+                        <span class="text-muted me-2" style="font-size: 0.7rem; align-self: center;">LABS:</span>
+                        <button type="button" class="btn-tag btn-tag-lab" onclick="addLab('GASO')"><i class="fas fa-bolt"></i>Gasometría</button>
+                    </div>
+                    <div class="p-3">
+                         <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Laboratorio / Imagen</label>
+                                <button type="button" class="btn-clear" onclick="clearField('labs')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="labs" rows="5" style="font-family: monospace; font-size: 0.85rem;" placeholder="Si vacío -> PENDIENTE DE RESULTADOS"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Análisis Clínico</label>
+                                <button type="button" class="btn-clear" onclick="clearField('analisis')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="analisis" rows="2"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label fw-bold text-danger">Diagnósticos Presuntivos</label>
+                                <button type="button" class="btn-clear" onclick="clearField('diagnostico')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="diagnostico" rows="2"></textarea>
+                        </div>
+                         <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label fw-bold text-success">Plan de Manejo</label>
+                                <button type="button" class="btn-clear" onclick="clearField('plan')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="plan" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. INDICACIONES -->
+                <div class="section-card border-primary">
+                    <div class="section-header bg-primary text-white">
+                        <span>Indicaciones</span>
+                         <button type="button" class="btn btn-sm btn-light text-primary fw-bold" onclick="macroIndicaciones()">
+                            <i class="fas fa-bolt"></i> Estándar
+                        </button>
+                    </div>
+                    
+                    <div class="macro-toolbar bg-light">
+                        <span class="text-muted me-2" style="font-size: 0.7rem; align-self: center;">TERAPIAS:</span>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('HIDRA_1000')"><i class="fas fa-bolt"></i>Hidratación 1000ml</button>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('K_REP')"><i class="fas fa-bolt"></i>Reposición K+</button>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('DOLOR')"><i class="fas fa-bolt"></i>Bomba Dolor</button>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('ANTICONV')"><i class="fas fa-bolt"></i>Anticonvulsivante</button>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('SEDACION')"><i class="fas fa-bolt"></i>Sedación</button>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('ANALGESIA')"><i class="fas fa-bolt"></i>Analgesia</button>
+                        <button type="button" class="btn-tag btn-tag-indi" onclick="addIndicacion('VASO')"><i class="fas fa-bolt"></i>Vasopresor</button>
+                    </div>
+
+                    <div class="p-3">
+                        <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Medidas Generales</label>
+                                <button type="button" class="btn-clear" onclick="clearField('medidasGenerales')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="medidasGenerales" rows="4"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Hidratación / Nutrición</label>
+                                <button type="button" class="btn-clear" onclick="clearField('hidratacion')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="hidratacion" rows="2"></textarea>
+                        </div>
+                         <div class="mb-2">
+                            <div class="form-label-row">
+                                <label class="form-label">Medicación</label>
+                                <button type="button" class="btn-clear" onclick="clearField('medicacion')"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <textarea class="form-control" id="medicacion" rows="6"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO: VISTA PREVIA -->
+    <div class="preview-panel">
+        <div id="paperSheet" class="paper-sheet">
+            <!-- logo: visible on screen (right) and larger in print (top-left) -->
+            <img id="printLogo" src="/images/saludandina_logo.png" alt="SaludAndina" />
+            <!-- Doctor name (visible on screen and in printed PDF) -->
+            <div id="view-doctor">Doctor: <span class="doc-name">ManGin</span></div>
+            
+            <!-- BLOQUE 1: EVOLUCIÓN (SUPERIOR) -->
+            <div id="container-evolucion" class="preview-block">
+                <button class="btn-copy-section" onclick="copiarContenedor('container-evolucion')">
+                    <i class="fas fa-copy"></i> Copiar Evolución
+                </button>
+                
+                <!-- ELIMINADA CLASE fw-bold -->
+                <div class="paper-text mb-3">
+                    <span id="view-paciente"></span>
+                </div>
+                
+                <div id="block-sv" style="display:none;">
+                    <div class="paper-section-title">SIGNOS VITALES:</div>
+                    <div class="paper-text" id="view-sv"></div>
+                </div>
+
+                <div id="block-examen">
+                    <div class="paper-section-title">AL EXAMEN FÍSICO:</div>
+                    <div class="paper-text" id="view-examen"></div>
+                </div>
+
+                <div id="block-labs">
+                    <div class="paper-section-title">PRUEBAS (Laboratorios/Imágenes):</div>
+                    <div class="paper-text" id="view-labs" style="font-family: 'Consolas', monospace;"></div>
+                </div>
+
+                <div id="block-analisis">
+                    <div class="paper-section-title">ANÁLISIS CLÍNICO:</div>
+                    <div class="paper-text" id="view-analisis"></div>
+                </div>
+
+                <div id="block-dx">
+                    <div class="paper-section-title">DIAGNÓSTICOS PRESUNTIVOS:</div>
+                    <div class="paper-text fw-bold" id="view-dx"></div>
+                </div>
+
+                <div id="block-plan">
+                    <div class="paper-section-title">PLAN DE MANEJO:</div>
+                    <div class="paper-text" id="view-plan"></div>
+                </div>
+            </div>
+
+            <!-- BLOQUE 2: INDICACIONES (INFERIOR) -->
+            <div id="container-indicaciones" class="preview-block">
+                <button class="btn-copy-section" onclick="copiarContenedor('container-indicaciones')">
+                    <i class="fas fa-copy"></i> Copiar Indicaciones
+                </button>
+
+                <div id="block-medidas">
+                    <div class="paper-section-title">MEDIDAS GENERALES</div>
+                    <div class="paper-text" id="view-medidas"></div>
+                </div>
+
+                <div id="block-hidratacion" class="mt-3">
+                    <div class="paper-section-title">HIDRATACIÓN / NUTRICIÓN</div>
+                    <div class="paper-text" id="view-hidratacion"></div>
+                </div>
+
+                <div id="block-medicacion" class="mt-3">
+                    <div class="paper-section-title">MEDICACIÓN</div>
+                    <div class="paper-text" id="view-medicacion"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<div class="action-bar">
+        <button id="btnPrint" class="btn btn-sm btn-success rounded-pill fw-bold" onclick="showPdfInfo()">
+                <i class="fas fa-print me-1"></i> Imprimir / PDF
+        </button>
+        <button class="btn btn-sm btn-danger rounded-pill ms-2" onclick="limpiarTodo()">
+                <i class="fas fa-trash"></i>
+        </button>
+</div>
+<!-- Modal: PDF info -->
+
+<!-- Print footer (hidden on screen, visible in print) -->
+<div id="print-footer" style="display:none">Doctor: <span class="doc-name">ManGin</span></div>
+
+<!-- Modal: PDF info -->
+<div id="pdfModal" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.55);align-items:center;justify-content:center;z-index:9999">
+    <div style="max-width:520px;background:white;border-radius:12px;padding:20px;margin:20px;box-shadow:0 20px 40px rgba(2,6,23,0.35);text-align:left;font-family:Arial">
+        <h3 style="margin-top:0;color:#0d6efd">Generar PDF de la consulta</h3>
+        <p style="color:#334155">Puedes generar y compartir el PDF de la consulta de tres formas sencillas:</p>
+        <ul style="color:#475569">
+            <li><strong>Desde la app Android:</strong> genera el PDF y compártelo directamente desde el dispositivo.</li>
+            <li><strong>Desde Windows (instalador):</strong> usa el instalador de escritorio para exportar consultas en lote o imprimir con mejor formato.</li>
+        </ul>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+            <a id="modal-android" href="/downloads/saludandina_app_android.apk" download class="btn btn-primary" style="text-decoration:none">Descargar Android</a>
+            <a id="modal-windows" href="/downloads/saludandina_setup.exe" download class="btn btn-outline" style="text-decoration:none">Descargar Windows</a>
+            <button id="modal-print" class="btn btn-secondary" style="margin-left:auto">Imprimir ahora</button>
+        </div>
+        <button id="modal-close" style="position:absolute;right:12px;top:12px;background:transparent;border:none;font-size:18px;color:#64748b;cursor:pointer">×</button>
+    </div>
+</div>
+
+<script>
+    /* --- TEXTOS PREDEFINIDOS --- */
+    const TEXTOS_EXAMEN = {
+        'PIEL': 'PIEL Y FANERAS: SIN ALTERACIÓN, SIN SANGRADO EVIDENTE.',
+        'CABEZA': 'CABEZA: NORMOCEFALO, SIMETRICO, SIN MALFORMACIONES CRANEOFACIALES VISIBLES.',
+        'OJOS': 'OJOS: VISION NORMAL PUPILAS ISOCORICAS REACTIVAS.',
+        'NARIZ': 'NARIZ: FOSAS NASALES PERMEABLES.',
+        'BOCA': 'BOCA: MUCOSAS HUMEDAS, BUENA COLORACION.',
+        'OIDOS': 'OIDOS: CONDUCTO AUDITIVO PERMEABLE.',
+        'ORO': 'OROFARINGE: PERMEABLE, NO SECRECION.',
+        'CUELLO': 'CUELLO: SIMETRICO, MOVILIDAD NORMAL.',
+        'TORAX': 'TORAX: SIMETRICO, BUENA MECANICA VENTILATORIA.',
+        'PULMON': 'CAMPOS PULMONARES: MURMULLO VESICULAR NORMAL, SIN RUIDOS AGREGADOS.',
+        'CORAZON': 'RUIDOS CARDIACOS: RITMICOS, NORMOFONETICOS.',
+        'ABDOMEN': 'ABDOMEN: BLANDO, DEPRESIBLE, NO DOLOROSO.',
+        'EXTREM': 'EXTREMIDADES: MOVILES SIMETRICAS, FUERZA CONSERVADA.',
+        'NEURO': 'SISTEMA NEUROLOGICO: DESPIERTO, GLASGOW 15/15.'
+    };
+
+    const TEXTOS_LABS = {
+        'GASO': 'GASOMETRÍA ARTERIAL:\nPH: \nPCO2:  mmHg\nPO2:  mmHg\nHCO3:  mEq/L'
+    };
+    
+    const TEXTOS_INDICACIONES = {
+        'K_REP': 'REPOSICIÓN DE POTASIO:\n-CLORURO DE SODIO 0.9% 250ML MAS CLORURO DE POTASIO 20ML MAS SULFATO DE MAGNESIO 10ML VÍA INTRAVENOSA PASAR EN 1 HORA.',
+        'DOLOR': 'TERAPIA DEL DOLOR:\n-CLORURO DE SODIO AL 0.9% 300 ML MÁS TRAMADOL 300 MG MÁS METOCLOPRAMIDA 20 MG PASAR A 20 ML/HORA\n-KETOROLACO 60 MG PRN',
+        'ANTICONV': 'TERAPIA ANTICONVULSIVANTE:\n-DIAZEPAM 10MG + SOLUCION SALINA 0.9% 10CC, IV 2MG / MIN Y CONTINUAR DOSIS RESPUESTA (DOSIS MAXIMA 20MG)\n-FENITOINA 1GR (4 AMPOLLAS DE 250 MG) + SOLUCION SALINA 0.9% 250CC, IV EN 20 MIN',
+        'HIDRA_1000': 'CLORURO DE SODIO 0.9% 1000 MILILITROS PASAR VIA INTRAVENOSA A 120 MILILITROS POR HORA',
+        'SEDACION': 'SEDACIÓN:\n-PROPOFOL 1 GRAMO EN INFUSION CONTINUA A DOSIS RESPUESTA VIA INTRAVENOSA DOSIS RESPUESTA.',
+        'ANALGESIA': 'ANALGESIA:\n-CLORURO DE SODIO 0.9% 100 MILILITROS MAS 3 AMPOLLAS DE FENTANILO PASAR VIA INTRAVENOSA DOSIS RESPUESTA',
+        'VASO': 'SOPORTE VASOPRESOR:\n-CLORURO DE SODIO 0.9% 100 MILILITROS MAS 16 MILIGRAMOS DE NOREPINEFRINA PASAR VIA INTRAVENOSA DOSIS RESPUESTA'
+    };
+
+    /* --- AUTO-ESCALADO (AUTO-GROW) --- */
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight) + 'px';
+    }
+
+    function initAutoResize() {
+        const areas = document.querySelectorAll('textarea.form-control');
+        areas.forEach(el => {
+            el.addEventListener('input', function() {
+                autoResize(this);
+            });
+            // Trigger inicial por si hay contenido
+            autoResize(el);
+        });
+    }
+
+    /* --- FUNCIONES DE UTILIDAD --- */
+    
+    function clearField(id) {
+        const el = document.getElementById(id);
+        if(el) {
+            el.value = "";
+            if(el.tagName === 'TEXTAREA') autoResize(el); // Reset height
+            if(id === 'diaEstancia') {
+                document.getElementById('diaOrdinalTexto').value = "";
+                document.getElementById('badgeOrdinal').innerText = "Día: -";
+            }
+            actualizarVistaPrevia();
+        }
+    }
+
+    function addExamen(key) {
+        const area = document.getElementById('examenFisico');
+        const texto = TEXTOS_EXAMEN[key];
+        if(!texto) return;
+        area.value = area.value.trim() ? area.value + "\n" + texto : texto;
+        autoResize(area);
+        actualizarVistaPrevia();
+    }
+
+    function macroExamenFisicoCompleto() {
+        const area = document.getElementById('examenFisico');
+        area.value = Object.values(TEXTOS_EXAMEN).join("\n");
+        autoResize(area);
+        actualizarVistaPrevia();
+    }
+
+    function addLab(key) {
+        const area = document.getElementById('labs');
+        const texto = TEXTOS_LABS[key];
+        if(!texto) return;
+        area.value = area.value.trim() ? area.value + "\n\n" + texto : texto;
+        autoResize(area);
+        actualizarVistaPrevia();
+    }
+    
+    function addIndicacion(key) {
+        const texto = TEXTOS_INDICACIONES[key];
+        if(!texto) return;
+        let areaId = 'medicacion';
+        if(key === 'HIDRA_1000') { areaId = 'hidratacion'; }
+        const area = document.getElementById(areaId);
+        area.value = area.value.trim() ? area.value + "\n\n" + texto : texto;
+        autoResize(area);
+        actualizarVistaPrevia();
+    }
+
+    function macroIndicaciones() {
+        const medidas = `MONITORIZACIÓN CONTINUA.
+CONTROL DE SIGNOS VITALES.
+BALANCE HIDRICO ESTRICTO.
+CONTROL ESTRICTO DE TENSION ARTERIAL.
+DIETA NPO.
+MANTENER EUTREMIA.
+CURVA TERMICA
+CUIDADOS DE SONDA VESICAL.
+GASOMETRIA ARTERIAL CADA 6 HORAS.
+ELECTROCARDIOGRAMA
+OXIGENO POR MASCARILLA SIMPLE NASAL A 6 LITROS POR MINUTO
+CUIDADOS DE ENFERMERIA.
+COMUNICAR NOVEDADES A MEDICO RESIDENTE`;
+        const areaMedidas = document.getElementById('medidasGenerales');
+        areaMedidas.value = medidas;
+        autoResize(areaMedidas);
+
+        const hidratacion = `HIDRATACION PARENTERAL.
+CLORURO DE SODIO AL 0.9% 1000ML PASAR VIA INTRAVENOSA 64 ML/HORA.`;
+        const areaHidra = document.getElementById('hidratacion');
+        areaHidra.value = hidratacion;
+        autoResize(areaHidra);
+
+        const medicacion = `TERAPIA DEL DOLOR:
+CLORURO DE SODIO AL 0.9% 300 ML MÁS TRAMADOL 300 MG MÁS METOCLOPRAMIDA 20 MG PASAR A 20 ML HORA
+
+MEDICACION:
+OMEPRAZOL 40MG PASAR IV CADA 24 HORAS.
+PARACETAMOL 1 GRAMO VIA INTRAVENOSA PRN.`;
+        const areaMed = document.getElementById('medicacion');
+        areaMed.value = medicacion;
+        autoResize(areaMed);
+
+        actualizarVistaPrevia();
+    }
+
+    function getValue(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    /* --- LÓGICA PRINCIPAL --- */
+
+    document.addEventListener('input', function(e) {
+        if(e.target.form && e.target.form.id === 'clinicalForm') {
+            actualizarVistaPrevia();
+        }
+    });
+
+    function actualizarVistaPrevia() {
+        // 1. Datos Paciente
+        const sexo = document.getElementById('sexo').value;
+        const edad = document.getElementById('edad').value || "__";
+        const diaOrdinal = document.getElementById('diaOrdinalTexto').value;
+        const area = getValue('area');
+        
+        let fraseCompleta = `PACIENTE ${sexo} DE ${edad} AÑOS DE EDAD`;
+
+        let hospitalInfo = [];
+        if(diaOrdinal) hospitalInfo.push(`${diaOrdinal} DÍA DE ESTANCIA`);
+        if(area) hospitalInfo.push(`EN EL ÁREA DE ${area}`);
+        
+        if(hospitalInfo.length > 0) {
+            fraseCompleta += `, QUE CURSA ${hospitalInfo.join(' ')}`;
+        }
+        fraseCompleta += "."; 
+
+        // 2. Antecedentes
+        let app = getValue('appInput');
+        if(!app) app = "NIEGA ANTECEDENTES PATOLÓGICOS PERSONALES DE IMPORTANCIA";
+        let apf = getValue('apfInput');
+        if(!apf) apf = "NIEGA ANTECEDENTES PATOLÓGICOS FAMILIARES";
+        let alergias = getValue('alergiasInput');
+        if(!alergias) alergias = "NIEGA ALERGIAS";
+
+        fraseCompleta += ` ANTECEDENTES PERSONALES: ${app}. ANTECEDENTES FAMILIARES: ${apf}. ALERGIAS: ${alergias}.`;
+
+        // 3. Evolución y Tiempo
+        const tiempo = getValue('tiempoEvolucion');
+        const sintomas = getValue('evolucion');
+
+        if(tiempo || sintomas) {
+            fraseCompleta += " CON CUADRO CLÍNICO";
+            if(tiempo) fraseCompleta += ` DE ${tiempo} DE EVOLUCIÓN`;
+            if(sintomas) fraseCompleta += `, CARACTERIZADO POR ${sintomas}`;
+            fraseCompleta += ".";
+        } else {
+            fraseCompleta += " CUADRO CLÍNICO NO ESPECIFICADO.";
+        }
+
+        document.getElementById('view-paciente').innerText = fraseCompleta.toUpperCase();
+
+        // 5. Signos Vitales
+        const ta = getValue('sv_ta');
+        const fc = getValue('sv_fc');
+        const fr = getValue('sv_fr');
+        const temp = getValue('sv_temp');
+        const sat = getValue('sv_sat');
+        const gli = getValue('sv_gli');
+        
+        let signosText = [];
+        if(ta) signosText.push(`TENSION ARTERIAL: ${ta} mmHg`);
+        if(fc) signosText.push(`FRECUENCIA CARDIACA: ${fc} LATIDOS POR MINUTO`);
+        if(fr) signosText.push(`FRECUENCIA RESPIRATORIA: ${fr} RESPIRACIONES POR MINUTO`);
+        if(temp) signosText.push(`TEMPERATURA: ${temp} GRADOS CENTIGRADOS`);
+        if(sat) signosText.push(`SATURACION DE OXIGENO: ${sat}%`); 
+        if(gli) signosText.push(`GLICEMIA: ${gli} mg/dL`);
+
+        const blockSv = document.getElementById('block-sv');
+        const viewSv = document.getElementById('view-sv');
+        if(signosText.length > 0) {
+            blockSv.style.display = 'block';
+            viewSv.innerText = signosText.join('. ').toUpperCase() + ".";
+        } else {
+            blockSv.style.display = 'none';
+        }
+
+        // 6. Examen Físico (Con Negritas)
+        const valExam = getValue('examenFisico');
+        const blockExam = document.getElementById('block-examen');
+        const viewExam = document.getElementById('view-examen');
+        
+        if (valExam === "") {
+            blockExam.style.display = 'none'; 
+        } else {
+            blockExam.style.display = 'block';
+            let formattedExam = valExam.toUpperCase()
+                .replace(/\n/g, '<br>') 
+                .replace(/(^|<br>)([\w\sÁÉÍÓÚÑ]+):/g, '$1<strong>$2:</strong>');
+            viewExam.innerHTML = formattedExam;
+        }
+
+        // 7. Labs
+        const valLabs = getValue('labs');
+        const blockLabs = document.getElementById('block-labs');
+        const viewLabs = document.getElementById('view-labs');
+        
+        blockLabs.style.display = 'block'; 
+        if (valLabs === "") {
+            viewLabs.innerText = "PENDIENTE DE RESULTADOS";
+        } else {
+            viewLabs.innerText = valLabs.toUpperCase();
+        }
+
+        // Sincronización Resto
+        syncField('analisis', 'view-analisis', 'block-analisis');
+        syncField('diagnostico', 'view-dx', 'block-dx');
+        syncField('plan', 'view-plan', 'block-plan');
+        syncField('medidasGenerales', 'view-medidas', 'block-medidas');
+        syncField('hidratacion', 'view-hidratacion', 'block-hidratacion');
+        syncField('medicacion', 'view-medicacion', 'block-medicacion');
+    }
+
+    function syncField(inputId, viewId, blockId) {
+        const val = document.getElementById(inputId).value;
+        const block = document.getElementById(blockId);
+        const view = document.getElementById(viewId);
+        
+        if (val.trim() === "") {
+            block.style.display = 'none'; 
+        } else {
+            block.style.display = 'block';
+            view.innerText = val.toUpperCase();
+        }
+    }
+
+    function calcularOrdinal() {
+        const val = document.getElementById('diaEstancia').value;
+        const n = parseInt(val);
+        const ordinales = ["", "PRIMER", "SEGUNDO", "TERCERO", "CUARTO", "QUINTO", "SEXTO", "SÉPTIMO", "OCTAVO", "NOVENO", "DÉCIMO", "UNDÉCIMO", "DUODÉCIMO"];
+        let txt = "";
+        
+        if (!val) txt = ""; 
+        else if (n > 0 && n < ordinales.length) txt = ordinales[n];
+        else if (n > 0) txt = n.toString(); // SOLO EL NÚMERO SI ES MAYOR A 12
+        
+        document.getElementById('diaOrdinalTexto').value = txt;
+        document.getElementById('badgeOrdinal').innerText = txt ? "Día: " + txt : "Día: -";
+        actualizarVistaPrevia();
+    }
+
+    function copiarContenedor(idContenedor) {
+        const container = document.getElementById(idContenedor);
+        const btn = container.querySelector('.btn-copy-section');
+        
+        // Ocultar botón temporalmente
+        const originalDisplay = btn.style.display;
+        btn.style.display = 'none';
+
+        // Crear selección del DOM (Rich Text)
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+            document.execCommand('copy');
+            // Restaurar botón y feedback
+            btn.style.display = originalDisplay;
+            
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+            }, 1500);
+        } catch (err) {
+            console.error('Error al copiar:', err);
+            btn.style.display = originalDisplay;
+            alert("Error al copiar. Intente seleccionar y copiar manualmente.");
+        }
+        
+        selection.removeAllRanges();
+    }
+
+    function limpiarTodo() {
+        if(confirm("¿Borrar todos los campos?")) {
+            document.getElementById('clinicalForm').reset();
+            document.getElementById('diaOrdinalTexto').value = "";
+            document.getElementById('badgeOrdinal').innerText = "Día: -";
+            // Reset alturas
+            document.querySelectorAll('textarea.form-control').forEach(el => autoResize(el));
+            actualizarVistaPrevia();
+        }
+    }
+
+    // Inicialización
+    initAutoResize();
+    actualizarVistaPrevia();
+
+        // PDF modal handlers
+        function showPdfInfo(){
+                const m = document.getElementById('pdfModal');
+                if(m){ m.style.display = 'flex'; }
+        }
+        function hidePdfInfo(){ const m=document.getElementById('pdfModal'); if(m) m.style.display='none'; }
+        document.addEventListener('DOMContentLoaded', ()=>{
+            const modal = document.getElementById('pdfModal');
+            if(modal){
+                const close = document.getElementById('modal-close'); if(close) close.addEventListener('click', hidePdfInfo);
+                const pbtn = document.getElementById('modal-print'); if(pbtn) pbtn.addEventListener('click', ()=>{ hidePdfInfo(); setTimeout(()=>window.print(),150); });
+                // clicking outside content closes
+                modal.addEventListener('click', (e)=>{ if(e.target === modal) hidePdfInfo(); });
+            }
+        });
+
+</script>
+
+</body>
+</html>
