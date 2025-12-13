@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../models/paciente.dart';
 import '../models/consulta.dart';
@@ -130,15 +131,20 @@ class ApiService {
   static Future<Map<String, String>> _getHeaders(
       {bool jsonType = false}) async {
     final prefs = await SharedPreferences.getInstance();
-
     final usuario = prefs.getString('usuario') ?? '';
-    final clave = prefs.getString('clave') ?? '';
+    String? clave;
+    try {
+      const _secure = FlutterSecureStorage();
+      clave = await _secure.read(key: 'clave');
+    } catch (_) {
+      clave = prefs.getString('clave') ?? '';
+    }
     final firebaseUid = prefs.getString('firebaseUid') ?? '';
 
     // El backend espera headers con prefijo `x-` (ver middleware auth.js)
     final headers = <String, String>{};
     if (usuario.isNotEmpty) headers['x-usuario'] = usuario;
-    if (clave.isNotEmpty) headers['x-clave'] = clave;
+    if (clave != null && clave.isNotEmpty) headers['x-clave'] = clave;
     if (firebaseUid.isNotEmpty) headers['x-firebase-uid'] = firebaseUid;
 
     if (jsonType) {

@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../google_auth_service.dart';
 import 'api_services.dart';
@@ -14,6 +15,7 @@ class AuthService {
 
   static final GoogleAuthService _googleAuth = GoogleAuthService();
   static String? lastGoogleSignInError;
+  static const FlutterSecureStorage _secure = FlutterSecureStorage();
 
   // Mantener la constante para reutilizar los endpoints existentes mientras
   // completamos la migración a Firestore.
@@ -154,6 +156,9 @@ class AuthService {
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    try {
+      await _secure.deleteAll();
+    } catch (_) {}
   }
 
   static Future<bool> isAuthenticated() async {
@@ -167,7 +172,7 @@ class AuthService {
 
     final prefs = await SharedPreferences.getInstance();
     final usuario = prefs.getString('usuario');
-    final clave = prefs.getString('clave');
+    final clave = await _secure.read(key: 'clave');
     final firebaseUid = prefs.getString('firebaseUid');
     final hasCredenciales = usuario != null &&
         usuario.isNotEmpty &&
@@ -223,7 +228,13 @@ class AuthService {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('usuario', usuario);
-    await prefs.setString('clave', clave);
+    // store password securely
+    try {
+      await _secure.write(key: 'clave', value: clave);
+    } catch (_) {
+      // fallback to prefs if secure storage fails
+      await prefs.setString('clave', clave);
+    }
 
     final rawUserId = payload['id'];
     if (rawUserId != null && rawUserId.toString().isNotEmpty) {
@@ -249,5 +260,19 @@ class AuthService {
     await prefs.setBool('dueno', payload['dueno'] == true);
     await prefs.setString('authType', 'credentials');
     await prefs.remove('firebaseUid');
+  }
+
+  /// Migrate legacy credentials from SharedPreferences to secure storage.
+  static Future<void> migrateLegacyCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final legacy = prefs.getString('clave');
+    if (legacy != null && legacy.isNotEmpty) {
+      try {
+        await _secure.write(key: 'clave', value: legacy);
+        await prefs.remove('clave');
+      } catch (e) {
+        debugPrint('Migración de credenciales falló: $e');
+      }
+    }
   }
 }
