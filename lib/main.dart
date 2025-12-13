@@ -11,6 +11,9 @@ import 'services/pago_servicios.dart';
 import 'screens/pagos/solicitar_pago_screen.dart';
 import 'screens/admin/pagos_admin_screen.dart';
 import 'services/auth_servicios.dart';
+import 'services/pending_operations.dart';
+import 'services/sync_service.dart';
+import 'package:dio/dio.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -28,6 +31,23 @@ Future<void> main() async {
     }
   } else {
     debugPrint('Firebase inicialización omitida en esta plataforma');
+  }
+
+  // Migrate legacy credentials to secure storage (if any)
+  try {
+    await AuthService.migrateLegacyCredentials();
+  } catch (e) {
+    debugPrint('Error migrando credenciales: $e');
+  }
+
+  // Start sync service to process pending operations when network is available
+  try {
+    final dio = Dio(BaseOptions(baseUrl: AuthService.baseUrl));
+    final store = await PendingOperationsStore.getInstance();
+    final sync = SyncService(dio: dio, store: store);
+    sync.start();
+  } catch (e) {
+    debugPrint('Error iniciando SyncService: $e');
   }
 
   runApp(const ClinicaApp());
