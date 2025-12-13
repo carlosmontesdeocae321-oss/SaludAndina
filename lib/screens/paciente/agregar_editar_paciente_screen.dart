@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/paciente.dart';
 import '../../services/api_services.dart';
+import '../../services/patient_repository.dart';
+import '../../services/pending_operations.dart';
+import 'package:dio/dio.dart';
 
 class AgregarEditarPacienteScreen extends StatefulWidget {
   final Paciente? paciente; // Si es null → agregar, si no → editar
@@ -186,10 +189,28 @@ class _AgregarEditarPacienteScreenState
     }
 
     if (widget.paciente == null) {
-      // AGREGAR
-      final resp = await ApiService.crearPaciente(data);
-      exito = resp['ok'] == true;
-      mensaje = resp['message'] ?? '';
+      // AGREGAR (use PatientRepository so creation works offline)
+      try {
+        final store = await PendingOperationsStore.getInstance();
+        final repo = PatientRepository(Dio(BaseOptions(baseUrl: ApiService.baseUrl)), store);
+        final resp = await repo.createPatient(data);
+        // If resp contains __pending flag, it's queued offline
+        if (resp is Map<String, dynamic> && resp['__pending'] == true) {
+          exito = true;
+          mensaje = 'Paciente agregado (pendiente de sincronización)';
+        } else if (resp is Map<String, dynamic> && resp['ok'] == true) {
+          exito = true;
+          mensaje = resp['message'] ?? 'Paciente agregado';
+        } else if (resp is Map<String, dynamic>) {
+          // fallback: server returned direct patient map
+          exito = true;
+          mensaje = 'Paciente agregado';
+        }
+      } catch (e) {
+        debugPrint('Error creando paciente con repo: $e');
+        exito = false;
+        mensaje = 'Error al crear paciente';
+      }
     } else {
       // EDITAR
       exito = await ApiService.editarPaciente(widget.paciente!.id, data);
