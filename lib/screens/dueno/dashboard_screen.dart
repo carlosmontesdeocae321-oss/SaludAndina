@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../widgets/stat_card.dart';
+import '../../widgets/next_appointments.dart';
+
 import '../../services/api_services.dart';
 import '../../utils/local_clinic_overrides.dart';
 import '../../route_observer.dart';
@@ -207,13 +210,21 @@ class _DashboardDuenoScreenState extends State<DashboardDuenoScreen>
                   if (cid != null && cid != clinicIdForStats) return false;
                   final dt = c.fecha.toLocal();
                   return dt.isAfter(now);
-                } catch (_) { return false; }
+                } catch (_) {
+                  return false;
+                }
               }).toList();
-              next.sort((a,b){
-                try { return a.fecha.compareTo(b.fecha); } catch(_) {return 0;}
+              next.sort((a, b) {
+                try {
+                  return a.fecha.compareTo(b.fecha);
+                } catch (_) {
+                  return 0;
+                }
               });
               _nextAppointments = next.take(5).toList();
-            } catch (_) { _nextAppointments = []; }
+            } catch (_) {
+              _nextAppointments = [];
+            }
           });
         });
       } catch (_) {}
@@ -354,11 +365,25 @@ class _DashboardDuenoScreenState extends State<DashboardDuenoScreen>
                   Row(
                     children: [
                       // use new StatCard widget for consistency
-                      Expanded(child: StatCard(title: 'Pacientes', value: stats?['patients']?.toString() ?? (stats==null?'-':stats?['patients']?.toString() ?? '-'))),
+                      Expanded(
+                          child: StatCard(
+                              title: 'Pacientes',
+                              value: stats?['patients']?.toString() ??
+                                  (stats == null
+                                      ? '-'
+                                      : stats?['patients']?.toString() ??
+                                          '-'))),
                       const SizedBox(width: 12),
-                      Expanded(child: StatCard(title: 'Citas Hoy', value: stats?['appointments_today']?.toString() ?? '-')),
+                      Expanded(
+                          child: StatCard(
+                              title: 'Citas Hoy',
+                              value: stats?['appointments_today']?.toString() ??
+                                  '-')),
                       const SizedBox(width: 12),
-                      Expanded(child: StatCard(title: 'Doctores', value: stats?['doctors']?.toString() ?? '-')),
+                      Expanded(
+                          child: StatCard(
+                              title: 'Doctores',
+                              value: stats?['doctors']?.toString() ?? '-')),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -501,9 +526,13 @@ class _DashboardDuenoScreenState extends State<DashboardDuenoScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Próximas citas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                const Text('Próximas citas',
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 8),
-                                NextAppointments(appointments: _nextAppointments),
+                                NextAppointments(
+                                    appointments: _nextAppointments),
                               ],
                             ),
                           ),
