@@ -40,6 +40,25 @@ body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#222
 .thumb img{max-width:88%;max-height:88%;object-fit:contain}
 .thumb.active{border-color:var(--accent-2);transform:scale(1.03)}
 
+/* Clinic demo styles */
+.demo-container{max-width:1200px;margin:20px auto;padding:18px;display:grid;grid-template-columns:320px 1fr;gap:18px}
+.demo-panel{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(2,6,23,0.06)}
+.search-input{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eefc;margin-bottom:12px}
+.patient-card{padding:12px;border-radius:10px;border:1px solid transparent;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+.patient-card:hover{background:#fbfdff}
+.patient-card.active{border-color:rgba(37,99,235,0.14);background:linear-gradient(180deg,#f6fbff, #fff)}
+.patient-name{font-weight:700}
+.meta{color:var(--muted);font-size:0.92rem}
+.vital-badge{display:inline-block;padding:6px 8px;border-radius:8px;background:#eff6ff;color:#0f172a;margin-right:6px;font-weight:600;border:1px solid #dbeafe}
+.rx-list .rx-item{display:inline-block;background:#fff4eb;border:1px solid #ffd7b5;padding:6px 8px;border-radius:8px;margin-right:6px;margin-bottom:6px}
+.consult-item{padding:12px;border-radius:10px;border:1px solid #eef2ff;background:#fff}
+.consult-header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.consult-body{margin-top:8px}
+.controls-row{display:flex;gap:8px}
+.small{font-size:0.88rem;color:var(--muted)}
+
+@media(max-width:900px){.demo-container{grid-template-columns:1fr;padding:12px}}
+
 /* Lightbox for full-size image */
 .lightbox{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:9999}
 .lightbox img{max-width:92%;max-height:92%;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.6)}

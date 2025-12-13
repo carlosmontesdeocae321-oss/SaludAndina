@@ -319,12 +319,47 @@ router.post('/:id/datos', auth, upload.single('foto'), async (req, res) => {
             usuarioParaVincular = compraFull.usuario_id || userId;
           }
 
-          // Si tenemos un usuario para vincular, actualizar su clinica_id y marcar dueno
+          // Si tenemos un usuario para vincular, actualizar su clinica_id.
+          // Si el usuario es un `doctor`, lo vinculamos como doctor (dueno = 0)
+          // y además creamos un registro en `compras_doctores` para reservar el cupo.
           if (usuarioParaVincular) {
             try {
-              await pool.query('UPDATE usuarios SET clinica_id = ?, dueno = 1 WHERE id = ?', [clinicaId, usuarioParaVincular]);
+              // Obtener rol actual del usuario
+              const [urows] = await pool.query('SELECT rol FROM usuarios WHERE id = ? LIMIT 1', [usuarioParaVincular]);
+              const urow = urows && urows[0] ? urows[0] : null;
+              const rolActual = urow ? (urow.rol || '').toString().toLowerCase() : '';
+
+              if (rolActual === 'doctor' || rolActual === 'medico') {
+                // Vincular como doctor (no dueño)
+                await pool.query('UPDATE usuarios SET clinica_id = ?, dueno = 0 WHERE id = ?', [clinicaId, usuarioParaVincular]);
+                // Asegurar existencia de tabla compras_doctores
+                try {
+                  await pool.query(`
+                    CREATE TABLE IF NOT EXISTS compras_doctores (
+                      id INT AUTO_INCREMENT PRIMARY KEY,
+                      usuario_id INT NOT NULL,
+                      clinica_id INT NOT NULL,
+                      compra_id INT DEFAULT NULL,
+                      creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB;
+                  `);
+                } catch (e) {
+                  console.warn('No se pudo asegurar tabla compras_doctores:', e.message || e);
+                }
+                // Insertar reserva en compras_doctores
+                try {
+                  await pool.query('INSERT INTO compras_doctores (usuario_id, clinica_id, compra_id) VALUES (?, ?, ?)', [usuarioParaVincular, clinicaId, compraId]);
+                } catch (e) {
+                  console.warn('No se pudo insertar en compras_doctores:', e.message || e);
+                }
+                console.log('Linked doctor usuario', usuarioParaVincular, 'to clinica', clinicaId, 'and created compras_doctores entry');
+              } else {
+                // Para otros roles (por ejemplo cuenta tipo `clinica`) marcamos como dueño
+                await pool.query('UPDATE usuarios SET clinica_id = ?, dueno = 1 WHERE id = ?', [clinicaId, usuarioParaVincular]);
+                console.log('Linked usuario', usuarioParaVincular, 'to clinica', clinicaId, 'as owner');
+              }
+
               if (!createdUsuarioId) createdUsuarioId = usuarioParaVincular;
-              console.log('Linked usuario', usuarioParaVincular, 'to clinica', clinicaId);
             } catch (e) { console.warn('Failed to link usuario to clinica in POST datos:', e.message || e); }
           }
 
