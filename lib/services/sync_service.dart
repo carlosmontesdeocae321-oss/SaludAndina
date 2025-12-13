@@ -6,11 +6,11 @@ import 'pending_operations.dart';
 
 class SyncService {
   final Dio dio;
-  final AppDatabase db;
+  final PendingOperationsStore store;
   StreamSubscription<ConnectivityResult>? _sub;
   bool _running = false;
 
-  SyncService({required this.dio, required this.db});
+  SyncService({required this.dio, required this.store});
 
   void start() {
     if (_running) return;
@@ -28,10 +28,10 @@ class SyncService {
   }
 
   Future<void> runSync() async {
-    final ops = await db.listAllOps();
+    final ops = await store.listAll();
     for (final op in ops) {
       try {
-        await db.updateStatus(op.id, 'processing');
+        await store.updateStatus(op.id, 'processing');
         final headers = {'Idempotency-Key': op.idempotencyKey};
         Response resp;
         if (op.resourceType == 'paciente' && op.method == 'POST') {
@@ -50,12 +50,12 @@ class SyncService {
         }
 
         if (resp.statusCode == 200 || resp.statusCode == 201) {
-          await db.removeOp(op.id);
+          await store.remove(op.id);
         } else {
-          await db.updateStatus(op.id, 'failed');
+          await store.updateStatus(op.id, 'failed');
         }
       } catch (e) {
-        await db.updateStatus(op.id, 'failed');
+        await store.updateStatus(op.id, 'failed');
       }
     }
   }

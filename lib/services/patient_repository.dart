@@ -7,9 +7,9 @@ import 'pending_operations.dart';
 
 class PatientRepository {
   final Dio _dio;
-  final AppDatabase _db;
+  final PendingOperationsStore _store;
 
-  PatientRepository(this._dio, this._db);
+  PatientRepository(this._dio, this._store);
 
   /// Create a patient. If offline, this enqueues the operation and returns a
   /// minimal local record. When synced, the server id will be available.
@@ -24,21 +24,8 @@ class PatientRepository {
       // network failed, fallthrough to enqueue
     }
 
-    // enqueue offline using Drift
-    final u = Uuid();
-    final id = u.v4();
-    final idemp = u.v4();
-    final companion = PendingOperationsCompanion.insert(
-      id: id,
-      resourceType: 'paciente',
-      method: 'POST',
-      payload: json.encode(data),
-      idempotencyKey: idemp,
-      status: 'pending',
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-    );
-    await _db.addOp(companion);
-    final op = (await _db.listAllOps()).firstWhere((e) => e.id == id);
+    // enqueue offline using PendingOperationsStore (sembast)
+    final op = await _store.add('paciente', 'POST', data);
     // create a lightweight local representation
     final local = Map<String, dynamic>.from(data);
     local['local_id'] = op.id;

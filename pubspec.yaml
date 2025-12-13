@@ -33,6 +33,10 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   connectivity_plus: ^4.0.1
   dio: ^5.1.0
+  sembast: ^4.0.0
+  drift: ^2.30.0
+  drift_flutter: ^0.2.8
+  sqlite3_flutter_libs: ^0.5.41
     # drift and related deps removed here to keep pubspec resolvable in CI.
     # drift and related deps removed here to keep pubspec resolvable in CI.
 
