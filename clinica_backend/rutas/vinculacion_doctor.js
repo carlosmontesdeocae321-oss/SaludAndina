@@ -13,13 +13,27 @@ router.post('/vincular-doctor', auth, async (req, res) => {
     return res.status(400).json({ error: 'doctor_id y clinica_id son obligatorios' });
   }
   try {
-    // Solo el dueño de la clínica (dueno) o la cuenta tipo 'clinica' asociada pueden vincular doctores a su clínica
-    // Normalizar valores: en BD `dueno` puede venir como 1/0 o true/false; clinica_id también puede ser string/number.
-    const isOwner = req.user && (req.user.dueno === true || Number(req.user.dueno) === 1);
-    const userClinicaId = req.user ? Number(req.user.clinica_id) : null;
-    const targetClinicaId = Number(clinica_id);
-    if (!req.user || ((!isOwner) && req.user.rol !== 'clinica') || userClinicaId !== targetClinicaId) {
-      return res.status(403).json({ error: 'Solo el dueño de la clínica puede vincular doctores' });
+    // Debug: logear user y comprobaciones (temporal)
+    try {
+      const isOwner = req.user && (req.user.dueno === true || Number(req.user.dueno) === 1);
+      const userClinicaId = req.user ? Number(req.user.clinica_id) : null;
+      const targetClinicaId = Number(clinica_id);
+      console.log('[vinculacion_doctor] req.user=', JSON.stringify(req.user));
+      console.log('[vinculacion_doctor] req.body=', JSON.stringify(req.body));
+      console.log('[vinculacion_doctor] computed isOwner=', isOwner, 'userClinicaId=', userClinicaId, 'targetClinicaId=', targetClinicaId, 'userRol=', req.user?.rol);
+      if (!req.user || ((!isOwner) && req.user.rol !== 'clinica') || userClinicaId !== targetClinicaId) {
+        console.warn('[vinculacion_doctor] permiso denegado por owner check');
+        return res.status(403).json({ error: 'Solo el dueño de la clínica puede vincular doctores' });
+      }
+    } catch (logErr) {
+      console.warn('[vinculacion_doctor] error al debug-loguear:', logErr && logErr.message ? logErr.message : logErr);
+      // continuar con la verificación aun si el log falla
+      const isOwner = req.user && (req.user.dueno === true || Number(req.user.dueno) === 1);
+      const userClinicaId = req.user ? Number(req.user.clinica_id) : null;
+      const targetClinicaId = Number(clinica_id);
+      if (!req.user || ((!isOwner) && req.user.rol !== 'clinica') || userClinicaId !== targetClinicaId) {
+        return res.status(403).json({ error: 'Solo el dueño de la clínica puede vincular doctores' });
+      }
     }
     // Usar transacción para evitar estados parciales
     const conn = await db.getConnection();
