@@ -41,10 +41,10 @@ Future<void> main() async {
   }
 
   // Start sync service to process pending operations when network is available
-  try {
+    try {
     final dio = Dio(BaseOptions(baseUrl: AuthService.baseUrl));
-    final store = await PendingOperationsStore.getInstance();
-    final sync = SyncService(dio: dio, store: store);
+    final db = AppDatabase();
+    final sync = SyncService(dio: dio, db: db);
     sync.start();
   } catch (e) {
     debugPrint('Error iniciando SyncService: $e');

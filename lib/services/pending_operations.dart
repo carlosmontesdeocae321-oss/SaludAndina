@@ -25,87 +25,92 @@ class PendingOperation {
   Map<String, dynamic> toJson() => {
         'id': id,
         'resourceType': resourceType,
-        'method': method,
-        'payload': payload,
-        'idempotencyKey': idempotencyKey,
-        'status': status,
-        'createdAt': createdAt,
-      };
+        import 'dart:convert';
 
-  factory PendingOperation.fromJson(Map<String, dynamic> j) => PendingOperation(
-        id: j['id'] as String,
-        resourceType: j['resourceType'] as String,
-        method: j['method'] as String,
-        payload: Map<String, dynamic>.from(j['payload'] ?? {}),
-        idempotencyKey: j['idempotencyKey'] as String,
-        status: j['status'] as String? ?? 'pending',
-        createdAt: j['createdAt'] as int? ?? DateTime.now().millisecondsSinceEpoch,
-      );
-}
+        import 'package:drift/drift.dart';
+        import 'package:drift/native.dart';
+        import 'package:drift/drift_web.dart';
+        import 'package:path_provider/path_provider.dart';
+        import 'package:path/path.dart' as p;
+        import 'dart:io';
 
-class PendingOperationsStore {
-  static const _kKey = 'pending_operations_v1';
+        part 'pending_operations.g.dart';
 
-  final SharedPreferences _prefs;
+        class PendingOperations extends Table {
+          TextColumn get id => text()();
+          TextColumn get resourceType => text()();
+          TextColumn get method => text()();
+          TextColumn get payload => text()();
+          TextColumn get idempotencyKey => text()();
+          TextColumn get status => text().withDefault(const Constant('pending'))();
+          IntColumn get createdAt => integer()();
 
-  PendingOperationsStore._(this._prefs);
+          @override
+          Set<Column> get primaryKey => {id};
+        }
 
-  static Future<PendingOperationsStore> getInstance() async {
-    final p = await SharedPreferences.getInstance();
-    return PendingOperationsStore._(p);
-  }
+        @DriftDatabase(tables: [PendingOperations])
+        class AppDatabase extends _$AppDatabase {
+          AppDatabase() : super(_openConnection());
 
-  List<PendingOperation> _readList() {
-    final raw = _prefs.getStringList(_kKey) ?? [];
-    return raw.map((s) => PendingOperation.fromJson(json.decode(s) as Map<String, dynamic>)).toList();
-  }
+          @override
+          int get schemaVersion => 1;
 
-  Future<void> _writeList(List<PendingOperation> items) async {
-    final raw = items.map((i) => json.encode(i.toJson())).toList();
-    await _prefs.setStringList(_kKey, raw);
-  }
+          Future<List<PendingOperationRecord>> listAllOps() async {
+            final rows = await select(pendingOperations).get();
+            return rows.map((r) => PendingOperationRecord.fromData(r)).toList();
+          }
 
-  Future<List<PendingOperation>> listAll() async => _readList();
+          Future<void> addOp(PendingOperationsCompanion entry) async {
+            await into(pendingOperations).insert(entry);
+          }
 
-  Future<PendingOperation> add(String resourceType, String method, Map<String, dynamic> payload) async {
-    final u = Uuid();
-    final id = u.v4();
-    final op = PendingOperation(
-      id: id,
-      resourceType: resourceType,
-      method: method,
-      payload: payload,
-      idempotencyKey: u.v4(),
-      status: 'pending',
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-    );
-    final list = _readList();
-    list.add(op);
-    await _writeList(list);
-    return op;
-  }
+          Future<void> removeOp(String id) async {
+            await (delete(pendingOperations)..where((t) => t.id.equals(id))).go();
+          }
 
-  Future<void> remove(String id) async {
-    final list = _readList();
-    list.removeWhere((e) => e.id == id);
-    await _writeList(list);
-  }
+          Future<void> updateStatus(String id, String status) async {
+            await (update(pendingOperations)..where((t) => t.id.equals(id))).write(PendingOperationsCompanion(status: Value(status)));
+          }
+        }
 
-  Future<void> updateStatus(String id, String status) async {
-    final list = _readList();
-    final idx = list.indexWhere((e) => e.id == id);
-    if (idx != -1) {
-      final item = list[idx];
-      list[idx] = PendingOperation(
-        id: item.id,
-        resourceType: item.resourceType,
-        method: item.method,
-        payload: item.payload,
-        idempotencyKey: item.idempotencyKey,
-        status: status,
-        createdAt: item.createdAt,
-      );
-      await _writeList(list);
-    }
-  }
-}
+        class PendingOperationRecord {
+          final String id;
+          final String resourceType;
+          final String method;
+          final Map<String, dynamic> payload;
+          final String idempotencyKey;
+          final String status;
+          final int createdAt;
+
+          PendingOperationRecord({
+            required this.id,
+            required this.resourceType,
+            required this.method,
+            required this.payload,
+            required this.idempotencyKey,
+            required this.status,
+            required this.createdAt,
+          });
+
+          factory PendingOperationRecord.fromData(PendingOperationsData d) => PendingOperationRecord(
+                id: d.id,
+                resourceType: d.resourceType,
+                method: d.method,
+                payload: json.decode(d.payload) as Map<String, dynamic>,
+                idempotencyKey: d.idempotencyKey,
+                status: d.status,
+                createdAt: d.createdAt,
+              );
+        }
+
+        LazyDatabase _openConnection() {
+          return LazyDatabase(() async {
+            if (kIsWeb) {
+              return WebDatabase('clinica_app_db');
+            }
+            final dbFolder = await getApplicationDocumentsDirectory();
+            final file = File(p.join(dbFolder.path, 'clinica_app.sqlite'));
+            return NativeDatabase(file);
+          });
+        }
