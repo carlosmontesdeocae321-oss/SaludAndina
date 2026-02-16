@@ -45,7 +45,7 @@ class SyncService {
               data: op.payload, options: Options(headers: headers));
         } else {
           // unsupported operation for now
-          await db.updateStatus(op.id, 'failed');
+          await store.updateStatus(op.id, 'failed');
           continue;
         }
 
